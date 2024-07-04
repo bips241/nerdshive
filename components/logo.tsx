@@ -18,7 +18,7 @@ function Logo() {
       <p
         className={`font-semibold text-xl hidden lg:block ${calSans.className}`}
       >
-        Nerd'sHive
+        Nerd&apos;sHive
       </p>
     </Link>
   );
