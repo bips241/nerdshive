@@ -10,21 +10,25 @@ import { cn } from "@/lib/utils";
 import {
   Activity,
   Bookmark,
+  ChevronLeft,
+  LogOut,
   Menu,
   Moon,
   Settings,
+  Sun,
 } from "lucide-react";
 
+import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
-
-
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 
 function MoreDropdown() {
   const [showModeToggle, setShowModeToggle] = useState(false);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
- 
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     // Close the dropdown when the user clicks outside
@@ -88,6 +92,39 @@ function MoreDropdown() {
               <Moon size={20} />
               <p>Switch appearance</p>
             </DropdownMenuItem>
+
+            {/*<DropdownMenuItem className="menuItem" onClick={() => signOut()}>
+              <LogOut size={20} />
+              <p>Log out</p>
+            </DropdownMenuItem>*/}
+          </>
+        )}
+
+        {showModeToggle && (
+          <>
+            <div className="flex items-center border-b border-gray-200 dark:border-neutral-700 py-3.5 px-2.5">
+              <ChevronLeft size={18} onClick={() => setShowModeToggle(false)} />
+              <p className="font-bold ml-1">Switch appearance</p>
+              {theme === "dark" ? (
+                <Moon size={20} className="ml-auto" />
+              ) : (
+                <Sun size={20} className="ml-auto" />
+              )}
+            </div>
+
+            <Label htmlFor="dark-mode" className="menuItem">
+              Dark Mode
+              <DropdownMenuItem className="ml-auto !p-0">
+                <Switch
+                  id="dark-mode"
+                  className="ml-auto"
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) => {
+                    setTheme(checked ? "dark" : "light");
+                  }}
+                />
+              </DropdownMenuItem>
+            </Label>
           </>
         )}
       </DropdownMenuContent>
