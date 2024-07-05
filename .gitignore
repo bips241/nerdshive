@@ -1,3 +1,4 @@
+node_modules
 # Created by https://www.toptal.com/developers/gitignore/api/nextjs
 # Edit at https://www.toptal.com/developers/gitignore?templates=nextjs
 
@@ -26,9 +27,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.env
 
 # local env files
+# Ignore environment variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore tracing files and directories
+tracing/
+
+.env*.local
 
 # vercel
 .vercel
