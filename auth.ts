@@ -1,10 +1,10 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import GitHubProvider from "next-auth/providers/github";
-import GoogleProvider from "next-auth/providers/google";
-import connectDB from "./lib/db";
-import { User } from "./models/User";
-import { compare } from "bcryptjs";
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import GitHubProvider from 'next-auth/providers/github';
+import GoogleProvider from 'next-auth/providers/google';
+import connectDB from './lib/db';
+import { User } from './models/User';
+import {compare} from 'bcryptjs';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -17,60 +17,69 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
-      name: "Credentials",
+      id: 'credentials',
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        identifier: { label: 'Email/Username', type: 'text' },
+        password: { label: 'Password', type: 'password' },
       },
-      authorize: async (credentials) => {
-        const email = credentials?.email as string;
-        const password = credentials?.password as string;
+      async authorize(credentials: any): Promise<any> {
+        const { identifier, password } = credentials;
 
-        if (!email || !password) {
-          throw new Error("Please provide all credentials");
+        if (!identifier || !password) {
+          throw new Error('Please provide all credentials');
         }
 
-        await connectDB(); 
+        await connectDB();
 
-        const user = await User.findOne({ email });
+        try {
+          const user = await User.findOne({
+            $or: [{ email: identifier }, { user_name: identifier }],
+          }).select("+password");
 
-        if (!user) {
-          throw new Error("User not found, check your credentials");
+          if (!user) {
+            throw new Error("Invalid email or password");
+          }
+  
+          if (!user.password) {
+            throw new Error("Invalid email or password");
+          }
+  
+          const isMatched = await compare(password, user.password);
+  
+          if (!isMatched) {
+            throw new Error("Password did not matched");
+          }
+
+          if (isMatched) {
+            const userData = {
+              _id: user._id.toString(),
+              user_name: user.user_name,
+              email: user.email,
+              role: user.role,
+              isVerified: user.isVerified,
+            };
+
+            return userData;
+          } else {
+            throw new Error('Incorrect password');
+          }
+        } catch (error :any) {
+          console.error('Authorize error:', error);
+          throw new Error(error.message || 'Login failed');
         }
-
-        if (!user.password) {
-          throw new Error("Invalid email or password");
-        }
-
-
-        const isMatched = await compare(password, user.password);
-
-        if (!isMatched) {
-          throw new Error("Password did not match");
-        }
-
-        
-        const userData = {
-          _id: user._id.toString(),
-          user_name: user.user_name,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
-        };
-
-        return userData;
       },
     }),
   ],
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token._id = user._id;
         token.isVerified = user.isVerified;
-        token.user_name = user.user_name;
+        token.user_name = <string><unknown>user.user_name?.toString;
       }
       return token;
     },
@@ -83,7 +92,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
     signIn: async ({ user, account }) => {
-      if (account?.provider === "google" || account?.provider === "github") {
+      if (account?.provider === 'google' || account?.provider === 'github') {
         try {
           const { email, user_name, image, id } = user;
           await connectDB();
@@ -94,11 +103,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
           return true;
         } catch (error) {
-          throw new Error("Error while creating user");
+          throw new Error('Error while creating user');
         }
       }
 
-      if (account?.provider === "credentials") {
+      if (account?.provider === 'credentials') {
         return true;
       } else {
         return false;

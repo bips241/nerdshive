@@ -1,14 +1,17 @@
-import dbConnect from '@/lib/dbConnect';
-import UserModel from '@/model/User';
+import connectDB from '@/lib/db';
+import {User} from '@/models/User';
 
 export async function POST(request: Request) {
   // Connect to the database
-  await dbConnect();
+  await connectDB();
 
   try {
     const { username, code } = await request.json();
+    console.log(username);
     const decodedUsername = decodeURIComponent(username);
-    const user = await UserModel.findOne({ username: decodedUsername });
+    const user = await User.findOne({ user_name: decodedUsername });
+
+    console.log(user);
 
     if (!user) {
       return Response.json(

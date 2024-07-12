@@ -1,14 +1,14 @@
-import dbConnect from '@/lib/dbConnect';
-import UserModel from '@/model/User';
+import connectDB from '@/lib/db';
+import { User } from '@/models/User';
 import { z } from 'zod';
-import { usernameValidation } from '@/schemas/signUpSchema';
+import { u_nameValid } from '@/schemas/signUpSchema';
 
 const UsernameQuerySchema = z.object({
-  username: usernameValidation,
+  username: u_nameValid,
 });
 
 export async function GET(request: Request) {
-  await dbConnect();
+  await connectDB(); // Assuming connectDB() connects to your database
 
   try {
     const { searchParams } = new URL(request.url);
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         {
           success: false,
           message:
-            usernameErrors?.length > 0
+            usernameErrors.length > 0
               ? usernameErrors.join(', ')
               : 'Invalid query parameters',
         },
@@ -34,10 +34,14 @@ export async function GET(request: Request) {
 
     const { username } = result.data;
 
-    const existingVerifiedUser = await UserModel.findOne({
-      username,
+    console.log(`Checking username: ${username}`);
+
+    const existingVerifiedUser = await User.findOne({
+      user_name: username,
       isVerified: true,
     });
+
+    console.log('Existing verified user:', existingVerifiedUser);
 
     if (existingVerifiedUser) {
       return Response.json(

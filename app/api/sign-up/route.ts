@@ -1,16 +1,27 @@
-import dbConnect from '@/lib/dbConnect';
-import UserModel from '@/model/User';
+import connectDB from '@/lib/db';
+import { User } from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { sendVerificationEmail } from '@/helpers/sendVerificationEmail';
 
 export async function POST(request: Request) {
-  await dbConnect();
+  await connectDB();
 
   try {
-    const { username, email, password } = await request.json();
+    const { user_name, email, password } = await request.json();
 
-    const existingVerifiedUserByUsername = await UserModel.findOne({
-      username,
+    // Ensure user_name is not null or undefined
+    if (!user_name || !email || !password) {
+      return Response.json(
+        {
+          success: false,
+          message: 'All fields are required',
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingVerifiedUserByUsername = await User.findOne({
+      user_name,
       isVerified: true,
     });
 
@@ -24,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUserByEmail = await UserModel.findOne({ email });
+    const existingUserByEmail = await User.findOne({ email });
     let verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     if (existingUserByEmail) {
@@ -48,15 +59,13 @@ export async function POST(request: Request) {
       const expiryDate = new Date();
       expiryDate.setHours(expiryDate.getHours() + 1);
 
-      const newUser = new UserModel({
-        username,
+      const newUser = new User({
+        user_name,
         email,
         password: hashedPassword,
         verifyCode,
         verifyCodeExpiry: expiryDate,
         isVerified: false,
-        isAcceptingMessages: true,
-        messages: [],
       });
 
       await newUser.save();
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
     // Send verification email
     const emailResponse = await sendVerificationEmail(
       email,
-      username,
+      user_name,
       verifyCode
     );
     if (!emailResponse.success) {
