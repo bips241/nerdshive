@@ -23,15 +23,36 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
+import { signOut } from "next-auth/react";
+import { useToast } from "@/components/ui/use-toast";
 
 function MoreDropdown() {
   const [showModeToggle, setShowModeToggle] = useState(false);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    await signOut()
+      .then(result => {
+        console.log(result);
+        toast({
+          title: 'logged out successfully'
+        });
+      })
+      .catch(error => {
+        console.error(error);
+        toast({
+          title: 'Error',
+          description: 'something went wrong try again' ,
+          variant: 'destructive'
+        });
+      });
+  };
 
   useEffect(() => {
-    // Close the dropdown when the user clicks outside
+    
     function handleOutsideClick(event: MouseEvent) {
       if (!event.target) return;
       if (ref.current && !ref.current.contains(event.target as Node)) {
@@ -93,10 +114,16 @@ function MoreDropdown() {
               <p>Switch appearance</p>
             </DropdownMenuItem>
 
-            {/*<DropdownMenuItem className="menuItem" onClick={() => signOut()}>
+            <DropdownMenuItem
+              className="menuItem"
+              onClick={(e) => {
+                e.preventDefault();
+                handleSignOut();
+              }}
+            >
               <LogOut size={20} />
               <p>Log out</p>
-            </DropdownMenuItem>*/}
+            </DropdownMenuItem>
           </>
         )}
 

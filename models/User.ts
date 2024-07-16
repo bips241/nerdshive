@@ -17,11 +17,11 @@ const userSchema = new mongoose.Schema({
   },
   verifyCode: {
     type: String,
-    required: [false, 'Verify Code is required'],
+    required: [true, 'Verify Code is required'],
   },
   verifyCodeExpiry: {
     type: Date,
-    required: [false, 'Verify Code Expiry is required'],
+    required: [true, 'Verify Code Expiry is required'],
   },
   role: { type: String, default: "user" },
   image: { type: String },

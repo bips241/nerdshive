@@ -18,9 +18,12 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { signInSchema } from '@/schemas/signInSchema';
 import { IconBrandGoogleFilled, IconBrandGithubFilled } from '@tabler/icons-react';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export default function SignInForm() {
   const router = useRouter();
+  const[isSubmitting,setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -33,13 +36,15 @@ export default function SignInForm() {
   const { toast } = useToast();
 
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+    setIsSubmitting(true);
     const result = await signIn('credentials', {
       redirect: false,
       identifier: data.identifier,
       password: data.password,
     });
-
+    
     if (result?.error) {
+      setIsSubmitting(false);
       console.log(result.error);
       if (result.error === 'CredentialsSignin') {
         toast({
@@ -50,13 +55,14 @@ export default function SignInForm() {
       } else {
         toast({
           title: 'Error',
-          description: 'check credentials and try again',
+          description: "check credentials and try again",
           variant: 'destructive',
         });
       }
     }
 
     if (result?.url) {
+      setIsSubmitting(false);
       router.replace('/dashboard');
     }
   };
@@ -110,7 +116,15 @@ export default function SignInForm() {
                 </FormItem>
               )}
             />
-            <Button className="w-full" type="submit">Sign In</Button>
+            <Button className="w-full" type="submit" disabled={isSubmitting}>
+              {isSubmitting?(
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                    logging in
+                </>
+              )
+              :('Sign In')}
+            </Button>
           </form>
           <div className="flex justify-center space-x-4 mt-4">
             <Button className="rounded-full" onClick={(e) => { e.preventDefault(); handleSocialSignIn('google'); }}>

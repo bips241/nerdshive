@@ -40,6 +40,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (!user) {
             throw new Error("Invalid email or password");
           }
+
+          if (!user.isVerified) {
+            throw new Error('Please verify your account before logging in');
+          }
   
           if (!user.password) {
             throw new Error("Invalid email or password");
@@ -58,6 +62,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: user.email,
               role: user.role,
               isVerified: user.isVerified,
+              image:user.image
             };
 
             return userData;
@@ -66,7 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         } catch (error :any) {
           console.error('Authorize error:', error);
-          throw new Error(error.message || 'Login failed');
+          throw new Error(error);
         }
       },
     }),
@@ -77,20 +82,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token._id = user._id;
+        
+        token.sub = user._id;
         token.isVerified = user.isVerified;
-        token.user_name = <string><unknown>user.user_name?.toString;
+        token.user_name = user.user_name;
+        token.email = user.email;
+        token.image = user.image;
       }
+    
       return token;
     },
     async session({ session, token }) {
-      if (token?.sub && typeof token.isVerified === 'boolean') {
-        session.user.id = token.sub;
+      
+      if (token) {
+        session.user._id = token._id as string;
         session.user.user_name = token.user_name as string;
-        session.user.isVerified = token.isVerified;
+        session.user.isVerified = token.isVerified as boolean;
+        session.user.image = token.image as string;
       }
       return session;
     },
+    
     signIn: async ({ user, account }) => {
       if (account?.provider === 'google' || account?.provider === 'github') {
         try {
@@ -115,3 +127,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
+
+

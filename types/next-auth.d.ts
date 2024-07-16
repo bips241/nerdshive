@@ -1,27 +1,28 @@
-// types/next-auth.d.ts
-import { DefaultUser } from 'next-auth';
+import 'next-auth';
 
 declare module 'next-auth' {
-  interface User extends DefaultUser {
-    _id: string;
-    user_name?: string;
-    isVerified: boolean;
-  }
-
   interface Session {
     user: {
       _id?: string;
       isVerified?: boolean;
       user_name?: string;
-    } & DefaultSession['user'];
+      image:string;
+    } ;
   }
 
+  interface User {
+    _id?: string;
+    isVerified?: boolean;
+    user_name?: string;
+    image:string;
+  }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    id: string;
-    isVerified: boolean;
-    user_name: string;
+    _id?: string;
+    isVerified?: boolean;
+    user_name?: string;
+    image:string;
   }
 }
