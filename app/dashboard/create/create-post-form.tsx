@@ -1,5 +1,5 @@
 "use client";
-import Error from "@/components/Error";
+
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import useMount from "@/hooks/useMount";
 import { CreatePost } from "@/schemas/Post";
 import { createPost } from "@/lib/actions";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CloudUpload, Crosshair, Film, Loader2, Vote } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -33,7 +33,7 @@ import Cropper from 'react-easy-crop';
 import ReactPlayer from 'react-player';
 import getCroppedImg from '@/lib/cropImage';
 import { getSignedURL } from "./actions";
-
+import { Card } from "@/components/ui/card";
 
 interface CropArea {
   x: number;
@@ -62,6 +62,8 @@ function CreatePage() {
   const [croppedArea, setCroppedArea] = useState<CropArea | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const onCropComplete = useCallback((croppedAreaPercentage: any, croppedAreaPixels: CropArea) => {
     setCroppedArea(croppedAreaPixels);
@@ -82,9 +84,15 @@ function CreatePage() {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
+      if(file.size>10485760){
+        console.error('File size is exceeding 15MB');
+        router.push("/dashboard");
+        toast.error('Failed,File size is exceeding 15MB');
+      };
       const fileURL = URL.createObjectURL(file);
       form.setValue("fileUrl", fileURL);
       setIsVideo(file.type.startsWith("video"));
+      setSelectedFile(file);
     }
   };
 
@@ -92,6 +100,7 @@ function CreatePage() {
     form.setValue("fileUrl", "");
     setCroppedImage(null);
     setIsVideo(false);
+    setSelectedFile(null);
   };
 
   const computeSHA256 = async (file: File) => {
@@ -103,35 +112,52 @@ function CreatePage() {
   }
 
   const UploadToS3 = async (file: File) => {
-    const signedURLResult = await getSignedURL({
-      fileSize: file.size,
-      fileType: file.type,
-      checksum: await computeSHA256(file),
-    });
-  
-    if (signedURLResult.failure !== undefined) {
-      console.error('Signed URL error');
-    }
-  
-    if (signedURLResult.success !== undefined) {
-      const { url } = signedURLResult.success;
-  
-      await fetch(url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
+    try {
+      const signedURLResult = await getSignedURL({
+        fileSize: file.size,
+        fileType: file.type,
+        checksum: await computeSHA256(file),
       });
   
-      const fileUrl = url.split("?")[0];
-      return fileUrl;
+      console.log('Signed URL Result:', signedURLResult);
+  
+      if (signedURLResult.failure !== undefined) {
+        console.error('Failed to get signed URL:', signedURLResult.failure);
+        toast.error('Failed to get signed URL');
+        return;
+      }
+  
+      if (signedURLResult.success !== undefined) {
+        const { url } = signedURLResult.success;
+        console.log('Uploading to:', url);
+  
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+  
+        if (!response.ok) {
+          console.error('Upload failed with status:', response.status);
+          toast.error('Upload failed');
+          return;
+        }
+  
+        const fileUrl = url.split("?")[0];
+        return fileUrl;
+      }
+  
+      console.error('Unexpected result format');
+      toast.error('Unexpected result format');
+    } catch (error) {
+      console.error('Error in UploadToS3:', error);
+      toast.error('An unexpected error occurred during upload');
     }
-    console.error('uploading failed');
   };
   
-  
-  
+
   if (!mount) return null;
 
   return (
@@ -170,26 +196,40 @@ function CreatePage() {
 
           {selectedOption === "uploadImage" && (
             <Form {...form}>
-              <form
+              <form 
                 onSubmit={form.handleSubmit(async (values) => {
-                  if (isVideo) {
-                    const file = new File([fileUrl], 'video.mp4', { type: 'video/mp4' });
-                    const uploadedUrl = await UploadToS3(file);
-                    if(uploadedUrl)
-                    {
-                      values.fileUrl = uploadedUrl;
+                  setIsSubmitting(true);
+                  try {
+                    let uploadedUrl: string | undefined;
+              
+                    if (isVideo && selectedFile) {
+                      uploadedUrl = await UploadToS3(selectedFile);
+                    } else if (croppedImage) {
+                      const file = await fetch(croppedImage).then(res => res.blob()).then(blob => new File([blob], 'image.jpg', { type: 'image/jpeg' }));
+                      uploadedUrl = await UploadToS3(file);
                     }
-                  } else if (croppedImage) {
-                    const file = await fetch(croppedImage).then(res => res.blob()).then(blob => new File([blob], 'image.jpg', { type: 'image/jpeg' }));
-                    const uploadedUrl = await UploadToS3(file);
-                    if(uploadedUrl)
-                    {
+              
+                    if (uploadedUrl) {
                       values.fileUrl = uploadedUrl;
+                    } else {
+                      
+                      setIsSubmitting(false);
+                      return;
                     }
-                  }
-                  const res = await createPost(values);
-                  if (res) {
-                    return toast.error(<Error res={res} />);
+              
+                    const res = await createPost(values);
+              
+                    if (res?.errors) {
+                      toast.error('hello im error');
+                    } else {
+                      toast.success("Upload complete");
+                      router.push("/dashboard");
+                    }
+                  } catch (error) {
+                    console.log(selectedFile);
+                    toast.error('An unexpected error occurred');
+                  } finally {
+                    setIsSubmitting(false);
                   }
                 })}
                 className="space-y-4"
@@ -197,9 +237,11 @@ function CreatePage() {
                 {!!fileUrl && (
                   <div>
                     {isVideo ? (
-                      <div className="aspect-w-16 aspect-h-9">
-                        <ReactPlayer url={fileUrl} controls={true} width="100%" height="auto" />
-                      </div>
+                      <Card className="relative max-h-[550px] overflow-hidden border-white mb-6 shadow-custom-light">
+                        <AspectRatio ratio={9/16} className="h-auto rounded-lg w-auto">
+                          <ReactPlayer url={fileUrl} controls={true} width="100%" height="100%" className="rounded-lg aspect-video"/>
+                        </AspectRatio>
+                      </Card>
                     ) : (
                       !croppedImage ? (
                         <div className="h-96 md:h-[450px] overflow-hidden rounded-md relative">
@@ -288,15 +330,14 @@ function CreatePage() {
 
                 <Button
                   type="submit"
-                  disabled={form.formState.isSubmitting || (!isVideo && !croppedImage)}
+                  disabled={isSubmitting || !fileUrl || (!isVideo && !croppedImage)}
                   className="mr-5"
-                > {form.formState.isSubmitting?(
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                      Uploading
-                  </>
-                )
-                :('Create post')}
+                > 
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                        Uploading,Please wait
+                    </>): "Create Post"}
                 </Button>
                               
                 <Button variant="secondary" onClick={() => setSelectedOption(null)}>

@@ -1,7 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+
 import { auth } from "@/auth";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -36,7 +35,7 @@ const allowedFileTypes = [
   "video/quicktime",
 ];
 
-const maxFileSize = 1024 * 1024 * 10; // 10 MB
+const maxFileSize = 1024 * 1024 * 15; // 10 MB
 
 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString("hex");
 
@@ -70,7 +69,7 @@ export const getSignedURL = async ({
   });
 
   try {
-    const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 60 }); // 60 seconds
+    const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 150 }); // 60 seconds
     console.log({ success: url });
     return { success: { url } };
   } catch (error) {
