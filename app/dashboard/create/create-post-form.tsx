@@ -62,7 +62,6 @@ function CreatePage() {
   const [croppedArea, setCroppedArea] = useState<CropArea | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
-  const [isUploading, setisUploading] = useState(false);
 
   const onCropComplete = useCallback((croppedAreaPercentage: any, croppedAreaPixels: CropArea) => {
     setCroppedArea(croppedAreaPixels);
@@ -104,7 +103,6 @@ function CreatePage() {
   }
 
   const UploadToS3 = async (file: File) => {
-    setisUploading(true);
     const signedURLResult = await getSignedURL({
       fileSize: file.size,
       fileType: file.type,
@@ -113,7 +111,6 @@ function CreatePage() {
   
     if (signedURLResult.failure !== undefined) {
       console.error('Signed URL error');
-      setisUploading(false);
     }
   
     if (signedURLResult.success !== undefined) {
@@ -128,10 +125,8 @@ function CreatePage() {
       });
   
       const fileUrl = url.split("?")[0];
-      setisUploading(false);
       return fileUrl;
     }
-    setisUploading(false);
     console.error('uploading failed');
   };
   
@@ -184,9 +179,6 @@ function CreatePage() {
                     {
                       values.fileUrl = uploadedUrl;
                     }
-                    else {
-                      toast.error("Upload failed");
-                    }
                   } else if (croppedImage) {
                     const file = await fetch(croppedImage).then(res => res.blob()).then(blob => new File([blob], 'image.jpg', { type: 'image/jpeg' }));
                     const uploadedUrl = await UploadToS3(file);
@@ -194,21 +186,11 @@ function CreatePage() {
                     {
                       values.fileUrl = uploadedUrl;
                     }
-                    else {
-                      toast.error("Upload failed");
-                    }
                   }
-
-                  
                   const res = await createPost(values);
-
-                  if (res?.errors) {
-                    toast.error("Upload failed");
-                  } else {
-                    toast.success("Upload complete");
-                    router.push("/dashboard");
+                  if (res) {
+                    return toast.error(<Error res={res} />);
                   }
-                  
                 })}
                 className="space-y-4"
               >
@@ -314,7 +296,7 @@ function CreatePage() {
                       Uploading
                   </>
                 )
-                :('Create Post')}
+                :('Create post')}
                 </Button>
                               
                 <Button variant="secondary" onClick={() => setSelectedOption(null)}>
