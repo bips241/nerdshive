@@ -30,7 +30,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import Cropper from 'react-easy-crop';
-import ReactPlayer from 'react-player';
+import ReactPlayer, { ReactPlayerProps } from 'react-player';
 import getCroppedImg from '@/lib/cropImage';
 import { getSignedURL } from "./actions";
 import { Card } from "@/components/ui/card";
@@ -64,6 +64,16 @@ function CreatePage() {
   const [isVideo, setIsVideo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
+
+  const handleVideoReady: ReactPlayerProps['onReady'] = (player) => {
+    const internalPlayer = player.getInternalPlayer();
+    const width = internalPlayer.videoWidth;
+    const height = internalPlayer.videoHeight;
+    setVideoDimensions({ width, height });
+  };
+  
 
   const onCropComplete = useCallback((croppedAreaPercentage: any, croppedAreaPixels: CropArea) => {
     setCroppedArea(croppedAreaPixels);
@@ -167,8 +177,8 @@ function CreatePage() {
         onOpenChange={(open) => !open && router.back()}
       >
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex justify-center">Create new post</DialogTitle>
+          <DialogHeader className="top-3">
+            <DialogTitle className="flex flex-auto justify-center ">Create new post</DialogTitle>
           </DialogHeader>
 
           {!selectedOption && (
@@ -237,11 +247,18 @@ function CreatePage() {
                 {!!fileUrl && (
                   <div>
                     {isVideo ? (
-                      <Card className="relative max-h-[550px] overflow-hidden border-white mb-6 shadow-custom-light">
-                        <AspectRatio ratio={9/16} className="h-auto rounded-lg w-auto">
-                          <ReactPlayer url={fileUrl} controls={true} width="100%" height="100%" className="rounded-lg aspect-video"/>
-                        </AspectRatio>
-                      </Card>
+                      <Card className="relative max-h-[420px] overflow-hidden mb-6 shadow-custom-light">
+                      <AspectRatio ratio={videoDimensions.width / videoDimensions.height} className="h-auto rounded-lg w-auto">
+                        <ReactPlayer
+                          url={fileUrl}
+                          controls={true}
+                          width="100%"
+                          height="100%"
+                          className="rounded-lg aspect-video"
+                          onReady={handleVideoReady}
+                        />
+                      </AspectRatio>
+                    </Card>
                     ) : (
                       !croppedImage ? (
                         <div className="h-96 md:h-[450px] overflow-hidden rounded-md relative">
