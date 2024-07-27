@@ -11,6 +11,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'nerdshive-project-v11.s3.ap-south-1.amazonaws.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'https://lh3.googleusercontent.com'
+      },
     ],
   },
 };

@@ -10,7 +10,7 @@ import crypto from "crypto";
 const s3Client = new S3Client({
   region: process.env.AWS_BUCKET_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY!,
+    accessKeyId: process.env.AWS_ACCESS_KEYL!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
@@ -35,7 +35,7 @@ const allowedFileTypes = [
   "video/quicktime",
 ];
 
-const maxFileSize = 1024 * 1024 * 15; // 10 MB
+const maxFileSize = 1024 * 1024 * 15; // 15 MB
 
 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString("hex");
 
