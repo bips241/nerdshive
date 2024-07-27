@@ -12,17 +12,17 @@ function Header() {
         </p>
       </Link>
 
-      <div className="flex items-center space-x-2">
-        <div className="flex items-center text-neutral-600 dark:text-neutral-400 bg-zinc-100 dark:bg-neutral-800 gap-x-2 rounded-md px-3.5 py-1.5">
+      <div className="flex items-center space-x-2a">
+        <div className="flex items-center ml-[4px] text-neutral-600 dark:text-neutral-400 bg-zinc-100 dark:bg-neutral-800 gap-x-2 rounded-md px-3.5 py-1.5">
           <Search className="h-4 w-4" />
           <input
             type="text"
             placeholder="Search"
-            className="bg-transparent placeholder:text-neutral-600 dark:placeholder:text-neutral-400 flex-1 outline-none"
+            className="w-[150px] bg-transparent placeholder:text-neutral-600 dark:placeholder:text-neutral-400 flex-1 outline-none"
           />
         </div>
 
-        <Button size={"icon"} variant={"ghost"}>
+        <Button size={"icon"} variant={"ghost"} className="pl-[5px]">
           <Heart />
         </Button>
       </div>

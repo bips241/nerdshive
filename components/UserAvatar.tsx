@@ -9,16 +9,21 @@ type Props = Partial<AvatarProps> & {
 };
 
 function UserAvatar({ user, ...avatarProps }: Props) {
+  
+  const imageUrl = user?.image || '';
+
   return (
     <Avatar className="relative h-8 w-8" {...avatarProps}>
-      <Image
-        src={
-          user?.image || ''
-        }
-        fill
-        alt={`${user?.user_name}'s profile picture`}
-        className="rounded-full object-cover"
-      />
+      {user ? (
+        <Image
+          src={imageUrl}
+          fill
+          alt={`${user?.user_name}'s profile picture`}
+          className="rounded-full object-cover"
+        />
+      ) : (
+        <div className="rounded-full bg-gray-200 h-full w-full"></div>
+      )}
     </Avatar>
   );
 }

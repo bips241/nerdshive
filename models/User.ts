@@ -155,7 +155,7 @@ const CommentSchema = new Schema({
 CommentSchema.index({ postId: 1 });
 CommentSchema.index({ userId: 1 });
 
-// Export models
+
 export const VerificationToken = mongoose.models?.VerificationToken || mongoose.model('VerificationToken', VerificationTokenSchema);
 export const Account = mongoose.models?.Account || mongoose.model('Account', AccountSchema);
 export const Follows = mongoose.models?.Follows || mongoose.model('Follows', FollowsSchema);

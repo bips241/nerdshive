@@ -14,5 +14,5 @@ export const getUserId = async () => {
     throw new Error("You must be signed in to use this feature");
   }
 
-  return userId;
+  return userId || null;
 };
