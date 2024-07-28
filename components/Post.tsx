@@ -8,6 +8,17 @@ import { Card } from "./ui/card";
 import PostOptions from "./PostOptions";
 import PostActions from "./PostActions";
 import { auth } from "@/auth";
+import Media from "./Media";
+
+const fetchContentType = async (url: string) => {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.headers.get('Content-Type');
+  } catch (error) {
+    console.error('Error fetching content type:', error);
+    return null;
+  }
+};
 
 const Post = async ({ post }: { post: PostWithExtras }) => {
   console.log('Post received:', post);
@@ -21,9 +32,9 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   }
 
   const username = post?.userId?.user_name;
-  const image = post.fileUrl;
+  const fileUrl = post.fileUrl;
 
-  console.log(image);
+  console.log(fileUrl);
   console.log(username);
   console.log(userId);
 
@@ -39,7 +50,10 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
     userId: post.userId._id.toString()
   };
 
-  
+  const contentType = await fetchContentType(fileUrl);
+
+  const isImage = contentType?.startsWith('image');
+
   return (
     <div className="flex flex-col space-y-2.5">
       <div className="flex items-center justify-between px-3 sm:px-0">
@@ -62,12 +76,16 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
         <PostOptions post={posT} userId={userId} />
       </div>
       <Card className="relative h-[450px] w-full overflow-hidden rounded-none sm:rounded-md">
-        <Image
-          src={post.fileUrl}
-          alt="Post Image"
-          fill
-          className="sm:rounded-md object-cover"
-        />
+        {isImage ? (
+          <Image
+            src={fileUrl}
+            alt="Post Image"
+            fill
+            className="sm:rounded-md object-cover"
+          />
+        ) : (
+          <Media fileUrl={fileUrl} />
+        )}
       </Card>
       <PostActions post={posT} userId={userId} className="px-3 sm:px-0" />
       {post.caption && (
