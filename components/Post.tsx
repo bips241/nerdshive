@@ -68,7 +68,7 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
               <Timestamp createdAt={post.createdAt} />
             </p>
             <p className="text-xs text-black dark:text-white font-medium">
-              Dubai, United Arab Emirates
+              WestBengal, India
             </p>
           </div>
         </div>

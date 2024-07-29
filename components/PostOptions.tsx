@@ -39,7 +39,7 @@ function PostOptions({ post, userId, className }: Props) {
             }}
             className="postOption"
           >
-            <input type="hidden" name="id" value={post.id} />
+            <input type="hidden" name="id" value={post._id} />
             <SubmitButton className="text-red-500 font-bold disabled:cursor-not-allowed w-full p-3">
               Delete post
             </SubmitButton>
@@ -49,7 +49,7 @@ function PostOptions({ post, userId, className }: Props) {
         {isPostMine && (
           <Link
             scroll={false}
-            href={`/dashboard/p/${post.id}/edit`}
+            href={`/dashboard/p/${post._id}/edit`}
             className="postOption p-3"
           >
             Edit

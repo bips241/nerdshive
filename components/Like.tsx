@@ -2,7 +2,7 @@
 
 import { PostWithExtras } from "@/lib/definitions";
 import { cn } from "@/lib/utils";
-import { Like as LikeModel } from "@/models/User"; // Rename to avoid conflict
+
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import ActionIcon from "./ActionIcon";
@@ -21,14 +21,13 @@ function LikeButton({
   userId?: string;
 }) {
   const [likes, setLikes] = useState<Like[]>(post.likes || []);
-  const isLiked = likes.some((like) => like.userId === userId && like.postId === post.id);
+  const isLiked = likes.some((like) => like.userId === userId && like.postId === post._id);
 
   const handleLike = async () => {
     if (!userId) return;
 
-    const postId = post.id;
+    const postId = post._id;
 
-    // Optimistically update UI
     const updatedLikes = isLiked
       ? likes.filter((like) => like.userId !== userId)
       : [...likes, { postId, userId }];
