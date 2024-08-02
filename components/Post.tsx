@@ -46,10 +46,10 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
     _id: post._id.toString(),
     userId: post.userId._id.toString(),
     isLikedByMe: post.isLikedByCurrentUser,
-    likes: post.likes.map((like:LikeWithExtras) => ({
+    likes: post.likes.map((like: { _id: { toString: () => any; }; postId: any; userId: any; createdAt: any; updatedAt: any; }) => ({
       _id: like._id.toString(),
-      postId: like.postId,
-      userId: like.userId,
+      postId: like.postId.toString(),
+      userId: like.userId.toString(),
       createdAt: like.createdAt,
       updatedAt: like.updatedAt,
     })),
