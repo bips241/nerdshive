@@ -1,6 +1,6 @@
 "use client";
 
-import { PostWithExtras } from "@/lib/definitions";
+
 import { cn } from "@/lib/utils";
 
 import { Heart } from "lucide-react";
@@ -8,20 +8,21 @@ import { useState } from "react";
 import ActionIcon from "./ActionIcon";
 import { likePost } from "@/lib/actions";
 
-type Like = {
-  userId: string;
-  postId: string;
+type LikeButtonProps = {
+  post: {
+    _id: string;
+    userId: string;
+    likes: string[];
+    isLikedByMe: boolean;
+  };
+  userId?: string;
 };
 
-function LikeButton({
-  post,
-  userId,
-}: {
-  post: PostWithExtras;
-  userId?: string;
-}) {
-  const [likes, setLikes] = useState<Like[]>(post.likes || []);
-  const isLiked = likes.some((like) => like.userId === userId && like.postId === post._id);
+function LikeButton({ post, userId }: LikeButtonProps) {
+  const [likes, setLikes] = useState<string[]>(post.likes || []);
+  const isLiked = post.isLikedByMe;
+
+  ('LIke button post:',post);
 
   const handleLike = async () => {
     if (!userId) return;
@@ -29,8 +30,8 @@ function LikeButton({
     const postId = post._id;
 
     const updatedLikes = isLiked
-      ? likes.filter((like) => like.userId !== userId)
-      : [...likes, { postId, userId }];
+      ? likes.filter((id) => id !== userId)
+      : [...likes, userId];
 
     setLikes(updatedLikes);
 
@@ -38,11 +39,11 @@ function LikeButton({
       await likePost(postId);
     } catch (error) {
       console.error("Failed to like post:", error);
-      
       setLikes(likes);
     }
   };
 
+  
   return (
     <div className="flex flex-col">
       <ActionIcon onClick={handleLike}>

@@ -10,7 +10,7 @@ type Props = Partial<AvatarProps> & {
 
 function UserAvatar({ user, ...avatarProps }: Props) {
   
-  const imageUrl = user?.image || '';
+  const imageUrl = user?.image || '/avatar.png';
 
   return (
     <Avatar className="relative h-8 w-8" {...avatarProps}>

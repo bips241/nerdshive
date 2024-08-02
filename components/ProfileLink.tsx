@@ -10,7 +10,7 @@ import UserAvatar from "./UserAvatar";
 function ProfileLink({ user }: { user?: User }) {
   const pathname = usePathname();
 
-  //console.log(user);
+  //(user);
 
   if (!user) {
     redirect('/login');

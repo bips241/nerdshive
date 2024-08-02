@@ -13,7 +13,7 @@ export default async function middleware(request: NextRequest) {
   
     const url = request.nextUrl;
 
-    //console.log(`currentUser`, currentUser);
+    //(`currentUser`, currentUser);
   
 
   

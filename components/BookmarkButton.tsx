@@ -7,44 +7,54 @@ import ActionIcon from "@/components/ActionIcon";
 import { Bookmark as BookmarkIcon } from "lucide-react";
 import { useState } from "react";
 
-type SavedPost = {
-  userId: string;
-  postId: string;
-};
-
 type Props = {
   post: PostWithExtras;
   userId?: string;
 };
 
 function BookmarkButton({ post, userId }: Props) {
-  const [bookmarks, setBookmarks] = useState<SavedPost[]>(post.savedBy || []);
-  const isBookmarked = bookmarks.some((bookmark) => bookmark.userId === userId && bookmark.postId === post.id);
+  const [bookmarks, setBookmarks] = useState<string[]>(post.savedBy || []);
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(bookmarks.some((bookmark) => bookmark === userId));
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleBookmark = async () => {
     if (!userId) return;
 
-    const postId = post.id;
-    const newBookmark: SavedPost = { userId, postId };
+    const postId = post._id;
+    const wasBookmarked = isBookmarked;
 
-    // Optimistically update UI
-    const updatedBookmarks = isBookmarked
-      ? bookmarks.filter((bookmark) => bookmark.userId !== userId)
-      : [...bookmarks, newBookmark];
+    // Optimistically update the UI
+    setIsBookmarked(!isBookmarked);
+    setBookmarks((prevBookmarks) => {
+      if (isBookmarked) {
+        return prevBookmarks.filter((bookmark) => bookmark !== userId);
+      } else {
+        return [...prevBookmarks, userId];
+      }
+    });
 
-    setBookmarks(updatedBookmarks);
-
+    setIsLoading(true);
+    
     try {
       await bookmarkPost(postId);
     } catch (error) {
       console.error("Failed to bookmark post:", error);
       // Revert optimistic UI update on error
-      setBookmarks(bookmarks);
+      setIsBookmarked(wasBookmarked);
+      setBookmarks((prevBookmarks) => {
+        if (wasBookmarked) {
+          return [...prevBookmarks, userId];
+        } else {
+          return prevBookmarks.filter((bookmark) => bookmark !== userId);
+        }
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <ActionIcon onClick={handleBookmark} className="ml-auto">
+    <ActionIcon onClick={handleBookmark} className="ml-auto" disabled={isLoading}>
       <BookmarkIcon
         className={cn("h-6 w-6", {
           "dark:fill-white fill-black": isBookmarked,

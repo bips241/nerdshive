@@ -41,7 +41,7 @@ function Comments({
     comments,
     // @ts-ignore
     (state: Comment[], newComment: string) => [
-      { body: newComment, userId: user?.id, postId, user },
+      { body: newComment, userId: user?._id, postId, user },
       ...state,
     ]
   );
@@ -61,7 +61,7 @@ function Comments({
       )}
 
       {optimisticComments.slice(0, 3).map((comment, i) => {
-        const username = comment.user?.username;
+        const username = comment.username;
 
         return (
           <div

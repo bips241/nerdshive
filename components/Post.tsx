@@ -1,5 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
-import { PostWithExtras } from "../lib/definitions";
+import { CommentWithExtras, PostWithExtras, SavedPost } from "../lib/definitions";
 import Image from "next/image";
 import Link from "next/link";
 import Comments from "./Comments";
@@ -21,8 +21,6 @@ const fetchContentType = async (url: string) => {
 };
 
 const Post = async ({ post }: { post: PostWithExtras }) => {
-  console.log('Post received:', post);
-
   const session = await auth();
   const userId = session?.user?._id?.toString();
 
@@ -34,24 +32,40 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   const username = post?.userId?.user_name;
   const fileUrl = post.fileUrl;
 
-  console.log(fileUrl);
-  console.log(username);
-  console.log(userId);
-
+ 
   const user = {
     _id: post.userId._id.toString(),
     user_name: post.userId.user_name,
     email: post.userId.email,
-    image: post.userId.image
+    image: post.userId.image,
   };
 
   const posT = {
     _id: post._id.toString(),
-    userId: post.userId._id.toString()
+    userId: post.userId._id.toString(),
+    isLikedByMe: post.isLikedByCurrentUser,
+    likes: post.likes.map((like: { _id: { toString: () => any; }; postId: { toString: () => any; }; userId: { toString: () => any; }; createdAt: any; updatedAt: any; }) => ({
+      _id: like._id.toString(),
+      postId: like.postId.toString(),
+      userId: like.userId.toString(),
+      createdAt: like.createdAt,
+      updatedAt: like.updatedAt,
+    })),
+    comments: post.comments.map((comment: CommentWithExtras) => ({
+      _id: comment._id.toString(),
+      body: comment.body,
+      postId: comment.postId.toString(),
+      userId: comment.userId.toString(),
+      username: comment.userId.user_name,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
+    })),
+    savedBy: post.savedBy.map((saved: string) => saved.toString())
   };
 
-  const contentType = await fetchContentType(fileUrl);
 
+
+  const contentType = await fetchContentType(fileUrl);
   const isImage = contentType?.startsWith('image');
 
   return (
@@ -96,7 +110,7 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
           <p>{post.caption}</p>
         </div>
       )}
-      <Comments postId={post.id} comments={post.comments} user={session.user} />
+      <Comments postId={posT._id} comments={posT.comments} user={session.user} />
     </div>
   );
 };

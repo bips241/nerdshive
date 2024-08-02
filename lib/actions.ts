@@ -81,10 +81,14 @@ export async function likePost(value: any) {
   try {
     if (like) {
       await Like.deleteOne({ postId, userId });
+      await Post.findByIdAndUpdate(postId, { $pull: { likes: like._id } });
+      await User.findByIdAndUpdate(userId, { $pull: { likes: like._id } });
       revalidatePath("/dashboard");
       return { message: "Unliked Post." };
     } else {
-      await Like.create({ postId, userId });
+      const newLike = await Like.create({ postId, userId });
+      await Post.findByIdAndUpdate(postId, { $push: { likes: newLike._id } });
+      await User.findByIdAndUpdate(userId, { $push: { likes: newLike._id } });
       revalidatePath("/dashboard");
       return { message: "Liked Post." };
     }
@@ -105,6 +109,7 @@ export async function bookmarkPost(value: any) {
   }
 
   const { postId } = validatedFields.data;
+  
   const post = await Post.findById(postId);
 
   if (!post) {
@@ -116,10 +121,17 @@ export async function bookmarkPost(value: any) {
   try {
     if (bookmark) {
       await SavedPost.deleteOne({ postId, userId });
+      
+      await Post.findByIdAndUpdate(postId, { $pull: { savedBy: userId } });
+      await User.findByIdAndUpdate(userId, { $pull: { saved: postId } });
       revalidatePath("/dashboard");
       return { message: "Unbookmarked Post." };
     } else {
-      await SavedPost.create({ postId, userId });
+      
+      const newBookMark = await SavedPost.create({ postId, userId });
+      await Post.findByIdAndUpdate(postId, { $push: { savedBy: newBookMark.userId } });
+      await User.findByIdAndUpdate(userId, { $push: { saved: postId } });
+
       revalidatePath("/dashboard");
       return { message: "Bookmarked Post." };
     }
@@ -147,7 +159,9 @@ export async function createComment(values: unknown) {
   }
 
   try {
-    await Comment.create({ body, postId, userId });
+    const newComment = await Comment.create({ body, postId, userId });
+    await User.findByIdAndUpdate(userId, { $push: { comments: newComment._id } });
+    await Post.findByIdAndUpdate(postId, { $push: { comments: newComment._id } });
     revalidatePath("/dashboard");
     return { message: "Created Comment." };
   } catch (error) {
@@ -167,6 +181,8 @@ export async function deleteComment(formData: { get: (arg0: string) => any; }) {
 
   try {
     await Comment.deleteOne({ _id: id });
+    // await User.findByIdAndUpdate(userId, { $pull: { comments: newComment._id } });
+    // await Post.findByIdAndUpdate(postId, { $pull: { comments: newComment._id } });
     revalidatePath("/dashboard");
     return { message: "Deleted Comment." };
   } catch (error) {

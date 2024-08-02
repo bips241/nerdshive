@@ -4,12 +4,13 @@ import Post from "./Post";
 const Posts = async () => {
   try {
     const posts = await fetchPosts();
-    console.log('Fetched posts:', posts);
 
+
+    
     return (
       <>
         {posts.map((post) => (
-          <Post key={post.id} post={post} />
+          <Post key={post._id} post={post} />
         ))}
       </>
     );
