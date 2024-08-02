@@ -11,7 +11,6 @@ const DashboardPage = async () => {
 
     if (!user) {
       redirect("/login");
-      return null;
     }
 
     return (
