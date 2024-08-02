@@ -22,8 +22,6 @@ function LikeButton({ post, userId }: LikeButtonProps) {
   const [likes, setLikes] = useState<string[]>(post.likes || []);
   const isLiked = post.isLikedByMe;
 
-  ('LIke button post:',post);
-
   const handleLike = async () => {
     if (!userId) return;
 
