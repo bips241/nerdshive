@@ -39,7 +39,7 @@ export async function fetchPosts() {
     });
 
     return plainPosts.map(post => {
-      const likesCount = post.likes?.length || 0; // Ensure likes is defined
+      const likesCount = post.likes?.length || 0; 
       const isLikedByCurrentUser = post.likes?.some((like: { userId: { _id: any } }) => like.userId?._id.toString() === userId) || false; // Ensure userId is defined
 
       return {
