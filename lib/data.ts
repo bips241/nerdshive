@@ -8,47 +8,52 @@ import { getUserId } from "./getSession";
 
 export async function fetchPosts() {
   const userId = await getUserId();
-    await connectDB();
-    noStore();
-    try {
-      const posts = await Post.find({}).select('-__v')
-        .populate({
-          path: 'comments',
-          populate: {
-            path: 'userId',
-            select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
-          },
-          options: { sort: { createdAt: -1 } },
-        })
-        .populate({
-          path: 'likes',
-          populate: {
-            path: 'userId',
-            select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v', // Exclude multiple fields
-          },
-        })
-        .populate({
+  await connectDB();
+  noStore();
+  try {
+    const posts = await Post.find({}).select('-__v')
+      .populate({
+        path: 'comments',
+        populate: {
           path: 'userId',
-          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v', // Exclude multiple fields
-        })
-        .sort({ createdAt: -1 });
-  const plainPosts = posts.map(post => post.toObject()); // Convert Mongoose documents to plain objects
-        
-        return plainPosts.map(post => {
-            const likesCount = post.likes.length;
-            const isLikedByCurrentUser = post.likes.some((like: { userId: { _id: { toString: () => string | null; }; }; }) => like.userId._id.toString() === userId);
-            
-            return {
-                ...post,
-                likesCount,
-                isLikedByCurrentUser,
-            };
-        });
-    } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch posts');
-    }
+          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+        },
+        options: { sort: { createdAt: -1 } },
+      })
+      .populate({
+        path: 'likes',
+        populate: {
+          path: 'userId',
+          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+        },
+      })
+      .populate({
+        path: 'userId',
+        select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+      })
+      .sort({ createdAt: -1 });
+
+    const plainPosts = posts.map(post => {
+      console.log('Post:', post);
+      return post.toObject();
+    });
+
+    return plainPosts.map(post => {
+      const likesCount = post.likes?.length || 0; // Ensure likes is defined
+      const isLikedByCurrentUser = post.likes?.some((like: { userId: { _id: any } }) => like.userId?._id.toString() === userId) || false; // Ensure userId is defined
+
+      return {
+        ...post,
+        likesCount,
+        isLikedByCurrentUser,
+      };
+    });
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch posts');
+  }
 }
+
 
 export async function fetchPostById(id: any) {
     await connectDB();

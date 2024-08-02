@@ -1,5 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
-import { CommentWithExtras, PostWithExtras, SavedPost } from "../lib/definitions";
+import { CommentWithExtras, LikeWithExtras, PostWithExtras, SavedPost, User, UserWithExtras } from "../lib/definitions";
 import Image from "next/image";
 import Link from "next/link";
 import Comments from "./Comments";
@@ -9,6 +9,8 @@ import PostOptions from "./PostOptions";
 import PostActions from "./PostActions";
 import { auth } from "@/auth";
 import Media from "./Media";
+
+
 
 const fetchContentType = async (url: string) => {
   try {
@@ -32,7 +34,7 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   const username = post?.userId?.user_name;
   const fileUrl = post.fileUrl;
 
- 
+
   const user = {
     _id: post.userId._id.toString(),
     user_name: post.userId.user_name,
@@ -40,14 +42,14 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
     image: post.userId.image,
   };
 
-  const posT = {
+  const posT: any = {
     _id: post._id.toString(),
     userId: post.userId._id.toString(),
     isLikedByMe: post.isLikedByCurrentUser,
-    likes: post.likes.map((like: { _id: { toString: () => any; }; postId: { toString: () => any; }; userId: { toString: () => any; }; createdAt: any; updatedAt: any; }) => ({
+    likes: post.likes.map((like:LikeWithExtras) => ({
       _id: like._id.toString(),
-      postId: like.postId.toString(),
-      userId: like.userId.toString(),
+      postId: like.postId,
+      userId: like.userId,
       createdAt: like.createdAt,
       updatedAt: like.updatedAt,
     })),
