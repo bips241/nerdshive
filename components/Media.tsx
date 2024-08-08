@@ -20,7 +20,7 @@ const Media: React.FC<MediaProps> = ({ fileUrl }) => {
   }
 
   return (
-    <div className="relative h-[450px] w-full overflow-hidden rounded-none sm:rounded-md">
+    <div>
       <ReactPlayer
         url={fileUrl}
         controls

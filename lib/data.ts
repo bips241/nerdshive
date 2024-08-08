@@ -34,7 +34,7 @@ export async function fetchPosts() {
       .sort({ createdAt: -1 });
 
     const plainPosts = posts.map(post => {
-      console.log('Post:', post);
+      // console.log('Post:', post);
       return post.toObject();
     });
 
@@ -56,34 +56,48 @@ export async function fetchPosts() {
 
 
 export async function fetchPostById(id: any) {
-    await connectDB();
-    noStore();
-    try {
+  const userId = await getUserId();
+
+  console.log('id:', id);
+  await connectDB();
+  noStore();
+
+  try {
     const post = await Post.findById(id)
       .populate({
         path: 'comments',
         populate: {
-            path: 'user',
-            select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
-          },
+          path: 'userId',
+          select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
+        },
         options: { sort: { createdAt: -1 } }
       })
       .populate({
         path: 'likes',
         populate: {
-            path: 'user',
-            select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
-          }
+          path: 'userId',
+          select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
+        }
       })
       .populate('savedBy')
       .populate('userId');
 
-    return post;
+    // Determine if the post is liked by the current user
+    const isLikedByMe = post.likes?.some((like: { userId: { _id: any } }) => like.userId?._id.toString() === userId) || false;
+
+    // Add isLikedByCurrentUser to the post object
+    const postWithLikeStatus = {
+      ...post.toObject(), // Convert Mongoose document to plain JavaScript object
+      isLikedByMe,
+    };
+
+    return JSON.stringify(postWithLikeStatus);
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch post");
   }
 }
+
 
 export async function fetchPostsByUsername(username: any, postId: any) {
 await connectDB();

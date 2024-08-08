@@ -91,7 +91,7 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
 
         <PostOptions post={posT} userId={userId} />
       </div>
-      <Card className="relative h-[450px] w-full overflow-hidden rounded-none sm:rounded-md">
+      <Card className="relative overflow-hidden h-96 md:h-[500px] lg:h-[700px] xl:h-[800px] max-w-3xl w-full">
         {isImage ? (
           <Image
             src={fileUrl}

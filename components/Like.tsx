@@ -16,7 +16,10 @@ type LikeButtonProps = {
   userId?: string;
 };
 
+
 function LikeButton({ post, userId }: LikeButtonProps) {
+  console.log('p:',post);
+
   const [likes, setLikes] = useState<string[]>(post.likes || []);
   const [isLiked, setIsLiked] = useState(post.isLikedByMe);
   const [loading, setLoading] = useState(false);
@@ -51,10 +54,10 @@ function LikeButton({ post, userId }: LikeButtonProps) {
 
   return (
     <div className="flex flex-col">
-      <ActionIcon onClick={handleLike} disabled={loading}>
+      <ActionIcon onClick={handleLike}>
         <Heart
           className={cn("h-6 w-6", {
-            "text-red-500 fill-red-500": isLiked,
+            "text-red-500 fill-red-500": isLiked ,
           })}
         />
       </ActionIcon>
