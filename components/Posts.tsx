@@ -3,7 +3,9 @@ import Post from "./Post";
 
 const Posts = async () => {
   try {
-    const posts = await fetchPosts();
+    const posT: string[] = await fetchPosts();
+    const posts = posT.map(post => JSON.parse(post));
+
 
 
     

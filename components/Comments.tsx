@@ -61,7 +61,8 @@ function Comments({
       )}
 
       {optimisticComments.slice(0, 3).map((comment, i) => {
-        const username = comment.username;
+        console.log(comment);
+        const username = comment?.userId?.user_name;
 
         return (
           <div

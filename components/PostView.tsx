@@ -43,7 +43,7 @@ function PostView({ id, post, isImage }: { id: string; post: any; isImage?: bool
         <div className="flex flex-col justify-between md:h-full md:order-2 w-full max-w-md">
           <DialogHeader className="flex border-b space-y-0 space-x-2.5 flex-row items-center py-4 pl-3.5 pr-6">
             <Link href={href}>
-              <UserAvatar user={post.user} />
+              <UserAvatar user={post.userId} />
             </Link>
             <Link href={href} className="font-semibold text-sm">
               {username}

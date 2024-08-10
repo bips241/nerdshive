@@ -40,13 +40,12 @@ export async function fetchPosts() {
 
     return plainPosts.map(post => {
       const likesCount = post.likes?.length || 0; 
-      const isLikedByCurrentUser = post.likes?.some((like: { userId: { _id: any } }) => like.userId?._id.toString() === userId) || false; // Ensure userId is defined
+      const isLikedByMe = post.likes?.some((like: { userId: { _id: any } }) => like.userId?._id.toString() === userId) || false; 
 
-      return {
-        ...post,
+      const res = {...post,
         likesCount,
-        isLikedByCurrentUser,
-      };
+        isLikedByMe};
+      return  JSON.stringify(res);
     });
   } catch (error) {
     console.error('Database Error:', error);

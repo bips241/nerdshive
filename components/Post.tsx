@@ -41,31 +41,9 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
     email: post.userId.email,
     image: post.userId.image,
   };
-
-  const posT: any = {
-    _id: post._id.toString(),
-    userId: post.userId._id.toString(),
-    isLikedByMe: post.isLikedByCurrentUser,
-    likes: post.likes.map((like: { _id: { toString: () => any; }; postId: any; userId: any; createdAt: any; updatedAt: any; }) => ({
-      _id: like._id.toString(),
-      postId: like.postId.toString(),
-      userId: like.userId.toString(),
-      createdAt: like.createdAt,
-      updatedAt: like.updatedAt,
-    })),
-    comments: post.comments.map((comment: CommentWithExtras) => ({
-      _id: comment._id.toString(),
-      body: comment.body,
-      postId: comment.postId.toString(),
-      userId: comment.userId.toString(),
-      username: comment.userId.user_name,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    })),
-    savedBy: post.savedBy.map((saved: string) => saved.toString())
-  };
-
-
+   
+  const posT = post;
+  
 
   const contentType = await fetchContentType(fileUrl);
   const isImage = contentType?.startsWith('image');
