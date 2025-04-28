@@ -20,9 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import useMount from "@/hooks/useMount";
 import { CreatePost } from "@/schemas/Post";
-import { createPost } from "@/lib/actions";
+import { createPost, submitPollPost, submitGoalPost, submitProjectPost} from "@/lib/actions";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CloudUpload, Crosshair, Film, Loader2, Vote } from "lucide-react";
+import { CloudUpload, Crosshair, Film, Loader2, Vote, Hammer } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
@@ -123,10 +123,11 @@ function CreatePage() {
 
   const UploadToS3 = async (file: File) => {
     try {
+      const checksum = await computeSHA256(file);
       const signedURLResult = await getSignedURL({
         fileSize: file.size,
         fileType: file.type,
-        checksum: await computeSHA256(file),
+        checksum,
       });
   
       console.log('Signed URL Result:', signedURLResult);
@@ -166,6 +167,83 @@ function CreatePage() {
       toast.error('An unexpected error occurred during upload');
     }
   };
+
+  const handleCreatePoll = () => {
+    const questionInput = document.querySelector<HTMLInputElement>('input[placeholder="Poll Question..."]');
+    const optionInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[placeholder^="Option"]'));
+  
+    if (!questionInput || !optionInputs.length) {
+      toast.error("Poll fields missing");
+      return;
+    }
+  
+    const question = questionInput.value.trim();
+    const options = optionInputs.map(opt => opt.value.trim()).filter(Boolean);
+  
+    if (!question) {
+      toast.error("Poll question is required");
+      return;
+    }
+  
+    if (options.length < 2) {
+      toast.error("At least two options are required");
+      return;
+    }
+  
+    submitPollPost({ question, options });
+  };
+  
+  
+  // for Goal
+  const handleCreateGoal = () => {
+    const textarea = document.querySelector<HTMLTextAreaElement>('textarea[placeholder="Write your goal or idea..."]');
+    const targetDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+  
+    if (!textarea) {
+      toast.error("Goal text missing");
+      return;
+    }
+  
+    const goalText = textarea.value.trim();
+  
+    if (!goalText) {
+      toast.error("Goal cannot be empty");
+      return;
+    }
+    if (!targetDateInput) {
+      toast.error("Target date missing");
+      return;
+    }
+  
+    submitGoalPost({ goal: goalText, goalTargetDate: new Date(targetDateInput.value) });
+  };
+  
+  
+  // for Project
+  const handleCreateProject = () => {
+    const titleInput = document.querySelector<HTMLInputElement>('input[placeholder="Project Title"]');
+    const descTextarea = document.querySelector<HTMLTextAreaElement>('textarea[placeholder="Project Description"]');
+    const techStackInput = document.querySelector<HTMLInputElement>('input[placeholder="Tech Stack (e.g. Next.js, Tailwind)"]');
+    const repoUrlInput = document.querySelector<HTMLInputElement>('input[placeholder="GitHub Repo URL (optional)"]');
+  
+    if (!titleInput || !descTextarea || !techStackInput) {
+      toast.error("Project fields missing");
+      return;
+    }
+  
+    const title = titleInput.value.trim();
+    const description = descTextarea.value.trim();
+    const techStack = techStackInput.value.trim();
+    const repoUrl = repoUrlInput?.value.trim() || null;
+  
+    if (!title || !description || !techStack) {
+      toast.error("All fields except GitHub URL are required");
+      return;
+    }
+  
+    submitProjectPost({ title, description, techStack, repoUrl });
+  };
+  
   
 
   if (!mount) return null;
@@ -182,7 +260,7 @@ function CreatePage() {
           </DialogHeader>
 
           {!selectedOption && (
-            <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 justify-between">
+            <div className="flex flex-col md:flex-col md:space-y-4 space-y-4 md:space-x-0 justify-between">
               <Button variant="ghost"
                 onClick={() => setSelectedOption("uploadImage")}
               >
@@ -201,6 +279,11 @@ function CreatePage() {
                 <Crosshair className="h-5 w-5" />
                 <span className="text-sm md:text-base">Create Goal</span>
               </Button>
+              <Button variant="ghost" onClick={() => setSelectedOption("createProject")}>
+                 <Hammer className="h-5 w-5" />
+                 <span className="text-sm md:text-base">Create Project</span>
+              </Button>
+
             </div>
           )}
 
@@ -365,22 +448,110 @@ function CreatePage() {
           )}
 
           {selectedOption === "polling" && (
-            <div>
-              <p>Polling</p>
-              <Button variant="secondary" onClick={() => setSelectedOption(null)}>
-                Back
-              </Button>
-            </div>
-          )}
+            <div className="space-y-4">
+              <p className="text-lg font-semibold">Create a Poll</p>
 
-          {selectedOption === "createGoal" && (
-            <div>
-              <p>Create Goal</p>
-              <Button variant="secondary" onClick={() => setSelectedOption(null)}>
+              <input
+                type="text"
+                placeholder="Poll Question..."
+                className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Option 1"
+                  className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  placeholder="Option 2"
+                  className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  className="text-primary text-sm hover:underline"
+                >
+                  + Add another option
+                </button>
+              </div>
+
+              <Button className="w-full" onClick={handleCreatePoll}>
+                Post Poll
+              </Button>
+
+              <Button variant="secondary" className="w-full" onClick={() => setSelectedOption(null)}>
                 Back
               </Button>
             </div>
-          )}
+        )}
+
+        {selectedOption === "createGoal" && (
+          <div className="space-y-4">
+            <p className="text-lg font-semibold">Share a Goal</p>
+        
+            <textarea
+              placeholder="Write your goal or idea..."
+              rows={4}
+              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            
+            <div>
+              <p className="text-sm font-medium mb-2">Target Date</p>
+              <input
+              type="date"
+              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <Button className="w-full" onClick={handleCreateGoal}>
+              Post Goal
+            </Button>
+        
+            <Button variant="secondary" className="w-full" onClick={() => setSelectedOption(null)}>
+              Back
+            </Button>
+          </div>
+        )}
+
+        {selectedOption === "createProject" && (
+          <div className="space-y-4">
+            <p className="text-lg font-semibold">Start a Project</p>
+        
+            <input
+              type="text"
+              placeholder="Project Title"
+              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+
+            <textarea
+              placeholder="Project Description"
+              rows={3}
+              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+
+            <input
+              type="text"
+              placeholder="Tech Stack (e.g. Next.js, Tailwind)"
+              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+
+            <input
+              type="url"
+              placeholder="GitHub Repo URL (optional)"
+              className="w-full border rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+
+            <Button className="w-full" onClick={handleCreateProject}>
+              Post Project
+            </Button>
+        
+            <Button variant="secondary" className="w-full" onClick={() => setSelectedOption(null)}>
+              Back
+            </Button>
+          </div>
+        )}
+
         </DialogContent>
       </Dialog>
     </div>

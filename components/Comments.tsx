@@ -69,7 +69,7 @@ function Comments({
             key={i}
             className="text-sm flex items-center space-x-2 font-medium"
           >
-            <Link href={`/dashboard/${username}`} className="font-semibold">
+            <Link href={`/dashboard/user/${username}`} className="font-semibold">
               {username}
             </Link>
             <p>{comment.body}</p>

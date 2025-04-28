@@ -14,7 +14,7 @@ async function MorePosts({ postId }: { postId: string }) {
       <p className="font-semibold text-sm text-neutral-600 dark:text-neutral-400">
         More posts from{" "}
         <Link
-          href={`/dashboard/${postUsername}`}
+          href={`/dashboard/user/${postUsername}`}
           className="dark:text-white text-black hover:opacity-50"
         >
           {postUsername}

@@ -15,7 +15,7 @@ type Props = {
 function Comment({ comment, inputRef }: Props) {
   const { data: session } = useSession();
   const username = comment.userId.user_name;
-  const href = `/dashboard/${username}`;
+  const href = `/dashboard/user/${username}`;
 
   return (
     <div className="group p-3 px-3.5  flex items-start space-x-2.5">

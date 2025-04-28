@@ -1,6 +1,7 @@
 'use client'
 import { Avatar } from "@/components/ui/avatar";
 import type { AvatarProps } from "@radix-ui/react-avatar";
+import { Link } from "lucide-react";
 import type { User } from "next-auth";
 import Image from "next/image";
 
@@ -24,6 +25,9 @@ function UserAvatar({ user, ...avatarProps }: Props) {
       ) : (
         <div className="rounded-full bg-gray-200 h-full w-full"></div>
       )}
+      <Link
+        href="/dashboard/${user?.user_name}"
+      />
     </Avatar>
   );
 }

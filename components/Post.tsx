@@ -52,10 +52,14 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
     <div className="flex flex-col space-y-2.5">
       <div className="flex items-center justify-between px-3 sm:px-0">
         <div className="flex space-x-3 items-center">
+          <Link href={`/dashboard/user/${username}`}>
           <UserAvatar user={user} />
+          </Link>
           <div className="text-sm">
             <p className="space-x-1">
+            <Link href={`/dashboard/user/${username}`}>
               <span className="font-semibold">{username}</span>
+            </Link>
               <span className="font-medium text-neutral-500 dark:text-neutral-400 text-xs">
                 •
               </span>
@@ -84,7 +88,7 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
       <PostActions post={posT} userId={userId} className="px-3 sm:px-0" />
       {post.caption && (
         <div className="text-sm leading-none flex items-center space-x-2 font-medium px-3 sm:px-0">
-          <Link href={`/dashboard/${username}`} className="font-bold">
+          <Link href={`/dashboard/user/${username}`} className="font-bold">
             {username}
           </Link>
           <p>{post.caption}</p>

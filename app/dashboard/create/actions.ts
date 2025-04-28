@@ -1,6 +1,5 @@
 "use server";
 
-
 import { auth } from "@/auth";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -45,10 +44,13 @@ export const getSignedURL = async ({
   checksum,
 }: GetSignedURLParams): Promise<SignedURLResponse> => {
   const session = await auth();
-
+  console.log("SESSION:", session);
   if (!session) {
     return { failure: "not authenticated" };
   }
+
+  console.log("ENV:", process.env.AWS_BUCKET_REGION); // <-- add this
+  console.log("ENV:", process.env.AWS_SECRET_ACCESS_KEY);    // <-- add this
 
   if (!allowedFileTypes.includes(fileType)) {
     return { failure: "File type not allowed" };
@@ -70,9 +72,11 @@ export const getSignedURL = async ({
 
   try {
     const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 150 }); // 60 seconds
+    console.log("Generated signed URL:", url);
     console.log({ success: url });
     return { success: { url } };
   } catch (error) {
+    console.error("Error generating signed URL:", error);
     return { failure: "Failed to generate signed URL" };
   }
 };

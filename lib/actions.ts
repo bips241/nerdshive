@@ -16,9 +16,10 @@ import {
   UpdateUser,
 } from "@/schemas/Post";
 
-import { User, Post, Like, SavedPost, Comment, Follows } from "@/models/User";
+import { User, Post, Like, SavedPost, Comment, Follows, ProjectRequest } from "@/models/User";
 
 export async function createPost(values: z.infer<typeof CreatePost>) {
+  console.log("Creating Post:", values);
   const userId = await getUserId();
 
   const validatedFields = CreatePost.safeParse(values);
@@ -271,3 +272,132 @@ export async function followUser(formData: { get: (arg0: string) => any; }) {
     return { message: "Database Error: Failed to (Un)Follow User." };
   }
 }
+
+
+
+export const submitPollPost = async (data: { question: string; options: string[] }) => {
+  const userId = await getUserId();
+
+  try {
+    await Post.create({
+      poll: {
+        question: data.question,
+        options: data.options.map((opt) => ({ text: opt, votes: [] })),
+      }, // corrected structure
+      postType: "poll",
+      userId,
+    });
+  } catch (error) {
+    console.error(error);
+    throw new Error("Database Error: Failed to create Poll Post.");
+  }
+};
+
+
+export const submitGoalPost = async (data: { goal: string ,goalTargetDate: Date}) => {
+  console.log("Submitting Goal:", data);
+  const userId = await getUserId();
+  // Call your backend API or handle post-creation logic
+
+  try {
+    console.log("Creating Goal Post with data:", data);
+    await Post.create({
+      goal: {
+        description: data.goal,
+        goalTargetDate: data.goalTargetDate,
+        interestedUsers: [],
+      }, // corrected structure
+
+      postType: "goal",
+      userId,
+    });
+  } catch (error) {
+    console.error(error);
+    throw new Error("Database Error: Failed to create Poll Post.");
+  }
+};
+
+export const submitProjectPost = async (data: { title: string; description: string; techStack: string; repoUrl?: string | null }) => {
+  console.log("Submitting Project:", data);
+  const userId = await getUserId();
+  // Call your backend API or handle post-creation logic
+
+  try {
+    await Post.create({
+      postType: "project",
+      userId,
+      project: {
+        title: data.title,
+        description: data.description,
+        techStack: data.techStack.split(",").map((tech) => tech.trim()),
+        repoUrl: data.repoUrl || null,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    throw new Error("Database Error: Failed to create Poll Post.");
+  }
+};
+
+export const handleInterest = async (postId: string, userId: string) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post || !post.goal) {
+      return { failure: "Post or goal not found" };
+    }
+    const alreadyInterested = post.goal.interestedUsers.includes(userId);
+
+    if (alreadyInterested) {
+      // If already interested, remove user
+      post.goal.interestedUsers.pull(userId);
+    } else {
+      // Else, add user
+      const res = post.goal.interestedUsers.push(userId);
+      console.log("Added user to interested users:", res);
+    }
+
+    await post.save();
+
+    return { success: true };
+  }
+  catch (error) {
+    console.error("Error finding post:", error);
+    return { failure: "Post not found" };
+  }
+};
+
+export const checkExistingRequest = async (postId: string, userId: string) => {
+  try {
+    const existingRequest = await ProjectRequest.findOne({ projectId: postId, requesterId: userId });
+
+    if (existingRequest) {
+      return { status: existingRequest.status };
+    }
+
+    return { status: null };
+  } catch (error) {
+    console.error("Error checking request:", error);
+    return { status: null };
+  }
+};
+
+export const createCollabRequest = async (postId: string, userId: string) => {
+  try {
+    const existingRequest = await ProjectRequest.findOne({ projectId: postId, requesterId: userId });
+
+    if (existingRequest) {
+      return { message: "Already requested", status: existingRequest.status };
+    }
+
+    await ProjectRequest.create({
+      projectId: postId,
+      requesterId: userId,
+      status: "pending",
+    });
+
+    return { success: true, status: "pending" };
+  } catch (error) {
+    console.error("Error creating collab request:", error);
+    return { failure: "Server error" };
+  }
+};

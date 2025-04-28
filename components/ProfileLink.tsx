@@ -16,7 +16,7 @@ function ProfileLink({ user }: { user?: User }) {
     redirect('/login');
   }
 
-  const href = `/dashboard/${user.user_name}`;
+  const href = `/dashboard/user/${user.user_name}`;
   const isActive = pathname === href;
 
   return (

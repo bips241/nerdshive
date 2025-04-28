@@ -97,7 +97,55 @@ export async function fetchPostById(id: any) {
   }
 }
 
+///
+export async function fetchProfilePosts(username: string) {
+  await connectDB();
+  noStore();
 
+  try {
+    const user = await User.findOne({ user_name: username });
+    if (!user) throw new Error("User not found");
+
+    const posts = await Post.find({ userId: user._id.toString() }).select('-__v')
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'userId',
+          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+        },
+        options: { sort: { createdAt: -1 } },
+      })
+      .populate({
+        path: 'likes',
+        populate: {
+          path: 'userId',
+          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+        },
+      })
+      .populate({
+        path: 'userId',
+        select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+      })
+      .sort({ createdAt: -1 });
+
+    const plainPosts = posts.map(post => post.toObject());
+
+    return plainPosts.map(post => {
+      const likesCount = post.likes?.length || 0;
+      const isLikedByMe = false; // optional: set based on logged-in user if needed
+
+      return JSON.stringify({
+        ...post,
+        likesCount,
+        isLikedByMe
+      });
+    });
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch posts');
+  }
+}
+///
 export async function fetchPostsByUsername(username: any, postId: any) {
 await connectDB();
 noStore();

@@ -113,16 +113,61 @@ FollowsSchema.index({ followingId: 1 });
 
 // Post schema
 const PostSchema = new Schema({
+  postType: {
+    type: String,
+    enum: ['media', 'poll', 'goal', 'project'],
+    default: 'media'
+  },
+  project: {
+    title: { type: String },
+    description: { type: String },
+    techStack: [{ type: String }],    // ["Next.js", "Node.js", "MongoDB"]
+    repoUrl: { type: String },         // optional GitHub link
+    members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    lookingFor: [{ type: String,required: false}],    // ["Frontend Developer", "UI Designer"]
+  },
   caption: { type: String, default: null },
-  fileUrl: { type: String, unique: true, required: true },
+  fileUrl: { type: String }, // Only for media posts (optional for poll/goal)
+  
   likes: [{ type: Schema.Types.ObjectId, ref: 'Like' }],
   savedBy: [{ type: Schema.Types.ObjectId, ref: 'SavedPost' }],
   comments: [{ type: Schema.Types.ObjectId, ref: 'Comment' }],
-  userId: { type: String, required: true, ref: 'User' }
+  userId: { type: String, required: true, ref: 'User' },
+  
+  // For Polls
+  poll: {
+    question: { type: String },
+    options: [
+      {
+        text: { type: String },
+        votes: [{ type: Schema.Types.ObjectId, ref: 'User' }]
+      }
+    ],
+  },
+
+  // For Goals
+  goal: {
+    description: { type: String },
+    goalTargetDate: { type: Date },
+    interestedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  },
+
 }, {
   timestamps: true
 });
+
 PostSchema.index({ userId: 1 });
+
+// ProjectRequest schema
+
+const ProjectRequestSchema = new Schema({
+  projectId: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
+  requesterId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+}, {
+  timestamps: true
+});
+
 
 // SavedPost schema
 const SavedPostSchema = new Schema({
@@ -163,3 +208,4 @@ export const Post = mongoose.models?.Post || mongoose.model('Post', PostSchema);
 export const SavedPost = mongoose.models?.SavedPost || mongoose.model('SavedPost', SavedPostSchema);
 export const Like = mongoose.models?.Like || mongoose.model('Like', LikeSchema);
 export const Comment = mongoose.models?.Comment || mongoose.model('Comment', CommentSchema);
+export const ProjectRequest = mongoose.models?.ProjectRequest || mongoose.model("ProjectRequest", ProjectRequestSchema);
