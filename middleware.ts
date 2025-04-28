@@ -8,7 +8,7 @@ export const config = {
 };
 
 export default async function middleware(request: NextRequest) {
-  const currentUser = await request.cookies.get('_secureauthjs.session-token')?.value;
+  const currentUser = await request.cookies.get('__Secure-authjs.session-token')?.value;
     
   console.log('currentUser', currentUser);
     const url = request.nextUrl;
