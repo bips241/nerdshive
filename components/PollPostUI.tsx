@@ -8,6 +8,7 @@ import PostActions from './PostActions';
 import Comments from './Comments';
 import { PostWithExtras } from '@/lib/definitions';
 import { auth } from '@/auth';
+import Poll from './pollStats';
 
 const PollPostUI: React.FC<PostWithExtras> = async ({post}) => {
 
@@ -58,27 +59,24 @@ const PollPostUI: React.FC<PostWithExtras> = async ({post}) => {
             </div>
 
             <Card 
-            className="relative overflow-hidden p-6 h-96 md:h-[500px] lg:h-[700px] xl:h-[800px] max-w-3xl w-full flex flex-col justify-center items-center space-y-6"
+            className="relative overflow-hidden p-8 h-96 md:h-[500px] lg:h-[700px] xl:h-[800px] max-w-4xl w-full flex flex-col justify-center items-center space-y-8"
             style={{
                 backgroundImage: 'url(/poll.jpg)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                borderRadius: '12px',
+                borderRadius: '24px',
             }}
             >
-            <h2 className="text-xl font-bold text-center text-black dark:text-white bg-white/70 dark:bg-black/70 px-4 py-2 rounded-md">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 px-8 py-4 rounded-full shadow-lg transform transition-transform hover:scale-105 tracking-wide leading-tight">
                 {pollQuestion}
             </h2>
-            <div className="flex flex-col space-y-3 w-full max-w-md">
-             {pollOptions.map((option: { text: string }, idx: number) => (
-                 <div 
-                     key={idx} 
-                     className="w-full border border-neutral-300 dark:border-neutral-700 rounded-md px-4 py-2 text-center font-medium text-black dark:text-white bg-white/80 dark:bg-black/80"
-                 >
-                     {option.text}
-                 </div>
-                 ))}
-            </div>
+            {userId && (
+                <Poll 
+                    pollId={post._id} 
+                    userId={userId} 
+                    pollOptions={pollOptions} 
+                />
+            )}
             </Card>
 
             <PostActions post={post} userId={userId} className="px-3 sm:px-0" />

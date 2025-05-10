@@ -75,24 +75,30 @@ const GoalPostUI: React.FC<PostWithExtras> = async ({post}) => {
                 <PostOptions post={post} userId={userId} />
             </div>
 
-            <Card className="relative overflow-hidden p-6 h-96 md:h-[500px] lg:h-[700px] xl:h-[800px] max-w-3xl w-full flex flex-col justify-center space-y-6">
-                <h2 className="text-3xl font-extrabold text-center text-black dark:text-white tracking-wide">
-                    {post.goalTitle}
+            <Card className="relative overflow-hidden p-8 h-auto md:h-[500px] lg:h-[700px] xl:h-[800px] max-w-4xl w-full flex flex-col justify-center items-center space-y-8 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+                <h2 className="text-4xl font-extrabold text-center text-white tracking-wider drop-shadow-lg">
+                    🚀 {post.goalTitle} 🚀
                 </h2>
-                <p className="text-center text-2xl text-neutral-800 dark:text-neutral-200 font-semibold leading-relaxed">
-                    {post.goal.description}
+                <p className="text-center text-2xl text-white font-semibold leading-relaxed italic drop-shadow-md">
+                    "{post.goal.description}"
                 </p>
-                <p className="text-center text-xl text-red-600 dark:text-red-400 font-medium italic">
-                    Target Date: {format(new Date(post.goal.goalTargetDate), 'dd MMM yyyy')}
+                <p className="text-center text-lg text-yellow-300 font-medium italic">
+                    🎯 Target Date: {format(new Date(post.goal.goalTargetDate), 'dd MMM yyyy')}
                 </p>
-                <div className="flex justify-center space-x-4 mt-4">
-                    {userId && <InterestedButton postId={post._id} userId={userId} />}
+                <div className="flex justify-center space-x-6 mt-6">
+                    {userId && (
+                        <InterestedButton 
+                            postId={post._id} 
+                            userId={userId} 
+                        />
+                    )}
                 </div>
-                <div className="flex justify-center space-x-6 mt-2">
-                    <p className="font-medium">
-                        Interested: <span className="text-blue-600 dark:text-blue-400">{post.goal.interestedUsers.length || 0}</span>    
+                <div className="flex justify-center space-x-6 mt-4">
+                    <p className="font-medium text-white text-lg">
+                        🌟 Interested: <span className="text-yellow-300">{post.goal.interestedUsers.length || 0}</span>
                     </p>
                 </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-20 pointer-events-none"></div>
             </Card>
 
             <PostActions post={post} userId={userId} className="px-3 sm:px-0" />

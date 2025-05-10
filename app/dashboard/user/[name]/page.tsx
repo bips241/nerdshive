@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
-import { Button } from "@/components/ui/button";
+import EditProfileButton from "@/components/editBtn";
+
 import UserAvatar from "@/components/UserAvatar";
 import { fetchProfilePosts } from "@/lib/data";
+
 
 type Props = {
     params: {
@@ -79,9 +81,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
                             <span className="font-medium text-foreground">380</span> following
                         </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                        Edit Profile
-                    </Button>
+                    <EditProfileButton />
                 </div>
             </div>
 

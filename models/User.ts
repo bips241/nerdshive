@@ -168,6 +168,14 @@ const ProjectRequestSchema = new Schema({
   timestamps: true
 });
 
+// poll vote result schema
+
+const PollVoteSchema = new mongoose.Schema({
+  pollId: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true }, // assuming polls are posts
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  selectedOptionIndex: { type: Number, required: true }, // which option they chose (0,1,2,etc)
+}, { timestamps: true });
+
 
 // SavedPost schema
 const SavedPostSchema = new Schema({
@@ -209,3 +217,4 @@ export const SavedPost = mongoose.models?.SavedPost || mongoose.model('SavedPost
 export const Like = mongoose.models?.Like || mongoose.model('Like', LikeSchema);
 export const Comment = mongoose.models?.Comment || mongoose.model('Comment', CommentSchema);
 export const ProjectRequest = mongoose.models?.ProjectRequest || mongoose.model("ProjectRequest", ProjectRequestSchema);
+export const PollVote = mongoose.models.PollVote || mongoose.model('PollVote', PollVoteSchema);

@@ -36,13 +36,22 @@ export const InterestedButton = ({ postId, userId }: InterestedButtonProps) => {
             type="button"
             onClick={handleInterestedClick}
             disabled={isInterested}
-            className={`px-4 py-2 font-semibold rounded transition ${
-                isInterested
-                    ? "bg-green-400 dark:bg-green-600 text-neutral-50 dark:text-neutral-200 cursor-not-allowed"
-                    : "bg-blue-400 dark:bg-blue-600 text-neutral-50 dark:text-neutral-200 hover:bg-blue-500 dark:hover:bg-blue-700"
+            className={`relative px-6 py-3 font-semibold rounded-full transition-all duration-300 transform ${
+            isInterested
+                ? "bg-gradient-to-r from-green-400 to-green-600 text-white cursor-not-allowed scale-100"
+                : "bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:scale-105 hover:shadow-lg"
             }`}
         >
+            <span
+            className={`absolute inset-0 rounded-full blur-md ${
+                isInterested
+                ? "bg-green-500 opacity-50"
+                : "bg-blue-500 opacity-50"
+            }`}
+            ></span>
+            <span className="relative z-10">
             {isInterested ? "Interested ✔" : "Interested"}
+            </span>
         </button>
     );
 };
