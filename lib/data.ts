@@ -104,6 +104,7 @@ export async function fetchProfilePosts(username: string) {
 
   try {
     const user = await User.findOne({ user_name: username });
+    console.log('user:', username);
     if (!user) throw new Error("User not found");
 
     const posts = await Post.find({ userId: user._id.toString() }).select('-__v')

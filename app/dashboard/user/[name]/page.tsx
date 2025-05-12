@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import EditProfileButton from "@/components/editBtn";
+import FollowButton from "@/components/followBtn";
 
 import UserAvatar from "@/components/UserAvatar";
 import { fetchProfilePosts } from "@/lib/data";
@@ -20,7 +21,8 @@ type ProfilePost = {
 async function fetchContentType(url: string): Promise<string | null> {
     try {
         const response = await fetch(url, { method: "HEAD" });
-        return response.headers.get("Content-Type");
+        const contentType = response.headers.get("Content-Type");
+        return contentType ? contentType : null;
     } catch (error) {
         console.error("Failed to fetch content type:", error);
         return null;
@@ -43,11 +45,11 @@ export default async function ProfilePage({ params: { name } }: Props) {
     let profilePost: string[] = [];
     try {
         profilePost = await fetchProfilePosts(name);
-        console.log("Profile Posts:", profilePost);
+        //console.log("Profile Posts:", profilePost);
 
-        profilePost.forEach((post: string, index: number) => {
+        /*profilePost.forEach((post: string, index: number) => {
             console.log(`Post ${index + 1}:`, JSON.parse(post));
-        });
+        });*/
     } catch (error) {
         console.log("Database Error:", error);
     }
@@ -55,7 +57,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
     const parsedPosts = await Promise.all(
         profilePost.map(async (postStr) => {
             const post: ProfilePost = JSON.parse(postStr);
-            const type = await fetchContentType(post.fileUrl);
+            const type = post.fileUrl ? await fetchContentType(post.fileUrl) : null;
             return { post, type };
         })
     );
@@ -82,6 +84,9 @@ export default async function ProfilePage({ params: { name } }: Props) {
                         </div>
                     </div>
                     <EditProfileButton />
+                    {!isActive && (
+                        <FollowButton name={name} followerId={session?.user?._id || ""} />
+                    )}
                 </div>
             </div>
 

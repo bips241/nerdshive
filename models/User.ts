@@ -108,8 +108,32 @@ const FollowsSchema = new Schema({
   followerId: { type: String, required: true, ref: 'User' },
   followingId: { type: String, required: true, ref: 'User' }
 });
-FollowsSchema.index({ followerId: 1 });
-FollowsSchema.index({ followingId: 1 });
+FollowsSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
+
+//chatroom schema
+
+const ChatRoomSchema = new Schema({
+  participants: [
+    { type: Schema.Types.ObjectId, ref: 'User', required: true }
+  ],
+  lastMessage: {
+    type: String,
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now,
+  }
+}, { timestamps: true });
+
+
+// Message schema
+const MessageSchema = new Schema({
+  roomId: { type: Schema.Types.ObjectId, ref: 'ChatRoom', required: true },
+  sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  text: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+}, { timestamps: true });
+
 
 // Post schema
 const PostSchema = new Schema({
@@ -217,4 +241,6 @@ export const SavedPost = mongoose.models?.SavedPost || mongoose.model('SavedPost
 export const Like = mongoose.models?.Like || mongoose.model('Like', LikeSchema);
 export const Comment = mongoose.models?.Comment || mongoose.model('Comment', CommentSchema);
 export const ProjectRequest = mongoose.models?.ProjectRequest || mongoose.model("ProjectRequest", ProjectRequestSchema);
-export const PollVote = mongoose.models.PollVote || mongoose.model('PollVote', PollVoteSchema);
+export const PollVote = mongoose.models?.PollVote || mongoose.model('PollVote', PollVoteSchema);
+export const ChatRoom = mongoose.models?.ChatRoom || mongoose.model('ChatRoom', ChatRoomSchema);
+export const Message = mongoose.models?.Message || mongoose.model('Message', MessageSchema);

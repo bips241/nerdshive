@@ -1,6 +1,11 @@
+
+import ChatList from "@/components/chatList";
+import ChatListWrapper from "@/components/chatListWrapper";
+import Chat from "@/components/fireChat";
 import SideNav from "@/components/SideNav";
 
 import { Toaster } from "sonner";
+
 
 export default function DashboardLayout({
   children,
@@ -16,7 +21,10 @@ export default function DashboardLayout({
       <div className="flex-grow mt-12 md:mt-0 flex-1 w-full md:overflow-y-auto sm:p-6 md:p-12 max-w-7xl mx-auto">
         {children}
       </div>
-      <div>messeges section</div>
+      <div>
+        <ChatListWrapper />
+      </div>
+
     </div>
   );
 }
