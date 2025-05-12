@@ -11,16 +11,16 @@ export default function SocketBootstrapper() {
       return;
     }
   
-    // just initialize socket.io instead of fetch
     const socket = io(socketServerUrl, {
       path: '/socket.io',
+      transports: ['websocket'],
+      withCredentials: true
     });
   
     return () => {
       socket.disconnect();
     };
-  }, []);
-  
+  }, []); // Dependency array ensures this runs only once
 
   return null;
 }

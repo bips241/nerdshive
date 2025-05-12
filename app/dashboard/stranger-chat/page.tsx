@@ -23,7 +23,7 @@ const VideoChat = () => {
       // 1. Init socket and peer
       const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL as string , {
         path: '/socket.io',
-        transports: ['websocket','polling'],
+        transports: ['websocket'],
         withCredentials: true
       });
       socketRef.current = socket;
