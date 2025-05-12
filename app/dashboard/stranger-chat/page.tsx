@@ -24,6 +24,7 @@ const VideoChat = () => {
       const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL as string , {
         path: '/socket.io',
         transports: ['websocket','polling'],
+        withCredentials: true
       });
       socketRef.current = socket;
 
