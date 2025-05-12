@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
 
+
 const intents = ['hiring', 'looking_for_job', 'project_teammate'];
 
 const VideoChat = () => {
@@ -12,6 +13,7 @@ const VideoChat = () => {
   const [swiped, setSwiped] = useState(false);  // Track swipe action
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
 
   const socketRef = useRef<any>(null);
   const peerRef = useRef<Peer | null>(null);
@@ -67,16 +69,33 @@ const VideoChat = () => {
   }, [intent]);
 
   const handleSkip = () => {
-    setSwiped(true); // Trigger swipe animation
-
-    // Emit the skip event
+    setSwiped(true);
+  
+    // Notify server you're skipping
     socketRef.current?.emit('skip');
-    
-    // After the swipe animation, reload the page
+  
+    // Clean up PeerJS and reset state after swipe animation
     setTimeout(() => {
-      window.location.reload();
-    }, 500);  // Wait for the animation to complete
+      // Stop local stream
+      if (localVideoRef.current?.srcObject) {
+        (localVideoRef.current.srcObject as MediaStream)
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
+  
+      // Destroy PeerJS instance
+      peerRef.current?.destroy();
+  
+      // Disconnect socket
+      socketRef.current?.disconnect();
+  
+      // Reset state to allow reconnection
+      setIntent(null);
+      setConnected(false);
+      setSwiped(false); // Reset animation state
+    }, 500);
   };
+  
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">

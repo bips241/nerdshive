@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
+import { getSession } from 'next-auth/react';
 
 const intents = ['hiring', 'looking_for_job', 'project_teammate'];
 
@@ -12,18 +13,53 @@ const VideoChat = () => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getSession().then((session) => {
+      if (session) {
+        setUserId(session.user._id);
+        console.log('User ID:', session.user._id);
+      } else {
+        console.log('No session found');
+      }
+    });
+  }, []);
+
   const socketRef = useRef<any>(null);
   const peerRef = useRef<Peer | null>(null);
 
   useEffect(() => {
-    if (intent) {
+    if (intent && userId) {
       // 1. Init socket and peer
       const socket = io({
         path: '/api/socket_io',
       });
       socketRef.current = socket;
 
-      const peer = new Peer();
+      const peer = new Peer(userId, {
+        host: "nerdshive.online", // or your deployed domain
+        port: 443,
+        path: "/peerjs",
+        secure: true,
+        config: {
+          iceServers: [
+            { urls: "stun:stun.xirsys.com" },
+            {
+              urls: "turn:turn.xirsys.com:3478?transport=udp",
+              username: "biplab626",
+              credential: "82e9038c-2f47-11f0-b611-0242ac150003",
+            },
+            {
+              urls: "turn:turn.xirsys.com:3478?transport=tcp",
+              username: "biplab626",
+              credential: "82e9038c-2f47-11f0-b611-0242ac150003",
+            },
+          ],
+        },
+      });
+      
+      
       peerRef.current = peer;
 
       // 2. Get user media
