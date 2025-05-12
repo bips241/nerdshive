@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import AuthProvider from "@/context/AuthProvider";
-
+import { Toaster } from "@/components/ui/toaster";
+import SocketBootstrapper from "@/components/SocketBootstrapper"; // ✅ import the bootstrapper
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,14 +23,15 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
           >
-          {children}
-          <Toaster />
-         </ThemeProvider>
+            <SocketBootstrapper /> {/* ✅ run only on client */}
+            {children}
+            <Toaster />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

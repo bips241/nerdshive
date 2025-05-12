@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/getSession';
 import { Follows, User } from '@/models/User';
