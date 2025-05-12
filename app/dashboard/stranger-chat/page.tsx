@@ -27,7 +27,13 @@ const VideoChat = () => {
       });
       socketRef.current = socket;
 
-      const peer = new Peer();
+      const peer = new Peer({
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/peerjs',
+        secure: true,
+      });
+      
       peerRef.current = peer;
 
       // 2. Get user media
