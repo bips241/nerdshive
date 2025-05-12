@@ -21,8 +21,9 @@ const VideoChat = () => {
   useEffect(() => {
     if (intent) {
       // 1. Init socket and peer
-      const socket = io({
-        path: '/api/socket_io',
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL as string , {
+        path: '/socket.io',
+        transports: ['websocket'],
       });
       socketRef.current = socket;
 
