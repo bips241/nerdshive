@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { io } from 'socket.io-client';
 
 export default function SocketBootstrapper() {
   useEffect(() => {
@@ -9,10 +10,17 @@ export default function SocketBootstrapper() {
       console.error('NEXT_PUBLIC_SOCKET_SERVER_URL is not defined');
       return;
     }
-    fetch(socketServerUrl).catch((error) => {
-      console.error('Failed to fetch the socket server URL:', error);
-    }); // boot up the server-side socket.io instance
+  
+    // just initialize socket.io instead of fetch
+    const socket = io(socketServerUrl, {
+      path: '/socket.io',
+    });
+  
+    return () => {
+      socket.disconnect();
+    };
   }, []);
+  
 
   return null;
 }
