@@ -31,15 +31,14 @@ const VideoChat = () => {
 
   useEffect(() => {
     if (intent && userId) {
-      // 1. Init socket and peer
-      const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL as string , {
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL as string, {
         path: '/socket.io',
         transports: ['websocket'],
       });
       socketRef.current = socket;
 
       const peer = new Peer(userId, {
-        host: process.env.NEXT_PUBLIC_SOCKET_SERVER_URL, // or your deployed domain
+        host: "peer-server-zr5n.onrender.com", // or your deployed domain
         port: 443,
         path: "/peerjs",
         secure: true,
@@ -59,31 +58,25 @@ const VideoChat = () => {
           ],
         },
       });
-      
-      
+
       peerRef.current = peer;
 
-      // 2. Get user media
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-        // 3. When peer is ready, join queue
         peer.on('open', (id) => {
           socket.emit('join_queue', { intent });
         });
 
-        // 4. When match found
         socket.on('match_found', ({ peerId }) => {
           console.log('Matched with', peerId);
 
-          // Caller
           const call = peer.call(peerId, stream);
           call.on('stream', (remoteStream) => {
             if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
           });
         });
 
-        // 5. Receiver
         peer.on('call', (call) => {
           call.answer(stream);
           call.on('stream', (remoteStream) => {
@@ -91,7 +84,6 @@ const VideoChat = () => {
           });
         });
 
-        // 6. Handle peer left
         socket.on('left', () => {
           alert('User left. Searching again...');
           window.location.reload();
