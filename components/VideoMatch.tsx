@@ -39,7 +39,7 @@ const VideoChat = () => {
       socketRef.current = socket;
 
       const peer = new Peer(userId, {
-        host: "nerdshive.online", // or your deployed domain
+        host: process.env.NEXT_PUBLIC_SOCKET_SERVER_URL, // or your deployed domain
         port: 443,
         path: "/peerjs",
         secure: true,
