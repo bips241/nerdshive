@@ -9,6 +9,10 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'nerdshive-v11.s3.ap-south-1.amazonaws.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'nerdshive-project-v13.s3.ap-south-1.amazonaws.com',
       },
       {

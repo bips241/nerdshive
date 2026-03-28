@@ -13,8 +13,24 @@ export default function SocketBootstrapper() {
   
     const socket = io(socketServerUrl, {
       path: '/socket.io',
-      transports: ['websocket'],
-      withCredentials: true
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5
+    });
+
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.warn('Socket disconnected:', reason);
     });
   
     return () => {
