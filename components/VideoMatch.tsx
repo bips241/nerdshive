@@ -116,7 +116,8 @@ const VideoChat = () => {
         clearInterval(queueRetryTimerRef.current);
       }
       queueRetryTimerRef.current = setInterval(() => {
-        if (!connected) {
+        // Only retry if queue has NOT been acked yet
+        if (!queueAckedRef.current && !connected) {
           joinQueueIfReady();
         }
       }, 1200);
