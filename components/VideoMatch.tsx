@@ -94,7 +94,8 @@ const VideoChat = () => {
         joinQueueIfReady();
       });
 
-      const peer = new Peer(`${userId}-${Math.random().toString(36).slice(2, 10)}`, {
+      const peerId = `${userId}-${Math.random().toString(36).slice(2, 10)}`;
+      const peer = new Peer(peerId, {
         host: process.env.NEXT_PUBLIC_PEER_SERVER_HOST || "peer-server-zr5n.onrender.com",
         port: Number(process.env.NEXT_PUBLIC_PEER_SERVER_PORT || 443),
         path: process.env.NEXT_PUBLIC_PEER_SERVER_PATH || "/peerjs",
@@ -105,6 +106,8 @@ const VideoChat = () => {
       });
 
       peerRef.current = peer;
+      peerReadyIdRef.current = peerId;
+      joinQueueIfReady();
 
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         localStreamRef.current = stream;

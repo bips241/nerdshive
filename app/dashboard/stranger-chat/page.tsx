@@ -96,6 +96,8 @@ const VideoChat = () => {
         },
       });
       peerRef.current = peer;
+      peerReadyIdRef.current = peerId;
+      joinQueueIfReady();
 
       // 2. Get user media
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
