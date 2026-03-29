@@ -78,7 +78,7 @@ const VideoChat = () => {
       const peer = new Peer(peerId, {
         host: process.env.NEXT_PUBLIC_PEER_SERVER_HOST || 'peer-server-zr5n.onrender.com',
         port: Number(process.env.NEXT_PUBLIC_PEER_SERVER_PORT || 443),
-        path: process.env.NEXT_PUBLIC_PEER_SERVER_PATH || '/peerjs',
+        path: process.env.NEXT_PUBLIC_PEER_SERVER_PATH || '/',
         secure: true,
         config: {
           iceServers: getIceServers(),
