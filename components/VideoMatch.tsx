@@ -34,6 +34,8 @@ const VideoChat = () => {
   const pendingPeerIdRef = useRef<string | null>(null);
   const fallbackCallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const peerReadyIdRef = useRef<string | null>(null);
+  const queueAckedRef = useRef(false);
+  const queueRetryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const getIceServers = () => {
     const username = process.env.NEXT_PUBLIC_METERED_TURN_USERNAME;
@@ -107,7 +109,17 @@ const VideoChat = () => {
 
       peerRef.current = peer;
       peerReadyIdRef.current = peerId;
+      queueAckedRef.current = false;
       joinQueueIfReady();
+
+      if (queueRetryTimerRef.current) {
+        clearInterval(queueRetryTimerRef.current);
+      }
+      queueRetryTimerRef.current = setInterval(() => {
+        if (!connected && !queueAckedRef.current) {
+          joinQueueIfReady();
+        }
+      }, 1200);
 
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
         localStreamRef.current = stream;
@@ -140,12 +152,14 @@ const VideoChat = () => {
         };
 
         socket.on('queued', () => {
+          queueAckedRef.current = true;
           setSearching(true);
           setConnected(false);
         });
 
         socket.on('match_found', ({ peerId: remotePeerId, isInitiator }) => {
           console.log('Matched with', remotePeerId);
+          queueAckedRef.current = true;
           pendingPeerIdRef.current = remotePeerId;
 
           if (isInitiator && !activeCallRef.current) {
@@ -188,11 +202,13 @@ const VideoChat = () => {
           }
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
           setConnected(false);
+          queueAckedRef.current = false;
           joinQueueIfReady();
         });
 
         socket.on('queue_error', (payload: { message: string }) => {
           console.error('Queue error:', payload?.message);
+          queueAckedRef.current = false;
           setSearching(true);
           setTimeout(() => {
             joinQueueIfReady();
@@ -207,6 +223,11 @@ const VideoChat = () => {
         if (fallbackCallTimerRef.current) {
           clearTimeout(fallbackCallTimerRef.current);
           fallbackCallTimerRef.current = null;
+        }
+
+        if (queueRetryTimerRef.current) {
+          clearInterval(queueRetryTimerRef.current);
+          queueRetryTimerRef.current = null;
         }
 
         socket.disconnect();
