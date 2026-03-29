@@ -45,7 +45,7 @@ const Chat = ({
     });
 
     return () => unsubscribe();
-  }, [currentUserId, targetUserId]);
+  }, [currentUserId, targetUserId, roomId]);
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;

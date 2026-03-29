@@ -10,6 +10,7 @@ const intents = ['hiring', 'looking_for_job', 'project_teammate'];
 const VideoChat = () => {
   const [intent, setIntent] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [searching, setSearching] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -28,71 +29,146 @@ const VideoChat = () => {
 
   const socketRef = useRef<any>(null);
   const peerRef = useRef<Peer | null>(null);
+  const activeCallRef = useRef<any>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  const getIceServers = () => {
+    const username = process.env.NEXT_PUBLIC_METERED_TURN_USERNAME;
+    const credential = process.env.NEXT_PUBLIC_METERED_TURN_CREDENTIAL;
+
+    const stunUrl = process.env.NEXT_PUBLIC_METERED_STUN_URL || 'stun:stun.relay.metered.ca:80';
+    const turnUrl = process.env.NEXT_PUBLIC_METERED_TURN_URL || 'turn:standard.relay.metered.ca:80';
+    const turnTcpUrl = process.env.NEXT_PUBLIC_METERED_TURN_TCP_URL || 'turn:standard.relay.metered.ca:80?transport=tcp';
+    const turn443Url = process.env.NEXT_PUBLIC_METERED_TURN_443_URL || 'turn:standard.relay.metered.ca:443';
+    const turns443TcpUrl = process.env.NEXT_PUBLIC_METERED_TURNS_443_TCP_URL || 'turns:standard.relay.metered.ca:443?transport=tcp';
+
+    if (!username || !credential) {
+      return [{ urls: stunUrl }];
+    }
+
+    return [
+      {
+        urls: stunUrl,
+      },
+      {
+        urls: turnUrl,
+        username,
+        credential,
+      },
+      {
+        urls: turnTcpUrl,
+        username,
+        credential,
+      },
+      {
+        urls: turn443Url,
+        username,
+        credential,
+      },
+      {
+        urls: turns443TcpUrl,
+        username,
+        credential,
+      },
+    ];
+  };
 
   useEffect(() => {
     if (intent && userId) {
       const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL as string, {
         path: '/socket.io',
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
       });
       socketRef.current = socket;
 
-      const peer = new Peer(userId, {
-        host: "peer-server-zr5n.onrender.com", // or your deployed domain
-        port: 443,
-        path: "/peerjs",
+      const peer = new Peer(`${userId}-${Math.random().toString(36).slice(2, 10)}`, {
+        host: process.env.NEXT_PUBLIC_PEER_SERVER_HOST || "peer-server-zr5n.onrender.com",
+        port: Number(process.env.NEXT_PUBLIC_PEER_SERVER_PORT || 443),
+        path: process.env.NEXT_PUBLIC_PEER_SERVER_PATH || "/peerjs",
         secure: true,
         config: {
-          iceServers: [
-            { urls: "stun:stun.xirsys.com" },
-            {
-              urls: "turn:turn.xirsys.com:3478?transport=udp",
-              username: "biplab626",
-              credential: "82e9038c-2f47-11f0-b611-0242ac150003",
-            },
-            {
-              urls: "turn:turn.xirsys.com:3478?transport=tcp",
-              username: "biplab626",
-              credential: "82e9038c-2f47-11f0-b611-0242ac150003",
-            },
-          ],
+          iceServers: getIceServers(),
         },
       });
 
       peerRef.current = peer;
 
       navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+        localStreamRef.current = stream;
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
         peer.on('open', (id) => {
-          socket.emit('join_queue', { intent });
+          setSearching(true);
+          socket.emit('join_queue', { intent, peerId: id });
         });
 
-        socket.on('match_found', ({ peerId }) => {
-          console.log('Matched with', peerId);
+        const bindCallEvents = (call: any) => {
+          activeCallRef.current = call;
 
-          const call = peer.call(peerId, stream);
-          call.on('stream', (remoteStream) => {
+          call.on('stream', (remoteStream: MediaStream) => {
+            setConnected(true);
+            setSearching(false);
             if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
           });
+
+          call.on('close', () => {
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+            setConnected(false);
+            setSearching(true);
+            activeCallRef.current = null;
+          });
+
+          call.on('error', (error: any) => {
+            console.error('Peer call error:', error);
+          });
+        };
+
+        socket.on('queued', () => {
+          setSearching(true);
+          setConnected(false);
+        });
+
+        socket.on('match_found', ({ peerId: remotePeerId, isInitiator }) => {
+          console.log('Matched with', remotePeerId);
+
+          if (isInitiator) {
+            const call = peer.call(remotePeerId, stream);
+            bindCallEvents(call);
+          }
         });
 
         peer.on('call', (call) => {
           call.answer(stream);
-          call.on('stream', (remoteStream) => {
-            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-          });
+          bindCallEvents(call);
+        });
+
+        peer.on('error', (error) => {
+          console.error('Peer error:', error);
         });
 
         socket.on('left', () => {
-          alert('User left. Searching again...');
-          window.location.reload();
+          if (activeCallRef.current) {
+            activeCallRef.current.close();
+            activeCallRef.current = null;
+          }
+          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+          setConnected(false);
+          setSearching(true);
+          socket.emit('join_queue', { intent, peerId: peer.id });
         });
       });
 
-      setConnected(true);
+      return () => {
+        socket.disconnect();
+        peer.destroy();
+
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach((track) => track.stop());
+          localStreamRef.current = null;
+        }
+      };
     }
-  }, [intent]);
+  }, [intent, userId]);
 
   const handleSkip = () => {
     socketRef.current?.emit('skip');
@@ -112,8 +188,8 @@ const VideoChat = () => {
       ) : (
         <>
           <div className="flex gap-4">
-            <video ref={localVideoRef} autoPlay muted className="w-48 h-36 bg-black rounded" />
-            <video ref={remoteVideoRef} autoPlay className="w-48 h-36 bg-black rounded" />
+            <video ref={localVideoRef} autoPlay muted playsInline className="w-48 h-36 bg-black rounded" />
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-48 h-36 bg-black rounded" />
           </div>
           <button onClick={handleSkip} className="mt-2 px-4 py-2 rounded bg-red-500 text-white">
             Skip
