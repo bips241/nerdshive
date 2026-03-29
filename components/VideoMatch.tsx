@@ -33,6 +33,7 @@ const VideoChat = () => {
   const localStreamRef = useRef<MediaStream | null>(null);
   const pendingPeerIdRef = useRef<string | null>(null);
   const fallbackCallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peerReadyIdRef = useRef<string | null>(null);
 
   const getIceServers = () => {
     const username = process.env.NEXT_PUBLIC_METERED_TURN_USERNAME;
@@ -83,6 +84,16 @@ const VideoChat = () => {
       });
       socketRef.current = socket;
 
+      const joinQueueIfReady = () => {
+        if (!intent || !peerReadyIdRef.current || !socket.connected) return;
+        setSearching(true);
+        socket.emit('join_queue', { intent, peerId: peerReadyIdRef.current });
+      };
+
+      socket.on('connect', () => {
+        joinQueueIfReady();
+      });
+
       const peer = new Peer(`${userId}-${Math.random().toString(36).slice(2, 10)}`, {
         host: process.env.NEXT_PUBLIC_PEER_SERVER_HOST || "peer-server-zr5n.onrender.com",
         port: Number(process.env.NEXT_PUBLIC_PEER_SERVER_PORT || 443),
@@ -100,8 +111,8 @@ const VideoChat = () => {
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
         peer.on('open', (id) => {
-          setSearching(true);
-          socket.emit('join_queue', { intent, peerId: id });
+          peerReadyIdRef.current = id;
+          joinQueueIfReady();
         });
 
         const bindCallEvents = (call: any) => {
@@ -174,8 +185,15 @@ const VideoChat = () => {
           }
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
           setConnected(false);
+          joinQueueIfReady();
+        });
+
+        socket.on('queue_error', (payload: { message: string }) => {
+          console.error('Queue error:', payload?.message);
           setSearching(true);
-          socket.emit('join_queue', { intent, peerId: peer.id });
+          setTimeout(() => {
+            joinQueueIfReady();
+          }, 800);
         });
       }).catch((error) => {
         console.error('Failed to get camera/mic:', error);

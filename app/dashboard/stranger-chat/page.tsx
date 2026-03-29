@@ -22,6 +22,7 @@ const VideoChat = () => {
   const activeCallRef = useRef<any>(null);
   const pendingPeerIdRef = useRef<string | null>(null);
   const fallbackCallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peerReadyIdRef = useRef<string | null>(null);
 
   const getIceServers = () => {
     const username = process.env.NEXT_PUBLIC_METERED_TURN_USERNAME;
@@ -74,6 +75,16 @@ const VideoChat = () => {
       });
       socketRef.current = socket;
 
+      const joinQueueIfReady = () => {
+        if (!intent || !peerReadyIdRef.current || !socket.connected) return;
+        setSearching(true);
+        socket.emit('join_queue', { intent, peerId: peerReadyIdRef.current });
+      };
+
+      socket.on('connect', () => {
+        joinQueueIfReady();
+      });
+
       const peerId = `${Math.random().toString(36).slice(2, 10)}`;
       const peer = new Peer(peerId, {
         host: process.env.NEXT_PUBLIC_PEER_SERVER_HOST || 'peer-server-zr5n.onrender.com',
@@ -93,8 +104,8 @@ const VideoChat = () => {
 
         // 3. When peer is ready, join queue
         peer.on('open', (id) => {
-          setSearching(true);
-          socket.emit('join_queue', { intent, peerId: id });
+          peerReadyIdRef.current = id;
+          joinQueueIfReady();
         });
 
         const bindCallEvents = (call: any) => {
@@ -170,13 +181,15 @@ const VideoChat = () => {
           }
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
           setConnected(false);
-          setSearching(true);
-          socket.emit('join_queue', { intent, peerId: peer.id });
+          joinQueueIfReady();
         });
 
         socket.on('queue_error', (payload: { message: string }) => {
           console.error('Queue error:', payload?.message);
-          setSearching(false);
+          setSearching(true);
+          setTimeout(() => {
+            joinQueueIfReady();
+          }, 800);
         });
       }).catch((error) => {
         console.error('Failed to get camera/mic:', error);
@@ -233,6 +246,7 @@ const VideoChat = () => {
       setSwiped(false); // Reset animation state
 
       if (socketRef.current && peerRef.current?.id && intent) {
+        setSearching(true);
         socketRef.current.emit('join_queue', { intent, peerId: peerRef.current.id });
       }
     }, 500);
