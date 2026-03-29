@@ -31,6 +31,8 @@ const VideoChat = () => {
   const peerRef = useRef<Peer | null>(null);
   const activeCallRef = useRef<any>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const pendingPeerIdRef = useRef<string | null>(null);
+  const fallbackCallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getIceServers = () => {
     const username = process.env.NEXT_PUBLIC_METERED_TURN_USERNAME;
@@ -130,10 +132,22 @@ const VideoChat = () => {
 
         socket.on('match_found', ({ peerId: remotePeerId, isInitiator }) => {
           console.log('Matched with', remotePeerId);
+          pendingPeerIdRef.current = remotePeerId;
 
-          if (isInitiator) {
+          if (isInitiator && !activeCallRef.current) {
             const call = peer.call(remotePeerId, stream);
             bindCallEvents(call);
+          } else if (!isInitiator) {
+            if (fallbackCallTimerRef.current) {
+              clearTimeout(fallbackCallTimerRef.current);
+            }
+
+            fallbackCallTimerRef.current = setTimeout(() => {
+              if (!activeCallRef.current && pendingPeerIdRef.current) {
+                const fallbackCall = peer.call(pendingPeerIdRef.current, stream);
+                bindCallEvents(fallbackCall);
+              }
+            }, 1500);
           }
         });
 
@@ -144,6 +158,13 @@ const VideoChat = () => {
 
         peer.on('error', (error) => {
           console.error('Peer error:', error);
+        });
+
+        peer.on('disconnected', () => {
+          console.warn('Peer disconnected from signaling server. Reconnecting...');
+          if (!peer.destroyed) {
+            peer.reconnect();
+          }
         });
 
         socket.on('left', () => {
@@ -162,6 +183,11 @@ const VideoChat = () => {
       });
 
       return () => {
+        if (fallbackCallTimerRef.current) {
+          clearTimeout(fallbackCallTimerRef.current);
+          fallbackCallTimerRef.current = null;
+        }
+
         socket.disconnect();
         peer.destroy();
 
