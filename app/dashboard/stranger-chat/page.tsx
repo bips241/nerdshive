@@ -87,6 +87,76 @@ const VideoChat = () => {
         joinQueueIfReady();
       });
 
+      // Register socket event handlers BEFORE getUserMedia to avoid race condition
+      socket.on('queued', () => {
+        queueAckedRef.current = true;
+        setSearching(true);
+        setConnected(false);
+      });
+
+      socket.on('match_found', ({ peerId: remotePeerId, isInitiator }) => {
+        console.log('Matched with', remotePeerId, 'initiator:', isInitiator);
+        queueAckedRef.current = true;
+        pendingPeerIdRef.current = remotePeerId;
+
+        if (isInitiator && !activeCallRef.current && localStreamRef.current) {
+          const call = peerRef.current!.call(remotePeerId, localStreamRef.current);
+          bindCallEvents(call);
+        } else if (!isInitiator) {
+          if (fallbackCallTimerRef.current) {
+            clearTimeout(fallbackCallTimerRef.current);
+          }
+
+          fallbackCallTimerRef.current = setTimeout(() => {
+            if (!activeCallRef.current && pendingPeerIdRef.current && localStreamRef.current) {
+              const fallbackCall = peerRef.current!.call(pendingPeerIdRef.current, localStreamRef.current);
+              bindCallEvents(fallbackCall);
+            }
+          }, 1500);
+        }
+      });
+
+      socket.on('left', () => {
+        if (activeCallRef.current) {
+          activeCallRef.current.close();
+          activeCallRef.current = null;
+        }
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        setConnected(false);
+        queueAckedRef.current = false;
+        joinQueueIfReady();
+      });
+
+      socket.on('queue_error', (payload: { message: string }) => {
+        console.error('Queue error:', payload?.message);
+        queueAckedRef.current = false;
+        setSearching(true);
+        setTimeout(() => {
+          joinQueueIfReady();
+        }, 800);
+      });
+
+      const bindCallEvents = (call: any) => {
+        activeCallRef.current = call;
+
+        call.on('stream', (remoteStream: MediaStream) => {
+          setConnected(true);
+          setSearching(false);
+          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+        });
+
+        call.on('close', () => {
+          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+          activeCallRef.current = null;
+          setConnected(false);
+          setSearching(true);
+        });
+
+        call.on('error', (error: any) => {
+          console.error('Peer call error:', error);
+        });
+      };
+
       const peerId = `${Math.random().toString(36).slice(2, 10)}`;
       const peer = new Peer(peerId, {
         host: process.env.NEXT_PUBLIC_PEER_SERVER_HOST || 'peer-server-zr5n.onrender.com',
@@ -123,56 +193,6 @@ const VideoChat = () => {
           joinQueueIfReady();
         });
 
-        const bindCallEvents = (call: any) => {
-          activeCallRef.current = call;
-
-          call.on('stream', (remoteStream: MediaStream) => {
-            setConnected(true);
-            setSearching(false);
-            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-          });
-
-          call.on('close', () => {
-            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-            activeCallRef.current = null;
-            setConnected(false);
-            setSearching(true);
-          });
-
-          call.on('error', (error: any) => {
-            console.error('Peer call error:', error);
-          });
-        };
-
-        socket.on('queued', () => {
-          queueAckedRef.current = true;
-          setSearching(true);
-          setConnected(false);
-        });
-
-        // 4. When match found
-        socket.on('match_found', ({ peerId: remotePeerId, isInitiator }) => {
-          console.log('Matched with', remotePeerId, 'initiator:', isInitiator);
-          queueAckedRef.current = true;
-          pendingPeerIdRef.current = remotePeerId;
-
-          if (isInitiator && !activeCallRef.current) {
-            const call = peer.call(remotePeerId, stream);
-            bindCallEvents(call);
-          } else if (!isInitiator) {
-            if (fallbackCallTimerRef.current) {
-              clearTimeout(fallbackCallTimerRef.current);
-            }
-
-            fallbackCallTimerRef.current = setTimeout(() => {
-              if (!activeCallRef.current && pendingPeerIdRef.current) {
-                const fallbackCall = peer.call(pendingPeerIdRef.current, stream);
-                bindCallEvents(fallbackCall);
-              }
-            }, 1500);
-          }
-        });
-
         // 5. Receiver
         peer.on('call', (call) => {
           call.answer(stream);
@@ -188,27 +208,6 @@ const VideoChat = () => {
           if (!peer.destroyed) {
             peer.reconnect();
           }
-        });
-
-        // 6. Handle peer left
-        socket.on('left', () => {
-          if (activeCallRef.current) {
-            activeCallRef.current.close();
-            activeCallRef.current = null;
-          }
-          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-          setConnected(false);
-          queueAckedRef.current = false;
-          joinQueueIfReady();
-        });
-
-        socket.on('queue_error', (payload: { message: string }) => {
-          console.error('Queue error:', payload?.message);
-          queueAckedRef.current = false;
-          setSearching(true);
-          setTimeout(() => {
-            joinQueueIfReady();
-          }, 800);
         });
       }).catch((error) => {
         console.error('Failed to get camera/mic:', error);
