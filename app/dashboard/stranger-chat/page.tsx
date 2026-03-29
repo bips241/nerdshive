@@ -157,6 +157,9 @@ const VideoChat = () => {
           console.error('Queue error:', payload?.message);
           setSearching(false);
         });
+      }).catch((error) => {
+        console.error('Failed to get camera/mic:', error);
+        setSearching(false);
       });
 
       return () => {
@@ -172,6 +175,17 @@ const VideoChat = () => {
   }, [intent]);
 
   const handleSkip = () => {
+    if (!connected) {
+      socketRef.current?.emit('skip');
+      setSearching(false);
+      setIntent(null);
+      setSwiped(false);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+      return;
+    }
+
     setSwiped(true);
   
     // Notify server you're skipping
@@ -201,14 +215,13 @@ const VideoChat = () => {
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      {!connected ? (
+      {!intent ? (
         <div className="flex gap-3">
           {intents.map((i) => (
             <button key={i} onClick={() => setIntent(i)} className="px-4 py-2 rounded bg-blue-600 text-white">
               {i.replace('_', ' ')}
             </button>
           ))}
-          {searching && <p className="text-sm text-gray-500">Finding someone...</p>}
         </div>
       ) : (
         <>
@@ -216,11 +229,13 @@ const VideoChat = () => {
             <video ref={localVideoRef} autoPlay muted playsInline className="w-48 h-36 bg-black rounded" />
             <video ref={remoteVideoRef} autoPlay playsInline className="w-48 h-36 bg-black rounded" />
           </div>
+          {searching && <p className="text-sm text-gray-500">Finding someone...</p>}
+          {!connected && !searching && <p className="text-sm text-gray-500">Waiting for connection...</p>}
           <button
             onClick={handleSkip}
             className="mt-2 px-4 py-2 rounded bg-red-500 text-white transition-transform"
           >
-            Skip
+            {connected ? 'Skip' : 'Cancel'}
           </button>
         </>
       )}
