@@ -123,11 +123,9 @@ function CreatePage() {
 
   const UploadToS3 = async (file: File) => {
     try {
-      const checksum = await computeSHA256(file);
       let signedURLResult = await getSignedURL({
         fileSize: file.size,
         fileType: file.type,
-        checksum,
       });
 
       if (signedURLResult.failure !== undefined) {
@@ -135,7 +133,6 @@ function CreatePage() {
         signedURLResult = await getSignedURL({
           fileSize: file.size,
           fileType: file.type,
-          checksum,
         });
       }
   
@@ -155,7 +152,6 @@ function CreatePage() {
           method: "PUT",
           headers: {
             "Content-Type": file.type,
-            "x-amz-checksum-sha256": checksum,
           },
           body: file,
         });

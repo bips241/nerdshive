@@ -5,11 +5,26 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 
+const readEnv = (...keys: string[]) => {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+};
+
+const getS3Config = () => {
+  const bucket = readEnv("AWS_BUCKET_NAME", "AWS_S3_BUCKET", "S3_BUCKET_NAME");
+  const region = readEnv("AWS_BUCKET_REGION", "AWS_REGION", "AWS_DEFAULT_REGION");
+  const accessKeyId = readEnv("AWS_ACCESS_KEY", "AWS_ACCESS_KEY_ID");
+  const secretAccessKey = readEnv("AWS_SECRET_ACCESS_KEY");
+  const sessionToken = readEnv("AWS_SESSION_TOKEN");
+
+  return { bucket, region, accessKeyId, secretAccessKey, sessionToken };
+};
+
 const createS3Client = () => {
-  const region = process.env.AWS_BUCKET_REGION;
-  const accessKeyId = process.env.AWS_ACCESS_KEY;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-  const sessionToken = process.env.AWS_SESSION_TOKEN;
+  const { region, accessKeyId, secretAccessKey, sessionToken } = getS3Config();
 
   if (!region || !accessKeyId || !secretAccessKey) {
     throw new Error("Missing AWS S3 configuration");
@@ -28,7 +43,6 @@ const createS3Client = () => {
 type GetSignedURLParams = {
   fileType: string;
   fileSize: number;
-  checksum: string;
 };
 
 type SignedURLResponse = {
@@ -54,7 +68,6 @@ const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString("hex
 export const getSignedURL = async ({
   fileType,
   fileSize,
-  checksum,
 }: GetSignedURLParams): Promise<SignedURLResponse> => {
   let session;
   try {
@@ -68,11 +81,15 @@ export const getSignedURL = async ({
     return { failure: "not authenticated" };
   }
 
-  const bucket = process.env.AWS_BUCKET_NAME;
-  const region = process.env.AWS_BUCKET_REGION;
+  const { bucket, region, accessKeyId, secretAccessKey } = getS3Config();
 
-  if (!bucket || !region || !process.env.AWS_ACCESS_KEY || !process.env.AWS_SECRET_ACCESS_KEY) {
-    return { failure: "S3 is not configured" };
+  if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+    const missing: string[] = [];
+    if (!bucket) missing.push("AWS_BUCKET_NAME|AWS_S3_BUCKET|S3_BUCKET_NAME");
+    if (!region) missing.push("AWS_BUCKET_REGION|AWS_REGION|AWS_DEFAULT_REGION");
+    if (!accessKeyId) missing.push("AWS_ACCESS_KEY|AWS_ACCESS_KEY_ID");
+    if (!secretAccessKey) missing.push("AWS_SECRET_ACCESS_KEY");
+    return { failure: `S3 is not configured: missing ${missing.join(", ")}` };
   }
 
   if (!allowedFileTypes.includes(fileType)) {
@@ -90,7 +107,6 @@ export const getSignedURL = async ({
     Key: fileName,
     ContentType: fileType,
     ContentLength: fileSize,
-    ChecksumSHA256: checksum,
   });
 
   try {
