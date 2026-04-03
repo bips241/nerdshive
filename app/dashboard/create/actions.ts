@@ -5,14 +5,25 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_BUCKET_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+const createS3Client = () => {
+  const region = process.env.AWS_BUCKET_REGION;
+  const accessKeyId = process.env.AWS_ACCESS_KEY;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const sessionToken = process.env.AWS_SESSION_TOKEN;
+
+  if (!region || !accessKeyId || !secretAccessKey) {
+    throw new Error("Missing AWS S3 configuration");
+  }
+
+  return new S3Client({
+    region,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+      ...(sessionToken ? { sessionToken } : {}),
+    },
+  });
+};
 
 type GetSignedURLParams = {
   fileType: string;
@@ -45,9 +56,15 @@ export const getSignedURL = async ({
   fileSize,
   checksum,
 }: GetSignedURLParams): Promise<SignedURLResponse> => {
-  const session = await auth();
-  console.log("SESSION:", session);
-  if (!session) {
+  let session;
+  try {
+    session = await auth();
+  } catch (error) {
+    console.error("Auth check failed while generating signed URL", error);
+    return { failure: "auth unavailable" };
+  }
+
+  if (!session?.user?._id) {
     return { failure: "not authenticated" };
   }
 
@@ -77,11 +94,20 @@ export const getSignedURL = async ({
   });
 
   try {
-    const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 600 });
+    const s3Client = createS3Client();
+    const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 900 });
     const fileUrl = `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
     return { success: { url, key: fileName, fileUrl } };
   } catch (error) {
-    console.error("Error generating signed URL:", error);
-    return { failure: "Failed to generate signed URL" };
+    console.error("Error generating signed URL (attempt 1):", error);
+    try {
+      const retryClient = createS3Client();
+      const retryUrl = await getSignedUrl(retryClient, putObjectCommand, { expiresIn: 900 });
+      const fileUrl = `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
+      return { success: { url: retryUrl, key: fileName, fileUrl } };
+    } catch (retryError) {
+      console.error("Error generating signed URL (attempt 2):", retryError);
+      return { failure: "Failed to generate signed URL" };
+    }
   }
 };

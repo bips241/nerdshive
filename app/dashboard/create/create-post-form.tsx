@@ -124,17 +124,26 @@ function CreatePage() {
   const UploadToS3 = async (file: File) => {
     try {
       const checksum = await computeSHA256(file);
-      const signedURLResult = await getSignedURL({
+      let signedURLResult = await getSignedURL({
         fileSize: file.size,
         fileType: file.type,
         checksum,
       });
+
+      if (signedURLResult.failure !== undefined) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        signedURLResult = await getSignedURL({
+          fileSize: file.size,
+          fileType: file.type,
+          checksum,
+        });
+      }
   
       console.log('Signed URL Result:', signedURLResult);
   
       if (signedURLResult.failure !== undefined) {
         console.error('Failed to get signed URL:', signedURLResult.failure);
-        toast.error('Failed to get signed URL');
+        toast.error('Failed to get signed URL. Please retry.');
         return;
       }
   
