@@ -139,13 +139,14 @@ function CreatePage() {
       }
   
       if (signedURLResult.success !== undefined) {
-        const { url } = signedURLResult.success;
+        const { url, fileUrl } = signedURLResult.success;
         console.log('Uploading to:', url);
   
         const response = await fetch(url, {
           method: "PUT",
           headers: {
             "Content-Type": file.type,
+            "x-amz-checksum-sha256": checksum,
           },
           body: file,
         });
@@ -156,7 +157,6 @@ function CreatePage() {
           return;
         }
   
-        const fileUrl = url.split("?")[0];
         return fileUrl;
       }
   

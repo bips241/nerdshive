@@ -23,6 +23,8 @@ type GetSignedURLParams = {
 type SignedURLResponse = {
   success?: {
     url: string;
+    key: string;
+    fileUrl: string;
   };
   failure?: string;
 };
@@ -49,8 +51,12 @@ export const getSignedURL = async ({
     return { failure: "not authenticated" };
   }
 
-  console.log("ENV:", process.env.AWS_BUCKET_REGION); // <-- add this
-  console.log("ENV:", process.env.AWS_SECRET_ACCESS_KEY);    // <-- add this
+  const bucket = process.env.AWS_BUCKET_NAME;
+  const region = process.env.AWS_BUCKET_REGION;
+
+  if (!bucket || !region || !process.env.AWS_ACCESS_KEY || !process.env.AWS_SECRET_ACCESS_KEY) {
+    return { failure: "S3 is not configured" };
+  }
 
   if (!allowedFileTypes.includes(fileType)) {
     return { failure: "File type not allowed" };
@@ -63,7 +69,7 @@ export const getSignedURL = async ({
   const fileName = generateFileName();
 
   const putObjectCommand = new PutObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: bucket,
     Key: fileName,
     ContentType: fileType,
     ContentLength: fileSize,
@@ -71,10 +77,9 @@ export const getSignedURL = async ({
   });
 
   try {
-    const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 150 }); // 60 seconds
-    console.log("Generated signed URL:", url);
-    console.log({ success: url });
-    return { success: { url } };
+    const url = await getSignedUrl(s3Client, putObjectCommand, { expiresIn: 600 });
+    const fileUrl = `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
+    return { success: { url, key: fileName, fileUrl } };
   } catch (error) {
     console.error("Error generating signed URL:", error);
     return { failure: "Failed to generate signed URL" };

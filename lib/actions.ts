@@ -17,9 +17,11 @@ import {
 } from "@/schemas/Post";
 
 import { User, Post, Like, SavedPost, Comment, Follows, ProjectRequest } from "@/models/User";
+import connectDB from "@/lib/db";
 
 export async function createPost(values: z.infer<typeof CreatePost>) {
   console.log("Creating Post:", values);
+  await connectDB();
   const userId = await getUserId();
 
   const validatedFields = CreatePost.safeParse(values);
@@ -41,6 +43,7 @@ export async function createPost(values: z.infer<typeof CreatePost>) {
 }
 
 export async function deletePost(formData: { get: (arg0: string) => any; }) {
+  await connectDB();
   const userId = await getUserId();
   const { id } = DeletePost.parse({ id: formData.get("id") });
 
@@ -60,6 +63,7 @@ export async function deletePost(formData: { get: (arg0: string) => any; }) {
 }
 
 export async function likePost(value: any) {
+  await connectDB();
   const userId = await getUserId();
   const validatedFields = LikeSchema.safeParse({ postId: value });
 
@@ -99,6 +103,7 @@ export async function likePost(value: any) {
 }
 
 export async function bookmarkPost(value: any) {
+  await connectDB();
   const userId = await getUserId();
   const validatedFields = BookmarkSchema.safeParse({ postId: value });
 
@@ -142,6 +147,7 @@ export async function bookmarkPost(value: any) {
 }
 
 export async function createComment(values: unknown) {
+  await connectDB();
   const userId = await getUserId();
   const validatedFields = CreateComment.safeParse(values);
 
@@ -171,6 +177,7 @@ export async function createComment(values: unknown) {
 }
 
 export async function deleteComment(formData: { get: (arg0: string) => any; }) {
+  await connectDB();
   const userId = await getUserId();
   const { id } = DeleteComment.parse({ id: formData.get("id") });
 
@@ -192,6 +199,7 @@ export async function deleteComment(formData: { get: (arg0: string) => any; }) {
 }
 
 export async function updatePost(values: unknown) {
+  await connectDB();
   const userId = await getUserId();
   const validatedFields = UpdatePost.safeParse(values);
 
@@ -219,6 +227,7 @@ export async function updatePost(values: unknown) {
 }
 
 export async function updateProfile(values: unknown) {
+  await connectDB();
   const userId = await getUserId();
   const validatedFields = UpdateUser.safeParse(values);
 
@@ -244,6 +253,7 @@ export async function updateProfile(values: unknown) {
 }
 
 export async function followUser(formData: { get: (arg0: string) => any; }) {
+  await connectDB();
   const userId = await getUserId();
   const { id } = FollowUser.parse({ id: formData.get("id") });
 
@@ -276,6 +286,7 @@ export async function followUser(formData: { get: (arg0: string) => any; }) {
 
 
 export const submitPollPost = async (data: { question: string; options: string[] }) => {
+  await connectDB();
   const userId = await getUserId();
 
   try {
@@ -296,6 +307,7 @@ export const submitPollPost = async (data: { question: string; options: string[]
 
 export const submitGoalPost = async (data: { goal: string ,goalTargetDate: Date}) => {
   console.log("Submitting Goal:", data);
+  await connectDB();
   const userId = await getUserId();
   // Call your backend API or handle post-creation logic
 
@@ -319,6 +331,7 @@ export const submitGoalPost = async (data: { goal: string ,goalTargetDate: Date}
 
 export const submitProjectPost = async (data: { title: string; description: string; techStack: string; repoUrl?: string | null }) => {
   console.log("Submitting Project:", data);
+  await connectDB();
   const userId = await getUserId();
   // Call your backend API or handle post-creation logic
 
@@ -340,6 +353,7 @@ export const submitProjectPost = async (data: { title: string; description: stri
 };
 
 export const handleInterest = async (postId: string, userId: string) => {
+  await connectDB();
   try {
     const post = await Post.findById(postId);
     if (!post || !post.goal) {
@@ -367,6 +381,7 @@ export const handleInterest = async (postId: string, userId: string) => {
 };
 
 export const checkExistingRequest = async (postId: string, userId: string) => {
+  await connectDB();
   try {
     const existingRequest = await ProjectRequest.findOne({ projectId: postId, requesterId: userId });
 
@@ -382,6 +397,7 @@ export const checkExistingRequest = async (postId: string, userId: string) => {
 };
 
 export const createCollabRequest = async (postId: string, userId: string) => {
+  await connectDB();
   try {
     const existingRequest = await ProjectRequest.findOne({ projectId: postId, requesterId: userId });
 
