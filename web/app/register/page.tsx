@@ -5,6 +5,7 @@ import { useEffect , useState } from 'react';
 import {useForm} from 'react-hook-form';
 import {useDebounce} from 'usehooks-ts';
 import { ApiResponse } from '@/types/ApiResponse';
+import { signIn } from 'next-auth/react';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';  
@@ -171,6 +172,41 @@ export default function SignUpForm() {
                 'Sign Up'
               )}
             </Button>
+
+            {/* STRICT DEV GUEST MODE - Guaranteed removed in production bundle */}
+            {process.env.NODE_ENV !== 'production' && (
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold"
+                  onClick={async () => {
+                    setIsSubmitting(true);
+                    const result = await signIn('credentials', {
+                      redirect: false,
+                      identifier: 'dev-guest',
+                      password: 'dev-guest',
+                      isDevGuest: 'true',
+                    });
+                    if (result?.error) {
+                      setIsSubmitting(false);
+                      toast({
+                        title: 'Guest Login Failed',
+                        description: result.error,
+                        variant: 'destructive',
+                      });
+                    }
+                    if (result?.url || (!result?.error && result?.ok)) {
+                      setIsSubmitting(false);
+                      router.replace('/dashboard');
+                    }
+                  }}
+                  disabled={isSubmitting}
+                >
+                  ⚡ Continue as Dev Guest (Local Dev Only)
+                </Button>
+              </div>
+            )}
           </form>
         </Form>
         <div className="text-center mt-4">

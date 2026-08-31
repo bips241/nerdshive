@@ -36,7 +36,10 @@ export async function createPost(values: z.infer<typeof CreatePost>) {
   const { fileUrl, caption } = validatedFields.data;
 
   try {
-    await Post.create({ caption, fileUrl, userId });
+    const newPost = await Post.create({ caption, fileUrl, userId });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { message: "Created Post.", post: newPost };
   } catch (error) {
     return { message: "Database Error: Failed to Create Post." };
   }
@@ -232,23 +235,58 @@ export async function updateProfile(values: unknown) {
   const validatedFields = UpdateUser.safeParse(values);
 
   if (!validatedFields.success) {
+    const errorDetails = Object.values(validatedFields.error.flatten().fieldErrors).flat().join(", ");
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: "Missing Fields. Failed to Update Profile.",
+      success: false,
+      error: errorDetails || "Invalid profile fields. Please check your inputs.",
     };
   }
 
-  const { bio, gender, image, name, user_name, website } = validatedFields.data;
+  const { bio, gender, image, name, user_name, website, repo } = validatedFields.data;
 
   try {
-    await User.updateOne(
-      { _id: userId },
-      { bio, gender, image, name, user_name, website }
-    );
+    // Check if new user_name is already taken by another account
+    if (user_name) {
+      const existingUser = await User.findOne({
+        user_name,
+        _id: { $ne: userId },
+      });
+
+      if (existingUser) {
+        return {
+          success: false,
+          error: `Username "${user_name}" is already taken by another developer.`,
+        };
+      }
+    }
+
+    const updatePayload: Record<string, any> = {};
+    if (user_name !== undefined) updatePayload.user_name = user_name;
+    if (name !== undefined) updatePayload.name = name;
+    if (bio !== undefined) updatePayload.bio = bio;
+    if (gender !== undefined) updatePayload.gender = gender;
+    if (website !== undefined) updatePayload.website = website;
+    if (repo !== undefined) updatePayload.repo = repo;
+    if (image !== undefined) updatePayload.image = image;
+
+    await User.findByIdAndUpdate(userId, updatePayload, { new: true });
+
     revalidatePath("/dashboard");
-    return { message: "Updated Profile." };
-  } catch (error) {
-    return { message: "Database Error: Failed to Update Profile." };
+    if (user_name) {
+      revalidatePath(`/dashboard/user/${user_name}`);
+    }
+
+    return {
+      success: true,
+      message: "Profile updated successfully.",
+      user_name,
+    };
+  } catch (error: any) {
+    console.error("Error updating profile:", error);
+    return {
+      success: false,
+      error: error.message || "Database Error: Failed to Update Profile.",
+    };
   }
 }
 
@@ -290,42 +328,45 @@ export const submitPollPost = async (data: { question: string; options: string[]
   const userId = await getUserId();
 
   try {
-    await Post.create({
+    const newPost = await Post.create({
       poll: {
         question: data.question,
         options: data.options.map((opt) => ({ text: opt, votes: [] })),
-      }, // corrected structure
+      },
       postType: "poll",
       userId,
     });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
   } catch (error) {
     console.error(error);
     throw new Error("Database Error: Failed to create Poll Post.");
   }
 };
 
-
-export const submitGoalPost = async (data: { goal: string ,goalTargetDate: Date}) => {
+export const submitGoalPost = async (data: { goal: string; goalTargetDate: Date }) => {
   console.log("Submitting Goal:", data);
   await connectDB();
   const userId = await getUserId();
-  // Call your backend API or handle post-creation logic
 
   try {
     console.log("Creating Goal Post with data:", data);
-    await Post.create({
+    const newPost = await Post.create({
       goal: {
         description: data.goal,
         goalTargetDate: data.goalTargetDate,
         interestedUsers: [],
-      }, // corrected structure
-
+      },
       postType: "goal",
       userId,
     });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
   } catch (error) {
     console.error(error);
-    throw new Error("Database Error: Failed to create Poll Post.");
+    throw new Error("Database Error: Failed to create Goal Post.");
   }
 };
 
@@ -333,10 +374,9 @@ export const submitProjectPost = async (data: { title: string; description: stri
   console.log("Submitting Project:", data);
   await connectDB();
   const userId = await getUserId();
-  // Call your backend API or handle post-creation logic
 
   try {
-    await Post.create({
+    const newPost = await Post.create({
       postType: "project",
       userId,
       project: {
@@ -346,9 +386,12 @@ export const submitProjectPost = async (data: { title: string; description: stri
         repoUrl: data.repoUrl || null,
       },
     });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
   } catch (error) {
     console.error(error);
-    throw new Error("Database Error: Failed to create Poll Post.");
+    throw new Error("Database Error: Failed to create Project Post.");
   }
 };
 

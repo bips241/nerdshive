@@ -8,11 +8,13 @@ export const config = {
 };
 
 export default async function middleware(request: NextRequest) {
-  const currentUser = await request.cookies.get('authjs.session-token')?.value;
+  const currentUser =
+    request.cookies.get('authjs.session-token')?.value ||
+    request.cookies.get('__Secure-authjs.session-token')?.value ||
+    request.cookies.get('next-auth.session-token')?.value ||
+    request.cookies.get('__Secure-next-auth.session-token')?.value;
   
-    const url = request.nextUrl;
-
-    //(`currentUser`, currentUser);
+  const url = request.nextUrl;
   
 
   

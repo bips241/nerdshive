@@ -55,13 +55,13 @@ export async function GET() {
     }
 
     // Step 3: Get user details
-    const users = await User.find({ _id: { $in: userIds } }).select('user_name avatar');
+    const users = await User.find({ _id: { $in: userIds } }).select('user_name image avatar');
 
     // Step 4: Format result
     const result = users.map((user: any) => ({
       id: user._id.toString(),
       name: user.user_name || 'Unnamed',
-      avatar: user.avatar || '',
+      avatar: user.image || user.avatar || '',
     }));
 
     console.log('Formatted users:', result);

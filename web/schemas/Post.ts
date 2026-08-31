@@ -46,6 +46,14 @@ export const UserSchema = z.object({
   authProviderId: z.string().optional(),
 });
 
-export const UpdateUser = UserSchema;
+export const UpdateUser = z.object({
+  user_name: z.string().min(2, "Username must be at least 2 characters").max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores").optional(),
+  name: z.string().max(50).optional(),
+  bio: z.string().max(250).optional(),
+  gender: z.string().optional(),
+  website: z.string().optional(),
+  repo: z.string().optional(),
+  image: z.string().optional(),
+});
 export const DeleteUser = UserSchema.pick({ id: true });
 export const FollowUser = UserSchema.pick({ id: true });

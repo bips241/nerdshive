@@ -1,4 +1,5 @@
-// app/api/poll-votes/[pollId]/route.ts
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { PollVote } from '@/models/User';

@@ -45,13 +45,21 @@ const EditProfileButton = ({ initialData }: EditProfileButtonProps) => {
     setIsSubmitting(true);
     try {
       const res = await updateProfile(formData);
-      if (res?.message) {
-        toast.success(res.message);
+
+      if (res?.success) {
+        toast.success(res.message || "Profile updated successfully!");
         setIsOpen(false);
+
+        // If username was updated, redirect to new user profile URL
+        if (res.user_name && res.user_name !== initialData?.user_name) {
+          window.location.href = `/dashboard/user/${encodeURIComponent(res.user_name)}`;
+        }
+      } else {
+        toast.error(res?.error || "Failed to update profile. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update profile:", error);
-      toast.error("Failed to update profile. Please try again.");
+      toast.error(error.message || "Failed to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

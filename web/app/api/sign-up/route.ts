@@ -24,12 +24,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingVerifiedUserByUsername = await User.findOne({
-      user_name,
-      isVerified: true,
-    });
+    const existingUserByUsername = await User.findOne({ user_name });
 
-    if (existingVerifiedUserByUsername) {
+    if (existingUserByUsername && existingUserByUsername.email !== email) {
       return Response.json(
         {
           success: false,

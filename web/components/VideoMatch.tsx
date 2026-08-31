@@ -244,18 +244,24 @@ const VideoChat = () => {
   }, [intent, userId]);
 
   const handleSkip = () => {
+    if (activeCallRef.current) {
+      activeCallRef.current.close();
+      activeCallRef.current = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+    setConnected(false);
+
     if (!connected) {
       socketRef.current?.emit('skip');
       setSearching(false);
       setIntent(null);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-      }
       return;
     }
 
+    setSearching(true);
     socketRef.current?.emit('skip');
-    window.location.reload();
   };
 
   return (

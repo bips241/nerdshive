@@ -158,14 +158,14 @@ noStore();
         {
           path: 'comments',
           populate: {
-            path: 'user',
+            path: 'userId',
             select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
           },
           options: { sort: { createdAt: -1 } }
         },
         {
           path: 'likes',
-          populate: { path: 'user' }
+          populate: { path: 'userId' }
         },
         'savedBy',
         'userId'
@@ -182,30 +182,16 @@ noStore();
 
 export async function fetchProfile(username: any) {
   noStore();
-    await connectDB();
-    try {
+  await connectDB();
+  try {
     const user = await User.findOne({ user_name: username })
       .populate({
         path: 'posts',
-        options: { sort: { createdAt: -1 } }
+        options: { sort: { createdAt: -1 } },
       })
       .populate({
         path: 'saved',
-        options: { sort: { createdAt: -1 } }
-      })
-      .populate({
-        path: 'followedBy',
-        populate: {
-          path: 'follower',
-          populate: ['following', 'followedBy']
-        }
-      })
-      .populate({
-        path: 'following',
-        populate: {
-          path: 'following',
-          populate: ['following', 'followedBy']
-        }
+        options: { sort: { createdAt: -1 } },
       });
 
     return user;
@@ -227,16 +213,16 @@ export async function fetchSavedPostsByUsername(username: any) {
           {
             path: 'comments',
             populate: {
-                path: 'user',
-                select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry' // Exclude the password -verifyCode -sessions -accounts -verifyCodeExpiry field
+                path: 'userId',
+                select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
               },
             options: { sort: { createdAt: -1 } }
           },
           {
             path: 'likes',
             populate: {
-                path: 'user',
-                select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry' // Exclude the password -verifyCode -sessions -accounts -verifyCodeExpiry field
+                path: 'userId',
+                select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
               }
           },
           'savedBy',

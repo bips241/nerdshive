@@ -83,6 +83,30 @@ export default function SignInForm() {
     }
   };
 
+  const handleDevGuestSignIn = async () => {
+    setIsSubmitting(true);
+    const result = await signIn('credentials', {
+      redirect: false,
+      identifier: 'dev-guest',
+      password: 'dev-guest',
+      isDevGuest: 'true',
+    });
+
+    if (result?.error) {
+      setIsSubmitting(false);
+      toast({
+        title: 'Guest Login Failed',
+        description: result.error,
+        variant: 'destructive',
+      });
+    }
+
+    if (result?.url || (!result?.error && result?.ok)) {
+      setIsSubmitting(false);
+      router.replace('/dashboard');
+    }
+  };
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-inherit">
       <div className="w-full max-w-md p-8 space-y-8 bg-inherit rounded-lg shadow-md">
@@ -134,6 +158,21 @@ export default function SignInForm() {
               <IconBrandGithubFilled />
             </Button>
           </div>
+
+          {/* STRICT DEV GUEST MODE - Guaranteed removed in production bundle */}
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-dashed border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold"
+                onClick={handleDevGuestSignIn}
+                disabled={isSubmitting}
+              >
+                ⚡ Continue as Dev Guest (Local Dev Only)
+              </Button>
+            </div>
+          )}
         </Form>
         <div className="text-center mt-4">
           <p>

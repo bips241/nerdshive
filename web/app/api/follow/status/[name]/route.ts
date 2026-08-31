@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { Follows } from '@/models/User';
 import connectDB from '@/lib/db';
@@ -18,6 +20,10 @@ export async function POST(req: NextRequest, { params }: { params: { name: strin
         }
         
         const user: User = await fetchProfile(name);
+
+        if (!user) {
+            return NextResponse.json({ isFollowing: false }, { status: 200 });
+        }
 
         const existingFollow = await Follows.findOne({
             followerId,

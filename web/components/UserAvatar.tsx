@@ -1,33 +1,33 @@
-'use client'
-import { Avatar } from "@/components/ui/avatar";
-import type { AvatarProps } from "@radix-ui/react-avatar";
-import { Link } from "lucide-react";
-import type { User } from "next-auth";
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { Avatar } from '@/components/ui/avatar';
+import type { AvatarProps } from '@radix-ui/react-avatar';
+import type { User } from 'next-auth';
+import Image from 'next/image';
 
 type Props = Partial<AvatarProps> & {
-  user: User | undefined;
+  user: (User & { user_name?: string }) | undefined | null;
+  className?: string;
 };
 
-function UserAvatar({ user, ...avatarProps }: Props) {
-  
-  const imageUrl = user?.image || '/avatar.png';
+function UserAvatar({ user, className, ...avatarProps }: Props) {
+  const [imgSrc, setImgSrc] = useState<string>(user?.image || '/avatar.png');
 
   return (
-    <Avatar className="relative h-8 w-8" {...avatarProps}>
+    <Avatar className={`relative overflow-hidden rounded-full ${className || 'h-8 w-8'}`} {...avatarProps}>
       {user ? (
         <Image
-          src={imageUrl}
+          src={imgSrc}
           fill
-          alt={`${user?.user_name}'s profile picture`}
+          alt={`${user?.user_name || user?.name || 'User'}'s avatar`}
           className="rounded-full object-cover"
+          sizes="64px"
+          onError={() => setImgSrc('/avatar.png')}
         />
       ) : (
-        <div className="rounded-full bg-gray-200 h-full w-full"></div>
+        <div className="rounded-full bg-muted h-full w-full" />
       )}
-      <Link
-        href="/dashboard/${user?.user_name}"
-      />
     </Avatar>
   );
 }

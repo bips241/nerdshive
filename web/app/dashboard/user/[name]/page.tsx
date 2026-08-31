@@ -7,6 +7,7 @@ import connectDB from "@/lib/db";
 import { User, Follows, Post } from "@/models/User";
 import { Globe, GitFork } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 type Props = {
   params: {
@@ -40,9 +41,23 @@ export default async function ProfilePage({ params: { name } }: Props) {
   }
 
   await connectDB();
-  const profileUser: any = await User.findOne({ user_name: name }).lean();
+  const normalizedName = decodeURIComponent(name).trim();
+  let profileUser: any = await User.findOne({
+    $or: [
+      { user_name: normalizedName },
+      { user_name: new RegExp(`^${normalizedName}$`, 'i') },
+    ],
+  }).lean();
 
   if (!profileUser) {
+    // If the logged-in user renamed their profile, redirect to their new profile URL
+    if (session.user?._id) {
+      const activeUser = await User.findById(session.user._id).select('user_name').lean();
+      if (activeUser && activeUser.user_name !== normalizedName) {
+        redirect(`/dashboard/user/${encodeURIComponent(activeUser.user_name)}`);
+      }
+    }
+
     return (
       <div className="text-center py-12 text-muted-foreground">
         User not found.
