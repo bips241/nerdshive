@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package discovery;
+
+service DiscoveryService {
+  rpc MatchSkills (MatchSkillsRequest) returns (MatchSkillsResponse);
+  rpc GetTrendingProjects (GetTrendingProjectsRequest) returns (GetTrendingProjectsResponse);
+  rpc SearchDevelopers (SearchDevelopersRequest) returns (SearchDevelopersResponse);
+}
+
+message MatchSkillsRequest {
+  repeated string currentSkills = 1;
+  repeated string requiredSkills = 2;
+}
+
+message CandidateMatchDto {
+  string userId = 1;
+  string username = 2;
+  repeated string matchingSkills = 3;
+  double score = 4;
+}
+
+message MatchSkillsResponse {
+  repeated CandidateMatchDto matches = 1;
+}
+
+message GetTrendingProjectsRequest {
+  string tag = 1;
+  int32 limit = 2;
+}
+
+message ProjectDto {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  repeated string techStack = 4;
+  string authorId = 5;
+  string authorUsername = 6;
+  string repoUrl = 7;
+  int32 memberCount = 8;
+}
+
+message GetTrendingProjectsResponse {
+  repeated ProjectDto projects = 1;
+}
+
+message SearchDevelopersRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message DeveloperProfileDto {
+  string userId = 1;
+  string username = 2;
+  string bio = 3;
+  string avatar = 4;
+  string website = 5;
+  string repo = 6;
+}
+
+message SearchDevelopersResponse {
+  repeated DeveloperProfileDto developers = 1;
+}

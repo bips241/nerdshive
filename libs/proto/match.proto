@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package match;
+
+service MatchService {
+  rpc EnqueueUser (EnqueueUserRequest) returns (EnqueueUserResponse);
+  rpc DequeueUser (DequeueUserRequest) returns (DequeueUserResponse);
+  rpc GetQueueMetrics (GetQueueMetricsRequest) returns (GetQueueMetricsResponse);
+}
+
+message EnqueueUserRequest {
+  string intent = 1;
+  string peerId = 2;
+  string socketId = 3;
+}
+
+message EnqueueUserResponse {
+  bool matched = 1;
+  string partnerPeerId = 2;
+  string partnerSocketId = 3;
+  string roomId = 4;
+  bool isInitiator = 5;
+  int32 queuePosition = 6;
+}
+
+message DequeueUserRequest {
+  string socketId = 1;
+  string intent = 2;
+}
+
+message DequeueUserResponse {
+  bool dequeued = 1;
+}
+
+message GetQueueMetricsRequest {}
+
+message GetQueueMetricsResponse {
+  int32 hiringQueueLength = 1;
+  int32 jobQueueLength = 2;
+  int32 teammateQueueLength = 3;
+  int32 activeMatchesCount = 4;
+}

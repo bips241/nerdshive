@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # Next.js Web App / BFF
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nerdshive-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/nerdshive
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=dev-secret-key-nerdshive-scale
+      - AUTH_TRUST_HOST=true
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=http://localhost:10000
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - nerdshive-network
+
+  # NestJS Microservices Gateway & Services
+  services:
+    build:
+      context: .
+      dockerfile: Dockerfile.services
+    container_name: nerdshive-services
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - GATEWAY_PORT=4000
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGODB_URI=mongodb://mongodb:27017/nerdshive
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - nerdshive-network
+
+  # WebSockets Matchmaking & WebRTC Signaling Server
+  signaling-server:
+    build:
+      context: ./apps/signaling-server
+    container_name: nerdshive-signaling
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    environment:
+      - PORT=10000
+      - REDIS_URL=redis://redis:6379
+      - CLIENT_URL=http://localhost:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nerdshive-network
+
+  # Redis 7 Alpine (Match Queues, Adapter, Event Bus, BullMQ)
+  redis:
+    image: redis:7-alpine
+    container_name: nerdshive-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nerdshive-network
+
+  # MongoDB 7 Community
+  mongodb:
+    image: mongo:7.0
+    container_name: nerdshive-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nerdshive-network
+
+networks:
+  nerdshive-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  mongo-data:

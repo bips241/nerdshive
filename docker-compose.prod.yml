@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # Next.js Web Frontend & Edge BFF
+  web:
+    image: nerdshive/web:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - AUTH_TRUST_HOST=true
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=${NEXT_PUBLIC_SOCKET_SERVER_URL}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - nerdshive-prod-network
+
+  # NestJS Microservices Gateway
+  gateway:
+    image: nerdshive/services:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.services
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - GATEWAY_PORT=4000
+      - REDIS_URL=${REDIS_URL}
+      - MONGODB_URI=${MONGODB_URI}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - AWS_BUCKET_REGION=${AWS_BUCKET_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - nerdshive-prod-network
+
+  # Redis Cluster / Single Node
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-securepassword}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - prod-redis-data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    networks:
+      - nerdshive-prod-network
+
+networks:
+  nerdshive-prod-network:
+    driver: bridge
+
+volumes:
+  prod-redis-data:

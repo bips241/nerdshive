@@ -1,0 +1,23 @@
+# Multi-stage Dockerfile for NestJS Microservices Cluster
+FROM node:20-alpine AS builder
+WORKDIR /app/services
+
+COPY services/package*.json ./
+COPY services/tsconfig.json ./
+RUN npm ci
+
+COPY services/ ./
+RUN npm run build || true
+
+# Production Runner
+FROM node:20-alpine AS runner
+WORKDIR /app/services
+ENV NODE_ENV=production
+
+COPY --from=builder /app/services/package*.json ./
+COPY --from=builder /app/services/node_modules ./node_modules
+COPY --from=builder /app/services ./
+
+EXPOSE 4000 4001 4002 4003 4004 4005 4006 10000
+
+CMD ["node", "dist/gateway/main.js"]
