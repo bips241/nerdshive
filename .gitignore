@@ -49,3 +49,8 @@ tracing/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent logs
+docs/agent-log/
+agent-log/
+
