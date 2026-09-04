@@ -19,6 +19,9 @@
     "test:s3": "node tests/load-tests/s3-resilience-test.js",
     "test:match": "node tests/load-tests/match-scaling-test.js",
     "test:chaos": "node tests/chaos-monkey/run-1000-users-chaos-test.js",
+    "seo:audit": "node scripts/seo-analytics-report.js",
+    "seo:boost": "node scripts/daily-seo-booster.js",
+    "seo:daily": "node scripts/daily-seo-booster.js && node scripts/seo-analytics-report.js",
     "db:seed": "node scripts/seed-db.js"
   },
   "workspaces": [

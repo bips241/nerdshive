@@ -28,7 +28,12 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  if (!currentUser && url.pathname.startsWith('/dashboard')) {
+  const isPublicDashboardRoute =
+    (url.pathname.startsWith('/dashboard/p/') && !url.pathname.includes('/edit')) ||
+    url.pathname.startsWith('/dashboard/user/') ||
+    url.pathname === '/dashboard/explore';
+
+  if (!currentUser && url.pathname.startsWith('/dashboard') && !isPublicDashboardRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

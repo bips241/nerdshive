@@ -10,11 +10,85 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { fetchGitHubProofOfWork } from "@/lib/github";
 
+import type { Metadata } from "next";
+
 type Props = {
   params: {
     name: string;
   };
 };
+
+export async function generateMetadata({ params: { name } }: Props): Promise<Metadata> {
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nerdshive.online";
+  const normalizedName = decodeURIComponent(name).trim();
+
+  try {
+    if (process.env.MONGODB_URI) {
+      await connectDB();
+      const profileUser: any = await User.findOne({
+        $or: [
+          { user_name: normalizedName },
+          { user_name: new RegExp(`^${normalizedName}$`, 'i') },
+        ],
+      }).select('user_name bio techStack radarStatus image repo').lean();
+
+      if (profileUser) {
+        const title = `${profileUser.user_name} - Developer Proof of Work & Portfolio`;
+        const stackDesc = profileUser.techStack?.length ? `Skilled in ${profileUser.techStack.join(', ')}.` : '';
+        const radarDesc = profileUser.radarStatus && profileUser.radarStatus !== 'none'
+          ? `Beacon Active: ${profileUser.radarStatus.replace(/_/g, ' ')}.`
+          : '';
+        const description = (profileUser.bio || `${stackDesc} ${radarDesc}` || `Explore developer dossier, open-source projects, and ship logs of @${profileUser.user_name}.`).slice(0, 160);
+
+        const ogImageUrl = `${siteUrl}/api/og?title=${encodeURIComponent(profileUser.user_name)}&desc=${encodeURIComponent(description.slice(0, 100))}&type=profile`;
+
+        return {
+          title,
+          description,
+          keywords: [
+            "developer portfolio",
+            profileUser.user_name,
+            ...(profileUser.techStack || []),
+            "open source engineer",
+            "proof of work",
+            "nerdshive",
+          ],
+          alternates: {
+            canonical: `${siteUrl}/dashboard/user/${encodeURIComponent(normalizedName)}`,
+          },
+          openGraph: {
+            title,
+            description,
+            url: `${siteUrl}/dashboard/user/${encodeURIComponent(normalizedName)}`,
+            siteName: "NerdShive",
+            type: "profile",
+            images: [
+              {
+                url: profileUser.image || ogImageUrl,
+                width: 1200,
+                height: 630,
+                alt: `${profileUser.user_name} Developer Profile`,
+              },
+            ],
+          },
+          twitter: {
+            card: "summary_large_image",
+            title,
+            description,
+            images: [profileUser.image || ogImageUrl],
+          },
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("[SEO] Error generating profile metadata:", err);
+  }
+
+  return {
+    title: `${normalizedName} - Developer Profile | NerdShive`,
+    description: `View developer proof of work, ship logs, and projects on NerdShive.`,
+  };
+}
 
 type ProfilePost = {
   _id: string;
@@ -33,13 +107,7 @@ function getMediaType(url?: string): "video" | "image" | "unknown" {
 
 export default async function ProfilePage({ params: { name } }: Props) {
   const session = await auth();
-  if (!session) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        You are not authorized to view this profile. Please log in.
-      </div>
-    );
-  }
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nerdshive.online";
 
   await connectDB();
   const normalizedName = decodeURIComponent(name).trim();
@@ -52,7 +120,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
 
   if (!profileUser) {
     // If the logged-in user renamed their profile, redirect to their new profile URL
-    if (session.user?._id) {
+    if (session?.user?._id) {
       const activeUser = await User.findById(session.user._id).select('user_name').lean();
       if (activeUser && activeUser.user_name !== normalizedName) {
         redirect(`/dashboard/user/${encodeURIComponent(activeUser.user_name)}`);
@@ -67,7 +135,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
   }
 
   const profileUserId = profileUser._id.toString();
-  const isOwnProfile = session.user?.user_name === name;
+  const isOwnProfile = session?.user?.user_name === name;
 
   // Aggregate real stats
   const [postCount, followersCount, followingCount] = await Promise.all([
@@ -89,8 +157,52 @@ export default async function ProfilePage({ params: { name } }: Props) {
     return { post, type: getMediaType(post.fileUrl) };
   });
 
+  const jsonLdProfile = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    dateCreated: profileUser.createdAt ? new Date(profileUser.createdAt).toISOString() : undefined,
+    dateModified: profileUser.updatedAt ? new Date(profileUser.updatedAt).toISOString() : undefined,
+    mainEntity: {
+      "@type": "Person",
+      name: profileUser.user_name,
+      alternateName: name,
+      description: profileUser.bio || "Developer on NerdShive",
+      image: profileUser.image,
+      sameAs: [
+        profileUser.website,
+        profileUser.repo ? `https://github.com/${profileUser.repo}` : undefined,
+      ].filter(Boolean),
+      knowsAbout: profileUser.techStack || [],
+      interactionStatistic: [
+        {
+          "@type": "InteractionCounter",
+          interactionType: "https://schema.org/FollowAction",
+          userInteractionCount: followersCount,
+        },
+      ],
+    },
+  };
+
   return (
     <div className="space-y-6 p-4 max-w-4xl mx-auto">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdProfile) }}
+      />
+
+      {/* Guest Onboarding Banner */}
+      {!session && (
+        <div className="bg-primary/10 border border-primary/20 text-foreground text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <span>You are viewing <strong>@{profileUser.user_name}</strong>'s public developer dossier. Join NerdShive to pair debug, assemble hackathon teams, and launch ship logs.</span>
+          </div>
+          <Link href="/register" className="shrink-0 px-3.5 py-1.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+            Sign Up Free
+          </Link>
+        </div>
+      )}
+
       {/* Profile Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
         <UserAvatar
@@ -153,8 +265,12 @@ export default async function ProfilePage({ params: { name } }: Props) {
                   techStack: profileUser.techStack,
                 }}
               />
+            ) : session?.user ? (
+              <FollowButton name={name} followerId={session.user._id || ""} />
             ) : (
-              <FollowButton name={name} followerId={session.user?._id || ""} />
+              <Link href="/login" className="inline-flex items-center text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+                Follow @{profileUser.user_name}
+              </Link>
             )}
           </div>
         </div>
