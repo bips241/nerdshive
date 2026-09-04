@@ -242,7 +242,7 @@ export async function updateProfile(values: unknown) {
     };
   }
 
-  const { bio, gender, image, name, user_name, website, repo } = validatedFields.data;
+  const { bio, gender, image, name, user_name, website, repo, radarStatus, techStack } = validatedFields.data;
 
   try {
     // Check if new user_name is already taken by another account
@@ -268,6 +268,8 @@ export async function updateProfile(values: unknown) {
     if (website !== undefined) updatePayload.website = website;
     if (repo !== undefined) updatePayload.repo = repo;
     if (image !== undefined) updatePayload.image = image;
+    if (radarStatus !== undefined) updatePayload.radarStatus = radarStatus;
+    if (techStack !== undefined) updatePayload.techStack = techStack;
 
     await User.findByIdAndUpdate(userId, updatePayload, { new: true });
 

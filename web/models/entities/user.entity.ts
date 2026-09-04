@@ -19,6 +19,8 @@ export interface IUser extends Document {
   posts: mongoose.Types.ObjectId[];
   savedPosts: mongoose.Types.ObjectId[];
   saved?: any;
+  radarStatus?: 'open_for_hackathons' | 'seeking_cofounder' | 'open_for_collab' | 'open_for_work' | 'none';
+  techStack?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +37,12 @@ export const UserSchema: Schema<IUser> = new Schema(
     bio: { type: String },
     website: { type: String },
     repo: { type: String },
+    radarStatus: {
+      type: String,
+      enum: ['open_for_hackathons', 'seeking_cofounder', 'open_for_collab', 'open_for_work', 'none'],
+      default: 'none',
+    },
+    techStack: [{ type: String }],
     role: { type: String, default: 'user' },
     isVerified: { type: Boolean, default: false },
     verifyCode: { type: String },

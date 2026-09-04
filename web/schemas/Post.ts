@@ -54,6 +54,8 @@ export const UpdateUser = z.object({
   website: z.string().optional(),
   repo: z.string().optional(),
   image: z.string().optional(),
+  radarStatus: z.enum(['open_for_hackathons', 'seeking_cofounder', 'open_for_collab', 'open_for_work', 'none']).optional(),
+  techStack: z.array(z.string()).optional(),
 });
 export const DeleteUser = UserSchema.pick({ id: true });
 export const FollowUser = UserSchema.pick({ id: true });

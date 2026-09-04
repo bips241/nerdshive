@@ -16,6 +16,8 @@ interface EditProfileButtonProps {
     gender?: string;
     website?: string;
     repo?: string;
+    radarStatus?: string;
+    techStack?: string[];
   };
 }
 
@@ -29,11 +31,18 @@ const EditProfileButton = ({ initialData }: EditProfileButtonProps) => {
     gender: initialData?.gender || "",
     website: initialData?.website || "",
     repo: initialData?.repo || "",
+    radarStatus: initialData?.radarStatus || "none",
+    techStack: initialData?.techStack || [],
   });
+  const [techStackInput, setTechStackInput] = useState((initialData?.techStack || []).join(", "));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRadarChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, radarStatus: value }));
   };
 
   const handleGenderChange = (value: string) => {
@@ -44,7 +53,15 @@ const EditProfileButton = ({ initialData }: EditProfileButtonProps) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await updateProfile(formData);
+      const parsedTech = techStackInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const res = await updateProfile({
+        ...formData,
+        techStack: parsedTech,
+      });
 
       if (res?.success) {
         toast.success(res.message || "Profile updated successfully!");
@@ -77,10 +94,10 @@ const EditProfileButton = ({ initialData }: EditProfileButtonProps) => {
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
-            <DialogDescription>Update your public profile details.</DialogDescription>
+            <DialogDescription>Update your public profile details and matchmaking radar.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -110,6 +127,38 @@ const EditProfileButton = ({ initialData }: EditProfileButtonProps) => {
                 value={formData.bio}
                 onChange={handleInputChange}
                 maxLength={150}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="radarStatus" className="block text-sm font-medium mb-1">
+                Teammate Radar Status (Live Beacon)
+              </label>
+              <Select onValueChange={handleRadarChange} value={formData.radarStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select radar status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Off (No Beacon)</SelectItem>
+                  <SelectItem value="open_for_hackathons">🎯 Open for Hackathons</SelectItem>
+                  <SelectItem value="seeking_cofounder">🚀 Seeking Co-Founder</SelectItem>
+                  <SelectItem value="open_for_collab">🤝 Open for Collab</SelectItem>
+                  <SelectItem value="open_for_work">💼 Open for Work</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label htmlFor="techStack" className="block text-sm font-medium mb-1">
+                Tech Stack (Comma-separated)
+              </label>
+              <Input
+                id="techStack"
+                name="techStack"
+                type="text"
+                placeholder="TypeScript, Next.js, Python, Rust"
+                value={techStackInput}
+                onChange={(e) => setTechStackInput(e.target.value)}
               />
             </div>
 
@@ -145,13 +194,13 @@ const EditProfileButton = ({ initialData }: EditProfileButtonProps) => {
 
             <div>
               <label htmlFor="repo" className="block text-sm font-medium mb-1">
-                GitHub Repository / Profile
+                GitHub Profile or Repository URL
               </label>
               <Input
                 id="repo"
                 name="repo"
                 type="url"
-                placeholder="https://github.com/yourhandle"
+                placeholder="https://github.com/yourusername"
                 value={formData.repo}
                 onChange={handleInputChange}
               />

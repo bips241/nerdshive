@@ -100,11 +100,28 @@ export default async function ProfilePage({ params: { name } }: Props) {
           className={`h-24 w-24 ${isOwnProfile ? "border-2 border-primary" : ""}`}
         />
         <div className="space-y-3 flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold">{name}</h1>
             {profileUser.gender && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                 {profileUser.gender}
+              </span>
+            )}
+            {profileUser.radarStatus && profileUser.radarStatus !== 'none' && (
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border shadow-sm animate-pulse ${
+                profileUser.radarStatus === 'open_for_hackathons'
+                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                  : profileUser.radarStatus === 'seeking_cofounder'
+                  ? 'bg-purple-500/10 text-purple-500 border-purple-500/30'
+                  : profileUser.radarStatus === 'open_for_collab'
+                  ? 'bg-blue-500/10 text-blue-500 border-blue-500/30'
+                  : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+              }`}>
+                <span className="h-2 w-2 rounded-full bg-current" />
+                {profileUser.radarStatus === 'open_for_hackathons' && '🎯 Open for Hackathons'}
+                {profileUser.radarStatus === 'seeking_cofounder' && '🚀 Seeking Co-Founder'}
+                {profileUser.radarStatus === 'open_for_collab' && '🤝 Open for Collab'}
+                {profileUser.radarStatus === 'open_for_work' && '💼 Open for Work'}
               </span>
             )}
           </div>
@@ -130,6 +147,8 @@ export default async function ProfilePage({ params: { name } }: Props) {
                   gender: profileUser.gender,
                   website: profileUser.website,
                   repo: profileUser.repo,
+                  radarStatus: profileUser.radarStatus,
+                  techStack: profileUser.techStack,
                 }}
               />
             ) : (
@@ -139,12 +158,26 @@ export default async function ProfilePage({ params: { name } }: Props) {
         </div>
       </div>
 
-      {/* Bio & Social Links */}
-      <div className="space-y-2 text-sm border-t pt-4">
+      {/* Bio, Tech Stack & Social Links */}
+      <div className="space-y-3 text-sm border-t pt-4">
         {profileUser.bio ? (
           <p className="text-foreground whitespace-pre-line leading-relaxed">{profileUser.bio}</p>
         ) : (
           <p className="text-muted-foreground italic">No bio provided yet.</p>
+        )}
+
+        {/* Tech Stack Badges */}
+        {profileUser.techStack && profileUser.techStack.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {profileUser.techStack.map((tech: string, i: number) => (
+              <span
+                key={i}
+                className="text-xs px-2.5 py-0.5 rounded-md bg-secondary text-secondary-foreground font-medium border border-border/50"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
         )}
 
         <div className="flex flex-wrap gap-4 pt-1">
@@ -168,7 +201,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
               className="flex items-center gap-1.5 text-primary hover:underline text-xs"
             >
               <GitFork className="h-3.5 w-3.5" />
-              GitHub Portfolio
+              GitHub Profile / Repo
             </Link>
           )}
         </div>

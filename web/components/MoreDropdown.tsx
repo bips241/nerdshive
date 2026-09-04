@@ -20,6 +20,7 @@ import {
 
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
@@ -93,18 +94,26 @@ function MoreDropdown() {
       >
         {!showModeToggle && (
           <>
-            <DropdownMenuItem className="menuItem">
-              <Settings size={20} />
-              <p>Settings</p>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="menuItem">
-              <Activity size={20} />
-              <p>Your activity</p>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="menuItem">
-              <Bookmark size={20} />
-              <p>Saved</p>
-            </DropdownMenuItem>
+            <Link href="/dashboard/settings" onClick={() => setOpen(false)}>
+              <DropdownMenuItem className="menuItem cursor-pointer">
+                <Settings size={20} />
+                <p>Settings</p>
+              </DropdownMenuItem>
+            </Link>
+
+            <Link href="/dashboard/activity" onClick={() => setOpen(false)}>
+              <DropdownMenuItem className="menuItem cursor-pointer">
+                <Activity size={20} />
+                <p>Your activity</p>
+              </DropdownMenuItem>
+            </Link>
+
+            <Link href="/dashboard/saved" onClick={() => setOpen(false)}>
+              <DropdownMenuItem className="menuItem cursor-pointer">
+                <Bookmark size={20} />
+                <p>Saved</p>
+              </DropdownMenuItem>
+            </Link>
 
             <DropdownMenuItem
               className="menuItem"
