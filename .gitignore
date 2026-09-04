@@ -54,3 +54,6 @@ next-env.d.ts
 docs/agent-log/
 agent-log/
 
+# chaos test traces
+*.jsonl
+
