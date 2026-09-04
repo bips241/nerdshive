@@ -5,7 +5,16 @@ export interface IPost extends Document {
   userId: mongoose.Types.ObjectId;
   caption?: string;
   fileUrl?: string;
-  postType: 'media' | 'poll' | 'goal' | 'project';
+  postType:
+    | 'media'
+    | 'poll'
+    | 'goal'
+    | 'project'
+    | 'ship_log'
+    | 'code_sos'
+    | 'architecture_rfc'
+    | 'hackathon_crew'
+    | 'tech_showdown';
   likes: mongoose.Types.ObjectId[];
   comments: mongoose.Types.ObjectId[];
   savedBy: mongoose.Types.ObjectId[];
@@ -26,6 +35,43 @@ export interface IPost extends Document {
     goalTargetDate?: Date;
     interestedUsers: mongoose.Types.ObjectId[];
   };
+  shipLog?: {
+    title: string;
+    pitch: string;
+    demoUrl?: string;
+    repoUrl?: string;
+    techStack: string[];
+    feedbackWanted: string[];
+  };
+  codeSos?: {
+    title: string;
+    snippet: string;
+    language: string;
+    errorLog?: string;
+    environment?: string;
+    triedSteps?: string;
+    isResolved: boolean;
+  };
+  architectureRfc?: {
+    title: string;
+    challenge: string;
+    diagramMarkdown?: string;
+    tradeOffs?: Array<{ option: string; pros: string; cons: string }>;
+    targetAudience?: string;
+  };
+  hackathonCrew?: {
+    hackathonName: string;
+    urgencyDate?: Date;
+    rolesHave: string[];
+    rolesNeed: string[];
+    commitmentLevel: 'hardcore' | 'moderate' | 'casual';
+  };
+  techShowdown?: {
+    topic: string;
+    optionA: { name: string; description?: string; votes: number };
+    optionB: { name: string; description?: string; votes: number };
+    benchmark?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,7 +83,17 @@ export const PostSchema: Schema<IPost> = new Schema(
     fileUrl: { type: String },
     postType: {
       type: String,
-      enum: ['media', 'poll', 'goal', 'project'],
+      enum: [
+        'media',
+        'poll',
+        'goal',
+        'project',
+        'ship_log',
+        'code_sos',
+        'architecture_rfc',
+        'hackathon_crew',
+        'tech_showdown',
+      ],
       required: true,
     },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
@@ -64,6 +120,61 @@ export const PostSchema: Schema<IPost> = new Schema(
       goalText: { type: String },
       goalTargetDate: { type: Date },
       interestedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    },
+    shipLog: {
+      title: { type: String },
+      pitch: { type: String },
+      demoUrl: { type: String },
+      repoUrl: { type: String },
+      techStack: [{ type: String }],
+      feedbackWanted: [{ type: String }],
+    },
+    codeSos: {
+      title: { type: String },
+      snippet: { type: String },
+      language: { type: String, default: 'typescript' },
+      errorLog: { type: String },
+      environment: { type: String },
+      triedSteps: { type: String },
+      isResolved: { type: Boolean, default: false },
+    },
+    architectureRfc: {
+      title: { type: String },
+      challenge: { type: String },
+      diagramMarkdown: { type: String },
+      tradeOffs: [
+        {
+          option: { type: String },
+          pros: { type: String },
+          cons: { type: String },
+        },
+      ],
+      targetAudience: { type: String },
+    },
+    hackathonCrew: {
+      hackathonName: { type: String },
+      urgencyDate: { type: Date },
+      rolesHave: [{ type: String }],
+      rolesNeed: [{ type: String }],
+      commitmentLevel: {
+        type: String,
+        enum: ['hardcore', 'moderate', 'casual'],
+        default: 'moderate',
+      },
+    },
+    techShowdown: {
+      topic: { type: String },
+      optionA: {
+        name: { type: String },
+        description: { type: String },
+        votes: { type: Number, default: 0 },
+      },
+      optionB: {
+        name: { type: String },
+        description: { type: String },
+        votes: { type: Number, default: 0 },
+      },
+      benchmark: { type: String },
     },
   },
   { timestamps: true }

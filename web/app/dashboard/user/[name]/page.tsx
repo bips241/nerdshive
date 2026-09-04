@@ -5,9 +5,10 @@ import UserAvatar from "@/components/UserAvatar";
 import { fetchProfilePosts } from "@/lib/data";
 import connectDB from "@/lib/db";
 import { User, Follows, Post } from "@/models/User";
-import { Globe, GitFork } from "lucide-react";
+import { Globe, GitFork, Star, Code, GitPullRequest, ShieldCheck, Sparkles, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { fetchGitHubProofOfWork } from "@/lib/github";
 
 type Props = {
   params: {
@@ -75,12 +76,13 @@ export default async function ProfilePage({ params: { name } }: Props) {
     Follows.countDocuments({ followerId: profileUserId }),
   ]);
 
-  let profilePostsRaw: string[] = [];
-  try {
-    profilePostsRaw = await fetchProfilePosts(name);
-  } catch (error) {
-    console.error("Error fetching profile posts:", error);
-  }
+  const [githubStats, profilePostsRaw] = await Promise.all([
+    fetchGitHubProofOfWork(profileUser.repo),
+    fetchProfilePosts(name).catch((err) => {
+      console.error("Error fetching profile posts:", err);
+      return [];
+    }),
+  ]);
 
   const parsedPosts: { post: ProfilePost; type: "video" | "image" | "unknown" }[] = profilePostsRaw.map((postStr) => {
     const post: ProfilePost = JSON.parse(postStr);
@@ -206,6 +208,102 @@ export default async function ProfilePage({ params: { name } }: Props) {
           )}
         </div>
       </div>
+
+      {/* GitHub Proof-of-Work Dossier */}
+      {githubStats && (
+        <div className="border-t pt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-emerald-500" />
+              <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Verified GitHub Proof-of-Work
+              </h2>
+            </div>
+            <Link
+              href={`https://github.com/${githubStats.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+            >
+              @{githubStats.username} <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
+
+          {/* Metrics summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl border bg-card space-y-0.5">
+              <span className="text-[11px] text-muted-foreground uppercase font-semibold">Public Repos</span>
+              <p className="text-lg font-extrabold text-foreground">{githubStats.publicRepos}</p>
+            </div>
+            <div className="p-3 rounded-xl border bg-card space-y-0.5">
+              <span className="text-[11px] text-muted-foreground uppercase font-semibold flex items-center gap-1">
+                <Star className="h-3 w-3 text-amber-500" /> Stargazers
+              </span>
+              <p className="text-lg font-extrabold text-foreground">{githubStats.totalStars}</p>
+            </div>
+            <div className="p-3 rounded-xl border bg-card space-y-0.5 col-span-2 sm:col-span-1">
+              <span className="text-[11px] text-muted-foreground uppercase font-semibold">Followers</span>
+              <p className="text-lg font-extrabold text-foreground">{githubStats.followers}</p>
+            </div>
+          </div>
+
+          {/* Top Verified Languages */}
+          {githubStats.topLanguages && githubStats.topLanguages.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1">
+                <Code className="h-3.5 w-3.5 text-primary" /> Verified Primary Languages:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {githubStats.topLanguages.map((lang: string, idx: number) => (
+                  <span
+                    key={idx}
+                    className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20"
+                  >
+                    {lang}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Top Repositories Showcase */}
+          {githubStats.featuredRepos && githubStats.featuredRepos.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1">
+                <GitFork className="h-3.5 w-3.5 text-purple-500" /> Top Open-Source Projects:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {githubStats.featuredRepos.slice(0, 4).map((repo: any, idx: number) => (
+                  <Link
+                    key={idx}
+                    href={repo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors space-y-2 block group"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs font-bold text-foreground group-hover:underline truncate max-w-[200px]">
+                        {repo.name}
+                      </span>
+                      <span className="text-[10px] flex items-center gap-0.5 text-amber-500 font-semibold">
+                        <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> {repo.stars}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2">
+                      {repo.description}
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+                      <span className="h-2 w-2 rounded-full bg-primary" />
+                      <span>{repo.language}</span>
+                      {repo.forks > 0 && <span>• {repo.forks} forks</span>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Media Posts Grid */}
       <div className="border-t pt-4">

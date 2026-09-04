@@ -20,21 +20,33 @@ import MiniPost from "./MiniPost";
 import { CommentWithExtras } from "@/lib/definitions";
 import Media from "./Media";
 
+import ShipLogUI from "./dev-posts/ShipLogUI";
+import CodeSosUI from "./dev-posts/CodeSosUI";
+import ArchitectureRfcUI from "./dev-posts/ArchitectureRfcUI";
+import HackathonCrewUI from "./dev-posts/HackathonCrewUI";
+import TechShowdownUI from "./dev-posts/TechShowdownUI";
+import ProjectPostUI from "./ProjectPostUI";
+
 async function SinglePost({ id }: { id: string }) {
   const post = await fetchPostById(id);
+  if (!post) {
+    notFound();
+  }
   const posT = JSON.parse(post);
-   console.log('come:',posT);
   const session = await auth();
   const postUsername = posT?.userId?.user_name;
   const userId = session?.user?._id?.toString();
 
-  if (!post) {
-    notFound();
-  }
-
-// console.log('image',posT.fileUrl);
+  // Route to dedicated developer archetype components if not standard media
+  if (posT.postType === 'ship_log') return <div className="max-w-2xl mx-auto"><ShipLogUI post={posT} /></div>;
+  if (posT.postType === 'code_sos') return <div className="max-w-2xl mx-auto"><CodeSosUI post={posT} /></div>;
+  if (posT.postType === 'architecture_rfc') return <div className="max-w-2xl mx-auto"><ArchitectureRfcUI post={posT} /></div>;
+  if (posT.postType === 'hackathon_crew') return <div className="max-w-2xl mx-auto"><HackathonCrewUI post={posT} /></div>;
+  if (posT.postType === 'tech_showdown') return <div className="max-w-2xl mx-auto"><TechShowdownUI post={posT} /></div>;
+  if (posT.postType === 'project') return <div className="max-w-2xl mx-auto"><ProjectPostUI post={posT} /></div>;
 
   async function getFileType(url: string): Promise<string | null> {
+    if (!url) return null;
     try {
       const response = await fetch(url, { method: 'HEAD' });
       return response.headers.get('Content-Type');
@@ -44,7 +56,7 @@ async function SinglePost({ id }: { id: string }) {
     }
   }
 
-  const fileType = await getFileType(posT.fileUrl);
+  const fileType = posT.fileUrl ? await getFileType(posT.fileUrl) : null;
 
   // console.log('filetype',fileType);
 

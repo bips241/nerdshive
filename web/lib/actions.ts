@@ -397,6 +397,187 @@ export const submitProjectPost = async (data: { title: string; description: stri
   }
 };
 
+export const submitShipLogPost = async (data: {
+  title: string;
+  pitch: string;
+  demoUrl?: string;
+  repoUrl?: string;
+  techStack: string[];
+  feedbackWanted?: string[];
+}) => {
+  await connectDB();
+  const userId = await getUserId();
+  try {
+    const newPost = await Post.create({
+      userId,
+      postType: "ship_log",
+      caption: `${data.title} — ${data.pitch}`,
+      shipLog: {
+        title: data.title,
+        pitch: data.pitch,
+        demoUrl: data.demoUrl || undefined,
+        repoUrl: data.repoUrl || undefined,
+        techStack: data.techStack || [],
+        feedbackWanted: data.feedbackWanted || [],
+      },
+    });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
+  } catch (error) {
+    console.error("Ship log submission error:", error);
+    throw new Error("Database Error: Failed to create Ship Log post.");
+  }
+};
+
+export const submitCodeSosPost = async (data: {
+  title: string;
+  snippet: string;
+  language?: string;
+  errorLog?: string;
+  environment?: string;
+  triedSteps?: string;
+}) => {
+  await connectDB();
+  const userId = await getUserId();
+  try {
+    const newPost = await Post.create({
+      userId,
+      postType: "code_sos",
+      caption: `[Code SOS] ${data.title}`,
+      codeSos: {
+        title: data.title,
+        snippet: data.snippet,
+        language: data.language || "typescript",
+        errorLog: data.errorLog || undefined,
+        environment: data.environment || undefined,
+        triedSteps: data.triedSteps || undefined,
+        isResolved: false,
+      },
+    });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
+  } catch (error) {
+    console.error("Code SOS submission error:", error);
+    throw new Error("Database Error: Failed to create Code SOS post.");
+  }
+};
+
+export const submitArchitectureRfcPost = async (data: {
+  title: string;
+  challenge: string;
+  diagramMarkdown?: string;
+  tradeOffs?: Array<{ option: string; pros: string; cons: string }>;
+  targetAudience?: string;
+}) => {
+  await connectDB();
+  const userId = await getUserId();
+  try {
+    const newPost = await Post.create({
+      userId,
+      postType: "architecture_rfc",
+      caption: `[RFC] ${data.title}`,
+      architectureRfc: {
+        title: data.title,
+        challenge: data.challenge,
+        diagramMarkdown: data.diagramMarkdown || undefined,
+        tradeOffs: data.tradeOffs || [],
+        targetAudience: data.targetAudience || undefined,
+      },
+    });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
+  } catch (error) {
+    console.error("Architecture RFC submission error:", error);
+    throw new Error("Database Error: Failed to create Architecture RFC post.");
+  }
+};
+
+export const submitHackathonCrewPost = async (data: {
+  hackathonName: string;
+  urgencyDate?: string;
+  rolesHave: string[];
+  rolesNeed: string[];
+  commitmentLevel?: "hardcore" | "moderate" | "casual";
+}) => {
+  await connectDB();
+  const userId = await getUserId();
+  try {
+    const newPost = await Post.create({
+      userId,
+      postType: "hackathon_crew",
+      caption: `[Team Call] ${data.hackathonName} — Seeking ${data.rolesNeed.join(", ")}`,
+      hackathonCrew: {
+        hackathonName: data.hackathonName,
+        urgencyDate: data.urgencyDate ? new Date(data.urgencyDate) : undefined,
+        rolesHave: data.rolesHave || [],
+        rolesNeed: data.rolesNeed || [],
+        commitmentLevel: data.commitmentLevel || "moderate",
+      },
+    });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
+  } catch (error) {
+    console.error("Hackathon crew submission error:", error);
+    throw new Error("Database Error: Failed to create Hackathon Crew post.");
+  }
+};
+
+export const submitTechShowdownPost = async (data: {
+  topic: string;
+  optionAName: string;
+  optionADescription?: string;
+  optionBName: string;
+  optionBDescription?: string;
+  benchmark?: string;
+}) => {
+  await connectDB();
+  const userId = await getUserId();
+  try {
+    const newPost = await Post.create({
+      userId,
+      postType: "tech_showdown",
+      caption: `[Tech Showdown] ${data.topic}: ${data.optionAName} vs ${data.optionBName}`,
+      techShowdown: {
+        topic: data.topic,
+        optionA: {
+          name: data.optionAName,
+          description: data.optionADescription || undefined,
+          votes: 0,
+        },
+        optionB: {
+          name: data.optionBName,
+          description: data.optionBDescription || undefined,
+          votes: 0,
+        },
+        benchmark: data.benchmark || undefined,
+      },
+    });
+    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
+    revalidatePath("/dashboard");
+    return { success: true, post: newPost };
+  } catch (error) {
+    console.error("Tech showdown submission error:", error);
+    throw new Error("Database Error: Failed to create Tech Showdown post.");
+  }
+};
+
+export const voteTechShowdown = async (postId: string, choice: "optionA" | "optionB") => {
+  await connectDB();
+  try {
+    const incField = choice === "optionA" ? "techShowdown.optionA.votes" : "techShowdown.optionB.votes";
+    await Post.findByIdAndUpdate(postId, { $inc: { [incField]: 1 } });
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Error voting on tech showdown:", error);
+    return { failure: "Failed to cast vote" };
+  }
+};
+
 export const handleInterest = async (postId: string, userId: string) => {
   await connectDB();
   try {

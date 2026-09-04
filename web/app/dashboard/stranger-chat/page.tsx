@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
-import { Mic, MicOff, Video, VideoOff, ScreenShare, UserPlus, SkipForward, RefreshCw, Code2, Copy, Check } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, ScreenShare, UserPlus, SkipForward, RefreshCw, Code2, Copy, Check, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 const intents = [
-  { id: 'hiring', label: 'Hiring / Recruiting', color: 'bg-emerald-600 hover:bg-emerald-700' },
-  { id: 'looking_for_job', label: 'Looking for Opportunities', color: 'bg-blue-600 hover:bg-blue-700' },
-  { id: 'project_teammate', label: 'Hackathon / Project Teammate', color: 'bg-purple-600 hover:bg-purple-700' },
+  { id: 'pair_debug', label: '🐛 Pair Debug & Code Review', color: 'bg-red-600 hover:bg-red-700' },
+  { id: 'project_teammate', label: '⚡ Hackathon & Project Crew', color: 'bg-purple-600 hover:bg-purple-700' },
+  { id: 'system_design', label: '📐 System Design & Mock Interview', color: 'bg-blue-600 hover:bg-blue-700' },
+  { id: 'hiring', label: '💼 Hiring & Co-Founders', color: 'bg-emerald-600 hover:bg-emerald-700' },
 ];
 
 const CODE_TEMPLATES: { [key: string]: string } = {
@@ -23,7 +25,13 @@ const CODE_TEMPLATES: { [key: string]: string } = {
 };
 
 const VideoChat = () => {
-  const [intent, setIntent] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const initialMode = searchParams?.get('mode');
+  const initialTitle = searchParams?.get('title');
+  const initialLang = searchParams?.get('lang');
+  const initialSnippet = searchParams?.get('snippet');
+
+  const [intent, setIntent] = useState<string | null>(initialMode === 'pair_debug' ? 'pair_debug' : null);
   const [connected, setConnected] = useState(false);
   const [searching, setSearching] = useState(false);
   const [swiped, setSwiped] = useState(false);
@@ -36,9 +44,13 @@ const VideoChat = () => {
   const [showConnectDialog, setShowConnectDialog] = useState(false);
 
   // In-call Pair Programming Scratchpad
-  const [showScratchpad, setShowScratchpad] = useState(false);
-  const [codeLanguage, setCodeLanguage] = useState('typescript');
-  const [codeContent, setCodeContent] = useState(CODE_TEMPLATES.typescript);
+  const [showScratchpad, setShowScratchpad] = useState(initialMode === 'pair_debug' || !!initialSnippet);
+  const [codeLanguage, setCodeLanguage] = useState(initialLang || 'typescript');
+  const [codeContent, setCodeContent] = useState(
+    initialSnippet
+      ? `// ${initialTitle || 'Debugging Session'}\n${initialSnippet}`
+      : CODE_TEMPLATES[initialLang || 'typescript'] || CODE_TEMPLATES.typescript
+  );
   const [copiedCode, setCopiedCode] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
