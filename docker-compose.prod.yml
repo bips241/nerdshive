@@ -1,90 +1,86 @@
 version: '3.8'
 
 services:
-  # Next.js Web Frontend & Edge BFF
-  web:
-    image: nerdshive/web:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=${REDIS_URL}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - AUTH_TRUST_HOST=true
-      - NEXT_PUBLIC_SOCKET_SERVER_URL=${NEXT_PUBLIC_SOCKET_SERVER_URL}
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: '1.5'
-          memory: 1024M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    networks:
-      - nerdshive-prod-network
-
-  # NestJS Microservices Gateway
-  gateway:
-    image: nerdshive/services:latest
-    build:
-      context: .
-      dockerfile: Dockerfile.services
-    restart: always
-    ports:
-      - "4000:4000"
-    environment:
-      - NODE_ENV=production
-      - GATEWAY_PORT=4000
-      - REDIS_URL=${REDIS_URL}
-      - MONGODB_URI=${MONGODB_URI}
-      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
-      - AWS_BUCKET_REGION=${AWS_BUCKET_REGION}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
-    networks:
-      - nerdshive-prod-network
-
-  # Redis Cluster / Single Node
+  # 1. In-Memory Pub/Sub & Session Cache (Redis 7)
   redis:
     image: redis:7-alpine
+    container_name: nerdshive-redis
     restart: always
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-securepassword}"]
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
-      - prod-redis-data:/data
+      - redis_data:/data
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 2048M
-    networks:
-      - nerdshive-prod-network
+          cpus: '1.0'
+          memory: 3G
 
-networks:
-  nerdshive-prod-network:
-    driver: bridge
+  # 2. Database Persistence (MongoDB 7.0)
+  mongo:
+    image: mongo:7.0
+    container_name: nerdshive-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 4G
+
+  # 3. Real-Time WebSocket Gateway & WebRTC Signaling Hub
+  signaling:
+    build:
+      context: ./apps/signaling-server
+      dockerfile: Dockerfile
+    container_name: nerdshive-signaling
+    restart: always
+    environment:
+      - PORT=10000
+      - REDIS_URL=redis://redis:6379
+      - ALLOWED_ORIGINS=https://nerdshive.online,http://localhost:3000,http://localhost:10000
+    ports:
+      - "10000:10000"
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 4G
+
+  # 4. Next.js 14 Web Application & Edge BFF
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nerdshive-web
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/nerdshive
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_SIGNALING_URL=http://localhost:10000
+      - AUTH_SECRET=${AUTH_SECRET:-nerdshive_secret_key_production_2026}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - mongo
+      - signaling
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 6G
 
 volumes:
-  prod-redis-data:
+  redis_data:
+    driver: local
+  mongo_data:
+    driver: local

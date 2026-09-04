@@ -212,6 +212,8 @@ const io = new Server(server, {
   pingTimeout: 5000,
 });
 
+const socketVoiceRoom = new Map();
+
 io.on('connection', (socket) => {
   console.log(`[CONNECT:${instanceId}] socket=${socket.id} clientsCount=${io.engine.clientsCount}`);
 
@@ -277,11 +279,119 @@ io.on('connection', (socket) => {
     leaveMemoryMatch(socket);
   });
 
+  // ==========================================
+  // DISCORD-STYLE REALTIME CHANNELS & MEDIA
+  // ==========================================
+  socket.on('channel:join', ({ channelId, user }) => {
+    if (!channelId) return;
+    const roomKey = `channel:${channelId}`;
+    socket.join(roomKey);
+    console.log(`[CHANNEL_JOIN:${instanceId}] socket=${socket.id} room=${roomKey} user=${user?.user_name || user?.name || 'anon'}`);
+  });
+
+  socket.on('channel:leave', ({ channelId }) => {
+    if (!channelId) return;
+    socket.leave(`channel:${channelId}`);
+  });
+
+  socket.on('channel:message', ({ channelId, message }) => {
+    if (!channelId || !message) return;
+    socket.to(`channel:${channelId}`).emit('channel:message_received', { channelId, message });
+  });
+
+  socket.on('channel:typing', ({ channelId, user, isTyping }) => {
+    if (!channelId) return;
+    socket.to(`channel:${channelId}`).emit('channel:typing_status', { channelId, user, isTyping });
+  });
+
+  socket.on('voice:join', async ({ channelId, user }) => {
+    if (!channelId || !user) return;
+    const roomKey = `voice:${channelId}`;
+    socket.join(roomKey);
+    socketVoiceRoom.set(socket.id, { channelId, user });
+
+    const socketsInRoom = await io.in(roomKey).fetchSockets();
+    const existingPeers = [];
+
+    for (const s of socketsInRoom) {
+      if (s.id !== socket.id) {
+        const peerData = socketVoiceRoom.get(s.id);
+        if (peerData) {
+          existingPeers.push({
+            socketId: s.id,
+            user: peerData.user,
+          });
+        }
+      }
+    }
+
+    socket.emit('voice:peers_list', { peers: existingPeers });
+    socket.to(roomKey).emit('voice:user_joined', {
+      socketId: socket.id,
+      user,
+    });
+    console.log(`[VOICE_JOIN:${instanceId}] socket=${socket.id} channel=${channelId} peersCount=${existingPeers.length + 1}`);
+  });
+
+  socket.on('voice:signal', ({ targetSocketId, signal, fromUser }) => {
+    if (!targetSocketId || !signal) return;
+    io.to(targetSocketId).emit('voice:signal', {
+      fromSocketId: socket.id,
+      signal,
+      fromUser,
+    });
+  });
+
+  socket.on('voice:speaking', ({ channelId, isSpeaking }) => {
+    if (!channelId) return;
+    const peerData = socketVoiceRoom.get(socket.id);
+    socket.to(`voice:${channelId}`).emit('voice:speaking_status', {
+      socketId: socket.id,
+      userId: peerData?.user?._id || peerData?.user?.id,
+      isSpeaking,
+    });
+  });
+
+  socket.on('voice:media_toggle', ({ channelId, isMuted, isVideoOff, isScreenSharing }) => {
+    if (!channelId) return;
+    const peerData = socketVoiceRoom.get(socket.id);
+    socket.to(`voice:${channelId}`).emit('voice:media_status', {
+      socketId: socket.id,
+      userId: peerData?.user?._id || peerData?.user?.id,
+      isMuted,
+      isVideoOff,
+      isScreenSharing,
+    });
+  });
+
+  socket.on('voice:leave', ({ channelId }) => {
+    const peerData = socketVoiceRoom.get(socket.id);
+    if (peerData) {
+      const targetChannel = channelId || peerData.channelId;
+      socket.leave(`voice:${targetChannel}`);
+      socket.to(`voice:${targetChannel}`).emit('voice:user_left', {
+        socketId: socket.id,
+        userId: peerData.user?._id || peerData.user?.id,
+      });
+      socketVoiceRoom.delete(socket.id);
+      console.log(`[VOICE_LEAVE:${instanceId}] socket=${socket.id} channel=${targetChannel}`);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`[DISCONNECT:${instanceId}] socket=${socket.id}`);
     removeFromMemoryQueues(socket.id, 'disconnect');
     queuedState.delete(socket.id);
     leaveMemoryMatch(socket);
+
+    const peerData = socketVoiceRoom.get(socket.id);
+    if (peerData) {
+      socket.to(`voice:${peerData.channelId}`).emit('voice:user_left', {
+        socketId: socket.id,
+        userId: peerData.user?._id || peerData.user?.id,
+      });
+      socketVoiceRoom.delete(socket.id);
+    }
   });
 });
 

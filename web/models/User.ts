@@ -29,12 +29,17 @@ import {
   IChatRoom,
   IMessage,
 } from './entities/chat.entity';
+import {
+  ServerSchema,
+  IServer,
+} from './entities/server.entity';
 
 // Re-export entity schemas & types
 export * from './entities/user.entity';
 export * from './entities/post.entity';
 export * from './entities/collaboration.entity';
 export * from './entities/chat.entity';
+export * from './entities/server.entity';
 
 // Initialized Mongoose Models (Singleton registry with explicit Model typing)
 export const User: Model<IUser> =
@@ -76,3 +81,7 @@ export const ChatRoom: Model<IChatRoom> =
 export const Message: Model<IMessage> =
   (mongoose.models?.Message as Model<IMessage>) ||
   mongoose.model<IMessage>('Message', MessageSchema);
+
+export const Server: Model<IServer> =
+  (mongoose.models?.Server as Model<IServer>) ||
+  mongoose.model<IServer>('Server', ServerSchema);
