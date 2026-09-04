@@ -21,7 +21,8 @@
     "test:chaos": "node tests/chaos-monkey/run-1000-users-chaos-test.js",
     "seo:audit": "node scripts/seo-analytics-report.js",
     "seo:boost": "node scripts/daily-seo-booster.js",
-    "seo:daily": "node scripts/daily-seo-booster.js && node scripts/seo-analytics-report.js",
+    "analytics:report": "node scripts/fetch-google-analytics.js",
+    "seo:daily": "node scripts/daily-seo-booster.js && node scripts/seo-analytics-report.js && node scripts/fetch-google-analytics.js",
     "db:seed": "node scripts/seed-db.js"
   },
   "workspaces": [

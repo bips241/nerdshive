@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import AuthProvider from "@/context/AuthProvider";
 import { Toaster } from "@/components/ui/toaster";
 import SocketBootstrapper from "@/components/SocketBootstrapper"; // ✅ import the bootstrapper
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import WebVitalsTracker from "@/components/analytics/WebVitalsTracker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -79,6 +81,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: siteUrl,
   },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    other: {
+      'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || undefined,
+    },
+  },
 };
 
 const jsonLdOrg = {
@@ -124,6 +132,8 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        <GoogleAnalytics />
+        <WebVitalsTracker />
         <AuthProvider>
           <ThemeProvider
             attribute="class"
