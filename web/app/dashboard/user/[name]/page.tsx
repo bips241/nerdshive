@@ -5,7 +5,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { fetchProfilePosts } from "@/lib/data";
 import connectDB from "@/lib/db";
 import { User, Follows, Post } from "@/models/User";
-import { Globe, GitFork, Star, Code, GitPullRequest, ShieldCheck, Sparkles, ExternalLink } from "lucide-react";
+import { Globe, GitFork, Star, Code, GitPullRequest, ShieldCheck, Sparkles, ExternalLink, Award, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { fetchGitHubProofOfWork } from "@/lib/github";
@@ -240,7 +240,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
             )}
           </div>
 
-          <div className="flex space-x-6 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
             <div>
               <span className="font-semibold text-foreground">{postCount}</span> posts
             </div>
@@ -250,6 +250,16 @@ export default async function ProfilePage({ params: { name } }: Props) {
             <div>
               <span className="font-semibold text-foreground">{followingCount}</span> following
             </div>
+            <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+              <Award className="h-3.5 w-3.5" />
+              <span>{profileUser.debugKarma || 0}</span> Karma
+            </div>
+            {(profileUser.bugsSolvedCount || 0) > 0 && (
+              <div className="flex items-center gap-1 text-primary font-semibold">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>{profileUser.bugsSolvedCount}</span> Bugs Solved
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 items-center pt-1">

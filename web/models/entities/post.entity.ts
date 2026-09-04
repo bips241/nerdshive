@@ -38,10 +38,13 @@ export interface IPost extends Document {
   shipLog?: {
     title: string;
     pitch: string;
+    version?: string;
     demoUrl?: string;
     repoUrl?: string;
     techStack: string[];
     feedbackWanted: string[];
+    alphaTesters?: mongoose.Types.ObjectId[];
+    changelog?: Array<{ version: string; note: string; date: Date }>;
   };
   codeSos?: {
     title: string;
@@ -51,6 +54,10 @@ export interface IPost extends Document {
     environment?: string;
     triedSteps?: string;
     isResolved: boolean;
+    resolvedCommentId?: mongoose.Types.ObjectId;
+    resolvedBy?: mongoose.Types.ObjectId;
+    solutionSummary?: string;
+    bountyKarma?: number;
   };
   architectureRfc?: {
     title: string;
@@ -58,6 +65,12 @@ export interface IPost extends Document {
     diagramMarkdown?: string;
     tradeOffs?: Array<{ option: string; pros: string; cons: string }>;
     targetAudience?: string;
+    status?: 'under_review' | 'adopted' | 'superseded';
+    adoptedOption?: string;
+    decisionSummary?: string;
+    votesAdoptA?: mongoose.Types.ObjectId[];
+    votesAdoptB?: mongoose.Types.ObjectId[];
+    votesRevise?: mongoose.Types.ObjectId[];
   };
   hackathonCrew?: {
     hackathonName: string;
@@ -65,12 +78,17 @@ export interface IPost extends Document {
     rolesHave: string[];
     rolesNeed: string[];
     commitmentLevel: 'hardcore' | 'moderate' | 'casual';
+    squadStatus?: 'recruiting' | 'full' | 'building';
+    maxSquadSize?: number;
+    members?: Array<{ user: mongoose.Types.ObjectId; role: string; joinedAt: Date }>;
+    applicants?: Array<{ user: mongoose.Types.ObjectId; role: string; pitch: string; appliedAt: Date }>;
   };
   techShowdown?: {
     topic: string;
     optionA: { name: string; description?: string; votes: number };
     optionB: { name: string; description?: string; votes: number };
     benchmark?: string;
+    voters?: Array<{ user: mongoose.Types.ObjectId; option: string; rationale?: string; votedAt: Date }>;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -124,10 +142,19 @@ export const PostSchema: Schema<IPost> = new Schema(
     shipLog: {
       title: { type: String },
       pitch: { type: String },
+      version: { type: String, default: 'v0.1.0' },
       demoUrl: { type: String },
       repoUrl: { type: String },
       techStack: [{ type: String }],
       feedbackWanted: [{ type: String }],
+      alphaTesters: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      changelog: [
+        {
+          version: { type: String },
+          note: { type: String },
+          date: { type: Date, default: Date.now },
+        },
+      ],
     },
     codeSos: {
       title: { type: String },
@@ -137,6 +164,10 @@ export const PostSchema: Schema<IPost> = new Schema(
       environment: { type: String },
       triedSteps: { type: String },
       isResolved: { type: Boolean, default: false },
+      resolvedCommentId: { type: Schema.Types.ObjectId, ref: 'Comment' },
+      resolvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      solutionSummary: { type: String },
+      bountyKarma: { type: Number, default: 50 },
     },
     architectureRfc: {
       title: { type: String },
@@ -150,6 +181,16 @@ export const PostSchema: Schema<IPost> = new Schema(
         },
       ],
       targetAudience: { type: String },
+      status: {
+        type: String,
+        enum: ['under_review', 'adopted', 'superseded'],
+        default: 'under_review',
+      },
+      adoptedOption: { type: String },
+      decisionSummary: { type: String },
+      votesAdoptA: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      votesAdoptB: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      votesRevise: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     },
     hackathonCrew: {
       hackathonName: { type: String },
@@ -161,6 +202,27 @@ export const PostSchema: Schema<IPost> = new Schema(
         enum: ['hardcore', 'moderate', 'casual'],
         default: 'moderate',
       },
+      squadStatus: {
+        type: String,
+        enum: ['recruiting', 'full', 'building'],
+        default: 'recruiting',
+      },
+      maxSquadSize: { type: Number, default: 4 },
+      members: [
+        {
+          user: { type: Schema.Types.ObjectId, ref: 'User' },
+          role: { type: String },
+          joinedAt: { type: Date, default: Date.now },
+        },
+      ],
+      applicants: [
+        {
+          user: { type: Schema.Types.ObjectId, ref: 'User' },
+          role: { type: String },
+          pitch: { type: String },
+          appliedAt: { type: Date, default: Date.now },
+        },
+      ],
     },
     techShowdown: {
       topic: { type: String },
@@ -175,6 +237,14 @@ export const PostSchema: Schema<IPost> = new Schema(
         votes: { type: Number, default: 0 },
       },
       benchmark: { type: String },
+      voters: [
+        {
+          user: { type: Schema.Types.ObjectId, ref: 'User' },
+          option: { type: String, enum: ['optionA', 'optionB'] },
+          rationale: { type: String },
+          votedAt: { type: Date, default: Date.now },
+        },
+      ],
     },
   },
   { timestamps: true }

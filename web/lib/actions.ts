@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { getUserId } from "@/lib/getSession";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -400,6 +401,7 @@ export const submitProjectPost = async (data: { title: string; description: stri
 export const submitShipLogPost = async (data: {
   title: string;
   pitch: string;
+  version?: string;
   demoUrl?: string;
   repoUrl?: string;
   techStack: string[];
@@ -415,10 +417,13 @@ export const submitShipLogPost = async (data: {
       shipLog: {
         title: data.title,
         pitch: data.pitch,
+        version: data.version || "v0.1.0",
         demoUrl: data.demoUrl || undefined,
         repoUrl: data.repoUrl || undefined,
         techStack: data.techStack || [],
         feedbackWanted: data.feedbackWanted || [],
+        alphaTesters: [],
+        changelog: [],
       },
     });
     await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
@@ -501,6 +506,7 @@ export const submitHackathonCrewPost = async (data: {
   rolesHave: string[];
   rolesNeed: string[];
   commitmentLevel?: "hardcore" | "moderate" | "casual";
+  maxSquadSize?: number;
 }) => {
   await connectDB();
   const userId = await getUserId();
@@ -515,6 +521,10 @@ export const submitHackathonCrewPost = async (data: {
         rolesHave: data.rolesHave || [],
         rolesNeed: data.rolesNeed || [],
         commitmentLevel: data.commitmentLevel || "moderate",
+        squadStatus: "recruiting",
+        maxSquadSize: data.maxSquadSize || 4,
+        members: [],
+        applicants: [],
       },
     });
     await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
@@ -643,5 +653,319 @@ export const createCollabRequest = async (postId: string, userId: string) => {
   } catch (error) {
     console.error("Error creating collab request:", error);
     return { failure: "Server error" };
+  }
+};
+
+/**
+ * -------------------------------------------------------------
+ * FULL-LIFECYCLE DEVELOPER SERVER ACTIONS
+ * -------------------------------------------------------------
+ */
+
+// 1. Resolve Code SOS and Award Debug Karma
+export const resolveCodeSosPost = async ({
+  postId,
+  commentId,
+  solutionSummary,
+  helperUserId,
+}: {
+  postId: string;
+  commentId?: string;
+  solutionSummary?: string;
+  helperUserId?: string;
+}) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "code_sos") return { failure: "Post not found or not a Code SOS" };
+
+    if (post.userId.toString() !== session.user._id.toString()) {
+      return { failure: "Only the author of the SOS can mark it as resolved" };
+    }
+
+    post.codeSos = post.codeSos || ({} as any);
+    post.codeSos.isResolved = true;
+    if (commentId) post.codeSos.resolvedCommentId = commentId as any;
+    if (helperUserId) post.codeSos.resolvedBy = helperUserId as any;
+    if (solutionSummary) post.codeSos.solutionSummary = solutionSummary;
+
+    await post.save();
+
+    // Award helper 50 Debug Karma and increment bugs solved
+    if (helperUserId && helperUserId !== session.user._id.toString()) {
+      await User.findByIdAndUpdate(helperUserId, {
+        $inc: { debugKarma: 50, bugsSolvedCount: 1 },
+      });
+    }
+
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Error resolving Code SOS:", error);
+    return { failure: "Database error resolving Code SOS" };
+  }
+};
+
+// 2. Join / Leave Ship Log Alpha Testers
+export const toggleShipLogAlphaTester = async (postId: string) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  const userId = session.user._id;
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "ship_log") return { failure: "Ship Log not found" };
+
+    post.shipLog = post.shipLog || ({} as any);
+    const alphaTesters = (post.shipLog.alphaTesters || []) as any[];
+    const alreadyJoined = alphaTesters.some((id: any) => id.toString() === userId.toString());
+
+    if (alreadyJoined) {
+      (post.shipLog.alphaTesters as any).pull(userId);
+    } else {
+      (post.shipLog.alphaTesters as any).push(userId);
+    }
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return { success: true, joined: !alreadyJoined, count: post.shipLog.alphaTesters?.length || 0 };
+  } catch (error) {
+    console.error("Error toggling alpha tester:", error);
+    return { failure: "Database error" };
+  }
+};
+
+// 3. Append Ship Log Changelog Milestone
+export const appendShipLogChangelog = async ({
+  postId,
+  version,
+  note,
+}: {
+  postId: string;
+  version: string;
+  note: string;
+}) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "ship_log") return { failure: "Ship Log not found" };
+
+    if (post.userId.toString() !== session.user._id.toString()) {
+      return { failure: "Only the project creator can post changelog updates" };
+    }
+
+    post.shipLog = post.shipLog || ({} as any);
+    post.shipLog.changelog = post.shipLog.changelog || [];
+    post.shipLog.changelog.push({
+      version,
+      note,
+      date: new Date(),
+    } as any);
+    post.shipLog.version = version;
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Error appending changelog:", error);
+    return { failure: "Failed to post update" };
+  }
+};
+
+// 4. Vote on Architecture RFC Consensus
+export const voteRfcConsensus = async ({
+  postId,
+  choice,
+}: {
+  postId: string;
+  choice: "adoptA" | "adoptB" | "revise";
+}) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  const userId = session.user._id;
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "architecture_rfc") return { failure: "RFC not found" };
+
+    post.architectureRfc = post.architectureRfc || ({} as any);
+    post.architectureRfc.votesAdoptA = (post.architectureRfc.votesAdoptA || []) as any;
+    post.architectureRfc.votesAdoptB = (post.architectureRfc.votesAdoptB || []) as any;
+    post.architectureRfc.votesRevise = (post.architectureRfc.votesRevise || []) as any;
+
+    // Pull user from all lists first
+    (post.architectureRfc.votesAdoptA as any).pull(userId);
+    (post.architectureRfc.votesAdoptB as any).pull(userId);
+    (post.architectureRfc.votesRevise as any).pull(userId);
+
+    // Add to chosen list
+    if (choice === "adoptA") (post.architectureRfc.votesAdoptA as any).push(userId);
+    else if (choice === "adoptB") (post.architectureRfc.votesAdoptB as any).push(userId);
+    else if (choice === "revise") (post.architectureRfc.votesRevise as any).push(userId);
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return {
+      success: true,
+      votesAdoptA: post.architectureRfc.votesAdoptA.length,
+      votesAdoptB: post.architectureRfc.votesAdoptB.length,
+      votesRevise: post.architectureRfc.votesRevise.length,
+    };
+  } catch (error) {
+    console.error("Error voting on RFC:", error);
+    return { failure: "Database error voting on RFC" };
+  }
+};
+
+// 5. Finalize Architecture RFC Decision
+export const finalizeRfcDecision = async ({
+  postId,
+  adoptedOption,
+  decisionSummary,
+}: {
+  postId: string;
+  adoptedOption: string;
+  decisionSummary: string;
+}) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "architecture_rfc") return { failure: "RFC not found" };
+
+    if (post.userId.toString() !== session.user._id.toString()) {
+      return { failure: "Only the author can finalize an RFC decision" };
+    }
+
+    post.architectureRfc = post.architectureRfc || ({} as any);
+    post.architectureRfc.status = "adopted";
+    post.architectureRfc.adoptedOption = adoptedOption;
+    post.architectureRfc.decisionSummary = decisionSummary;
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Error finalizing RFC:", error);
+    return { failure: "Failed to finalize RFC" };
+  }
+};
+
+// 6. Apply to Hackathon Crew
+export const applyToHackathonCrew = async ({
+  postId,
+  role,
+  pitch,
+}: {
+  postId: string;
+  role: string;
+  pitch: string;
+}) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  const userId = session.user._id;
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "hackathon_crew") return { failure: "Hackathon Crew not found" };
+
+    post.hackathonCrew = post.hackathonCrew || ({} as any);
+    const applicants = (post.hackathonCrew.applicants || []) as any[];
+    const members = (post.hackathonCrew.members || []) as any[];
+
+    if (members.some((m: any) => m.user?.toString() === userId.toString())) {
+      return { failure: "You are already a member of this squad!" };
+    }
+
+    if (applicants.some((a: any) => a.user?.toString() === userId.toString())) {
+      return { failure: "You have already applied to this squad." };
+    }
+
+    post.hackathonCrew.applicants = applicants;
+    post.hackathonCrew.applicants.push({
+      user: userId,
+      role,
+      pitch,
+      appliedAt: new Date(),
+    } as any);
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Error applying to hackathon squad:", error);
+    return { failure: "Database error submitting application" };
+  }
+};
+
+// 7. Manage Hackathon Crew Applicant (Accept / Decline)
+export const manageCrewApplicant = async ({
+  postId,
+  applicantUserId,
+  action,
+}: {
+  postId: string;
+  applicantUserId: string;
+  action: "accept" | "decline";
+}) => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized" };
+  await connectDB();
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "hackathon_crew") return { failure: "Squad not found" };
+
+    if (post.userId.toString() !== session.user._id.toString()) {
+      return { failure: "Only the squad leader can accept or decline applicants" };
+    }
+
+    post.hackathonCrew = post.hackathonCrew || ({} as any);
+    const applicants = (post.hackathonCrew.applicants || []) as any[];
+    const targetAppIndex = applicants.findIndex(
+      (a: any) => a.user?.toString() === applicantUserId.toString()
+    );
+
+    if (targetAppIndex === -1) return { failure: "Applicant not found" };
+    const [acceptedApplicant] = applicants.splice(targetAppIndex, 1);
+
+    if (action === "accept") {
+      post.hackathonCrew.members = post.hackathonCrew.members || [];
+      post.hackathonCrew.members.push({
+        user: applicantUserId as any,
+        role: acceptedApplicant.role,
+        joinedAt: new Date(),
+      });
+
+      const maxSquadSize = post.hackathonCrew.maxSquadSize || 4;
+      if (post.hackathonCrew.members.length >= maxSquadSize) {
+        post.hackathonCrew.squadStatus = "full";
+      }
+    }
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
+    revalidatePath("/dashboard");
+    return { success: true, action };
+  } catch (error) {
+    console.error("Error managing applicant:", error);
+    return { failure: "Database error" };
   }
 };

@@ -9,6 +9,7 @@ import Comments from '../Comments';
 import { auth } from '@/auth';
 import { Rocket, Globe, GitFork, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import ShipLogClient from './ShipLogClient';
 
 interface ShipLogUIProps {
   post: any;
@@ -125,6 +126,16 @@ const ShipLogUI: React.FC<ShipLogUIProps> = async ({ post }) => {
             </div>
           </div>
         )}
+
+        {/* Interactive Lifecycle: Alpha Testing & Changelog Timeline */}
+        <ShipLogClient
+          postId={post._id.toString()}
+          isAuthor={userId === post.userId._id.toString()}
+          initialVersion={shipLog.version || 'v0.1.0'}
+          initialAlphaTestersCount={shipLog.alphaTesters?.length || 0}
+          initialIsTester={!!(shipLog.alphaTesters || []).some((id: any) => id.toString() === userId)}
+          initialChangelog={shipLog.changelog || []}
+        />
       </Card>
 
       <PostActions post={post} userId={userId} className="px-3 sm:px-0" />

@@ -54,6 +54,8 @@ next-env.d.ts
 docs/agent-log/
 agent-log/
 
-# chaos test traces
+# chaos test traces and reports
 *.jsonl
+tests/reports/
+docs/seo-reports/
 

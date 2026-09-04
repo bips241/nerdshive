@@ -9,6 +9,7 @@ import Comments from '../Comments';
 import { auth } from '@/auth';
 import { Zap, Clock, ShieldCheck, UserPlus, Trophy, ArrowRight } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import HackathonCrewClient from './HackathonCrewClient';
 
 interface HackathonCrewUIProps {
   post: any;
@@ -114,7 +115,7 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
           </div>
         </div>
 
-        {/* Deadline & CTA */}
+        {/* Deadline & Urgency */}
         <div className="pt-2 border-t flex items-center justify-between">
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
@@ -126,16 +127,24 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
               <span>Urgent formation open</span>
             )}
           </div>
-
-          {!isAuthor && (
-            <Link
-              href={`/dashboard/user/${username}`}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs shadow-sm transition-colors"
-            >
-              <UserPlus className="h-3.5 w-3.5" /> Connect with Team &rarr;
-            </Link>
-          )}
         </div>
+
+        {/* Interactive Lifecycle: Squad Recruitment, Role Applications & Roster Management */}
+        <HackathonCrewClient
+          postId={post._id.toString()}
+          isLeader={isAuthor}
+          isMember={(crew.members || []).some(
+            (m: any) => (m.user?._id || m.user)?.toString() === userId
+          )}
+          hasApplied={(crew.applicants || []).some(
+            (a: any) => (a.user?._id || a.user)?.toString() === userId
+          )}
+          initialSquadStatus={crew.squadStatus || 'recruiting'}
+          maxSquadSize={crew.maxSquadSize || 4}
+          initialMembers={crew.members || []}
+          initialApplicants={crew.applicants || []}
+          rolesNeed={crew.rolesNeed && crew.rolesNeed.length > 0 ? crew.rolesNeed : ['Developer']}
+        />
       </Card>
 
       <PostActions post={post} userId={userId} className="px-3 sm:px-0" />

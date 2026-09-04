@@ -8,6 +8,7 @@ import PostActions from '../PostActions';
 import Comments from '../Comments';
 import { auth } from '@/auth';
 import { Network, Scale, Users, Layers } from 'lucide-react';
+import ArchitectureRfcClient from './ArchitectureRfcClient';
 
 interface ArchitectureRfcUIProps {
   post: any;
@@ -113,6 +114,29 @@ const ArchitectureRfcUI: React.FC<ArchitectureRfcUIProps> = async ({ post }) => 
             <span className="font-semibold text-foreground">{rfc.targetAudience}</span>
           </div>
         )}
+
+        {/* Interactive Lifecycle: Peer Review Consensus & Decision Finalization */}
+        <ArchitectureRfcClient
+          postId={post._id.toString()}
+          isAuthor={userId === post.userId._id.toString()}
+          initialStatus={rfc.status || 'under_review'}
+          initialAdoptedOption={rfc.adoptedOption}
+          initialDecisionSummary={rfc.decisionSummary}
+          initialVotesA={rfc.votesAdoptA?.length || 0}
+          initialVotesB={rfc.votesAdoptB?.length || 0}
+          initialVotesRevise={rfc.votesRevise?.length || 0}
+          userVote={
+            (rfc.votesAdoptA || []).some((id: any) => id.toString() === userId)
+              ? 'adoptA'
+              : (rfc.votesAdoptB || []).some((id: any) => id.toString() === userId)
+              ? 'adoptB'
+              : (rfc.votesRevise || []).some((id: any) => id.toString() === userId)
+              ? 'revise'
+              : null
+          }
+          optionAName={rfc.tradeOffs?.[0]?.option || 'Option A'}
+          optionBName={rfc.tradeOffs?.[1]?.option || 'Option B'}
+        />
       </Card>
 
       <PostActions post={post} userId={userId} className="px-3 sm:px-0" />

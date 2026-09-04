@@ -9,6 +9,7 @@ import Comments from '../Comments';
 import { auth } from '@/auth';
 import { Bug, Video, Terminal, Cpu, CheckCircle2, HelpCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import CodeSosClient from './CodeSosClient';
 
 interface CodeSosUIProps {
   post: any;
@@ -115,17 +116,16 @@ const CodeSosUI: React.FC<CodeSosUIProps> = async ({ post }) => {
           </div>
         )}
 
-        {/* Action: Jump into Pair-Debug Call */}
-        <div className="pt-2 flex items-center justify-between border-t">
-          <span className="text-xs text-muted-foreground">
-            Know how to fix this? Help out and earn Dev Karma.
-          </span>
-          <Link
-            href={pairDebugUrl}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm transition-colors"
-          >
-            <Video className="h-3.5 w-3.5" /> Pair-Debug Live &rarr;
-          </Link>
+        {/* Interactive Lifecycle: Resolution & Live Pair Debug */}
+        <div className="pt-2 border-t">
+          <CodeSosClient
+            postId={post._id.toString()}
+            isAuthor={userId === post.userId._id.toString()}
+            isResolved={!!sos.isResolved}
+            bountyKarma={sos.bountyKarma || 50}
+            solutionSummary={sos.solutionSummary}
+            pairDebugUrl={pairDebugUrl}
+          />
         </div>
       </Card>
 

@@ -21,6 +21,8 @@ export interface IUser extends Document {
   saved?: any;
   radarStatus?: 'open_for_hackathons' | 'seeking_cofounder' | 'open_for_collab' | 'open_for_work' | 'none';
   techStack?: string[];
+  debugKarma?: number;
+  bugsSolvedCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,8 @@ export const UserSchema: Schema<IUser> = new Schema(
       default: 'none',
     },
     techStack: [{ type: String }],
+    debugKarma: { type: Number, default: 0 },
+    bugsSolvedCount: { type: Number, default: 0 },
     role: { type: String, default: 'user' },
     isVerified: { type: Boolean, default: false },
     verifyCode: { type: String },
