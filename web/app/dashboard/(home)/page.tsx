@@ -5,6 +5,7 @@ import { getSession } from '@/lib/getSession';
 import { redirect } from 'next/navigation';
 import Posts from "@/components/Posts";
 import { PostsSkeleton } from "@/components/Skeletons";
+import DashboardRightRail from "@/components/DashboardRightRail";
 
 const DashboardPage = async () => {
   try {
@@ -16,11 +17,17 @@ const DashboardPage = async () => {
     }
 
     return (
-      <main className="flex w-full flex-grow">
-        <div className="flex flex-col flex-1 gap-y-8 max-w-lg mx-auto pb-20">
+      <main className="flex w-full justify-center gap-8 pb-20">
+        {/* Main Feed Column */}
+        <div className="flex flex-col flex-1 max-w-2xl w-full min-w-0">
           <Suspense fallback={<PostsSkeleton />}>
             <Posts />
           </Suspense>
+        </div>
+
+        {/* Desktop Developer Pulse Rail */}
+        <div className="hidden xl:block w-80 shrink-0">
+          <DashboardRightRail />
         </div>
       </main>
     );

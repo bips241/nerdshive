@@ -176,24 +176,24 @@ export default function HackathonCrewClient({
         </div>
 
         {/* Visual Roster Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {/* Squad Leader Slot */}
-          <div className="p-3 rounded-xl bg-secondary/30 border border-border/80 flex items-center justify-between gap-3">
+          <div className="p-2.5 rounded-xl bg-secondary/25 border border-border/70 flex items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <Link href={`/dashboard/user/${leaderUser.username}`} className="shrink-0">
-                <UserAvatar user={{ user_name: leaderUser.username, image: leaderUser.image, name: leaderUser.name }} className="h-8 w-8" />
+                <UserAvatar user={{ user_name: leaderUser.username, image: leaderUser.image, name: leaderUser.name }} className="h-7 w-7" />
               </Link>
               <div className="min-w-0">
-                <Link href={`/dashboard/user/${leaderUser.username}`} className="text-xs font-bold hover:underline truncate block text-foreground">
+                <Link href={`/dashboard/user/${leaderUser.username}`} className="text-xs font-semibold hover:underline truncate block text-foreground">
                   @{leaderUser.username}
                 </Link>
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className="text-[10px] text-muted-foreground truncate">
                   {rolesHave[0] || 'Project Lead'}
                 </p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap shrink-0">
-              <Crown className="h-3 w-3 text-amber-500" /> Squad Lead
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/25 shrink-0">
+              <Crown className="h-3 w-3 text-amber-500" /> Lead
             </span>
           </div>
 
@@ -203,23 +203,23 @@ export default function HackathonCrewClient({
             return (
               <div
                 key={i}
-                className="p-3 rounded-xl bg-secondary/30 border border-border/80 flex items-center justify-between gap-3"
+                className="p-2.5 rounded-xl bg-secondary/25 border border-border/70 flex items-center justify-between gap-2.5"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Link href={`/dashboard/user/${memberUsername}`} className="shrink-0">
-                    <UserAvatar user={member.user} className="h-8 w-8" />
+                    <UserAvatar user={member.user} className="h-7 w-7" />
                   </Link>
                   <div className="min-w-0">
-                    <Link href={`/dashboard/user/${memberUsername}`} className="text-xs font-bold hover:underline truncate block text-foreground">
+                    <Link href={`/dashboard/user/${memberUsername}`} className="text-xs font-semibold hover:underline truncate block text-foreground">
                       @{memberUsername}
                     </Link>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[10px] text-muted-foreground truncate">
                       {member.role || 'Teammate'}
                     </p>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap shrink-0">
-                  <UserCheck className="h-3 w-3 text-emerald-500" /> Confirmed
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 shrink-0">
+                  <UserCheck className="h-3 w-3 text-emerald-400" /> Member
                 </span>
               </div>
             );
@@ -227,24 +227,24 @@ export default function HackathonCrewClient({
 
           {/* Open Slots */}
           {Array.from({ length: openSlotsCount }).map((_, i) => {
-            const neededRoleSuggestion = rolesNeed[i] || 'Open Squad Role';
+            const neededRoleSuggestion = rolesNeed[i] || 'Open Role';
             return (
               <div
                 key={`open-${i}`}
-                className="p-3 rounded-xl border border-dashed border-border/70 bg-card/40 flex items-center justify-between gap-2 text-xs"
+                className="p-2.5 rounded-xl border border-dashed border-border/70 bg-card/25 flex items-center justify-between gap-2 text-xs"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-full border border-dashed border-muted-foreground/40 flex items-center justify-center text-muted-foreground text-xs shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-7 w-7 rounded-full border border-dashed border-border/80 flex items-center justify-center text-muted-foreground text-xs shrink-0">
                     +
                   </div>
                   <div className="min-w-0">
-                    <span className="font-semibold text-foreground/80 block truncate">
+                    <span className="font-medium text-foreground/90 block truncate text-xs">
                       {neededRoleSuggestion}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Open Slot</span>
+                    <span className="text-[10px] text-muted-foreground">Open Slot</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-secondary/50 shrink-0">
+                <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-secondary/50 border border-border/40 shrink-0">
                   Vacant
                 </span>
               </div>

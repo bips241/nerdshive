@@ -72,15 +72,13 @@ function MoreDropdown() {
   return (
     <DropdownMenu open={open}>
       <DropdownMenuTrigger asChild>
-        <Button
+        <button
           onClick={() => setOpen(!open)}
-          variant={"ghost"}
-          size={"lg"}
-          className="md:w-full !justify-start space-x-2 !px-3"
+          className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group w-full text-muted-foreground hover:text-foreground hover:bg-secondary/40 text-left outline-none"
         >
-          <Menu />
-          <div className="hidden lg:block">More</div>
-        </Button>
+          <Menu className="w-4 h-4 shrink-0 transition-transform group-hover:scale-105" />
+          <span className="hidden lg:block">More</span>
+        </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent

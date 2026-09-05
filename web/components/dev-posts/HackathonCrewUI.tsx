@@ -64,7 +64,7 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
       </div>
 
       {/* Main Content Card */}
-      <Card className="p-5 sm:p-6 space-y-5 bg-card border rounded-2xl shadow-md border-amber-500/20">
+      <Card className="p-5 sm:p-6 space-y-4 bg-card/90 border border-border/80 rounded-2xl shadow-xs border-l-4 border-l-amber-500/90">
         {/* Hackathon Title, Track & Commitment */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="space-y-1">
@@ -73,26 +73,26 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
                 <Trophy className="h-3.5 w-3.5" /> Target Hackathon
               </span>
               {crew.targetTrack && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium border border-border/60">
                   Track: {crew.targetTrack}
                 </span>
               )}
             </div>
-            <h2 className="text-xl font-extrabold tracking-tight text-foreground">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
               {crew.hackathonName}
             </h2>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             {crew.commitmentLevel && (
-              <Badge variant="outline" className="capitalize text-xs font-semibold border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5">
+              <Badge variant="outline" className="capitalize text-xs font-semibold border-amber-500/30 text-amber-500 bg-amber-500/10">
                 {crew.commitmentLevel === 'hardcore' && '🏆 Hardcore Sprint'}
                 {crew.commitmentLevel === 'moderate' && '⚡ Moderate Prototype'}
                 {crew.commitmentLevel === 'casual' && '☕ Casual & Exploratory'}
               </Badge>
             )}
             {crew.urgencyDate && (
-              <div className="text-xs text-muted-foreground flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/50 border">
+              <div className="text-xs text-muted-foreground flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/40 border border-border/60">
                 <Clock className="h-3 w-3 text-muted-foreground" />
                 <span>Deadline: <strong className="text-foreground">{new Date(crew.urgencyDate).toLocaleDateString()}</strong></span>
               </div>
@@ -102,18 +102,18 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
 
         {/* Roles Urgently Needed & Roles Already on Team */}
         {(hasRolesNeed || hasRolesHave) && (
-          <div className={`grid gap-3 pt-1 ${hasRolesNeed && hasRolesHave ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+          <div className={`grid gap-2.5 pt-1 ${hasRolesNeed && hasRolesHave ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
             {/* Roles Needed */}
             {hasRolesNeed && (
-              <div className="space-y-2 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                <p className="text-xs font-bold text-amber-500 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" /> Roles Urgently Needed:
+              <div className="space-y-1.5 p-3 rounded-xl bg-secondary/20 border border-border/60">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> Roles Urgently Needed:
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {crew.rolesNeed.map((role: string, i: number) => (
                     <span
                       key={i}
-                      className="text-xs px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 font-semibold border border-amber-500/30"
+                      className="text-xs px-2.5 py-0.5 rounded-md bg-amber-500/10 text-amber-500 font-medium border border-amber-500/25"
                     >
                       {role}
                     </span>
@@ -124,15 +124,15 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
 
             {/* Roles Already on Team */}
             {hasRolesHave && (
-              <div className="space-y-2 p-3.5 rounded-xl bg-secondary/30 border">
-                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <div className="space-y-1.5 p-3 rounded-xl bg-secondary/20 border border-border/60">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Skills on Squad:
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {crew.rolesHave.map((role: string, i: number) => (
                     <span
                       key={i}
-                      className="text-xs px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground font-medium border border-border/50"
+                      className="text-xs px-2.5 py-0.5 rounded-md bg-secondary/70 text-secondary-foreground font-medium border border-border/50"
                     >
                       {role}
                     </span>
