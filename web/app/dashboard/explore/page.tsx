@@ -76,14 +76,31 @@ export default async function ExplorePage({
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-16">
       {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Compass className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight">Explore Developer Projects</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Compass className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold tracking-tight">Explore & Hackathon Radar</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Discover verified hackathons, active squad calls, open-source repositories, and developer teammates.
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Discover active open-source projects, hackathon teams, and teammates looking for complementary skillsets.
-        </p>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/dashboard/stranger-chat?mode=project_teammate"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs border border-primary/30 transition-colors"
+          >
+            <Zap className="w-3.5 h-3.5" /> ⚡ Teammate Radar
+          </Link>
+          <Link
+            href="/dashboard/create?type=hackathon_crew"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors shadow-sm"
+          >
+            <Users className="w-3.5 h-3.5" /> + Assemble Squad
+          </Link>
+        </div>
       </div>
 
       {/* Verified Real-World Hackathons Showcase */}

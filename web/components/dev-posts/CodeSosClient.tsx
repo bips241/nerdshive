@@ -95,7 +95,7 @@ export default function CodeSosClient({
               href={pairDebugUrl}
               className="inline-flex items-center justify-center gap-1.5 px-3.5 min-h-[36px] rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm transition-colors whitespace-nowrap shrink-0"
             >
-              <Video className="h-3.5 w-3.5" /> Pair-Debug in Messages &rarr;
+              <Video className="h-3.5 w-3.5" /> ⚡ Live Pair-Debug Room &rarr;
             </Link>
           </div>
         </div>

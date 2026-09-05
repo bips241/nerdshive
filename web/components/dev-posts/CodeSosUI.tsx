@@ -30,7 +30,9 @@ const CodeSosUI: React.FC<CodeSosUIProps> = async ({ post }) => {
     image: post.userId.image,
   };
 
-  const pairDebugUrl = `/dashboard/messages`;
+  const pairDebugUrl = `/dashboard/stranger-chat?mode=pair_debug&title=${encodeURIComponent(
+    sos.title || 'Code SOS'
+  )}&snippet=${encodeURIComponent((sos.snippet || '').slice(0, 500))}`;
 
   return (
     <div className="flex flex-col space-y-2.5 max-w-2xl mx-auto w-full">
