@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "./ui/button";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -48,6 +48,7 @@ const links = [
 
 function NavLinks() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <>
@@ -59,6 +60,17 @@ function NavLinks() {
           <Link
             key={link.name}
             href={link.href}
+            prefetch={true}
+            onMouseEnter={() => {
+              try {
+                router.prefetch(link.href);
+              } catch (_) {}
+            }}
+            onTouchStart={() => {
+              try {
+                router.prefetch(link.href);
+              } catch (_) {}
+            }}
             className={buttonVariants({
               variant: isActive ? "secondary" : "ghost",
               className: cn("navLink", { "hidden md:flex": link.hideOnMobile }),

@@ -4,6 +4,7 @@ import ChatListWrapper from "@/components/chatListWrapper";
 import Chat from "@/components/fireChat";
 import SideNav from "@/components/SideNav";
 
+import { FeedProvider } from "@/components/FeedProvider";
 import { Toaster } from "sonner";
 
 
@@ -19,7 +20,9 @@ export default function DashboardLayout({
         <Toaster/>
       </div>
       <div className="flex-grow mt-12 md:mt-0 flex-1 w-full md:overflow-y-auto sm:p-6 md:p-12 max-w-7xl mx-auto">
-        {children}
+        <FeedProvider>
+          {children}
+        </FeedProvider>
       </div>
       <div>
         <ChatListWrapper />

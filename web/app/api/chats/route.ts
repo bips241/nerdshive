@@ -66,7 +66,12 @@ export async function GET() {
 
     console.log('Formatted users:', result);
 
-    return NextResponse.json(result, { status: 200 });
+    return NextResponse.json(result, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     console.error('Error fetching mutual follows:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -12,14 +12,9 @@ import Media from "./Media";
 
 
 
-const fetchContentType = async (url: string) => {
-  try {
-    const response = await fetch(url, { method: 'HEAD' });
-    return response.headers.get('Content-Type');
-  } catch (error) {
-    console.error('Error fetching content type:', error);
-    return null;
-  }
+const isVideoUrl = (url?: string) => {
+  if (!url) return false;
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url) || url.includes('video/');
 };
 
 const Post = async ({ post }: { post: PostWithExtras }) => {
@@ -34,7 +29,6 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   const username = post?.userId?.user_name;
   const fileUrl = post.fileUrl;
 
-
   const user = {
     _id: post.userId._id.toString(),
     user_name: post.userId.user_name,
@@ -43,10 +37,7 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   };
    
   const posT = post;
-  
-
-  const contentType = await fetchContentType(fileUrl);
-  const isImage = contentType?.startsWith('image');
+  const isImage = !isVideoUrl(fileUrl);
 
   return (
     <div className="flex flex-col space-y-2.5">

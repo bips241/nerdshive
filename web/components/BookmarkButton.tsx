@@ -54,7 +54,7 @@ function BookmarkButton({ post, userId }: Props) {
   };
 
   return (
-    <ActionIcon onClick={handleBookmark} className="ml-auto" disabled={isLoading}>
+    <ActionIcon onClick={handleBookmark} className="ml-auto">
       <BookmarkIcon
         className={cn("h-6 w-6", {
           "dark:fill-white fill-black": isBookmarked,

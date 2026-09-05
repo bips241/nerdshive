@@ -39,6 +39,8 @@ const FollowButton: React.FC<FollowButtonProps> = ({ name, followerId }) => {
     }, [name]);
 
     const handleFollow = async () => {
+        const previousState = isFollowing;
+        setIsFollowing(true); // 0ms Optimistic UI update
         try {
             const response = await fetch(`/api/follow/${name}`, {
                 method: "POST",
@@ -48,13 +50,14 @@ const FollowButton: React.FC<FollowButtonProps> = ({ name, followerId }) => {
                 body: JSON.stringify({ followerId }),
             });
             if (response.ok) {
-                setIsFollowing(true); // Update state to reflect following status
-                toast.success("You are now following!"); // Show success notification
+                toast.success("You are now following!");
             } else {
-                toast.error("Failed to send follow request"); // Show error notification
+                setIsFollowing(previousState); // Revert on failure
+                toast.error("Failed to send follow request");
             }
         } catch (error) {
-            toast.error("Error sending follow request"); // Show error notification
+            setIsFollowing(previousState); // Revert on error
+            toast.error("Error sending follow request");
             console.error("Error sending follow request:", error);
         }
     };

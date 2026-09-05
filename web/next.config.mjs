@@ -5,6 +5,21 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  compress: true,
+  poweredByHeader: false,
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+    optimizePackageImports: [
+      'lucide-react',
+      '@tabler/icons-react',
+      'date-fns',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-dialog',
+    ],
+  },
   images: {
     remotePatterns: [
       {

@@ -29,7 +29,10 @@ function LikeButton({ post, userId }: LikeButtonProps) {
     // Optimistic UI Update: Update state instantly
     const updatedLikes = updatedIsLiked
       ? [...likes, { userId: { _id: userId } }]
-      : likes.filter((like) => like.userId._id !== userId);
+      : likes.filter((like: any) => {
+          const id = (like.userId?._id || like.userId || like)?.toString();
+          return id !== userId.toString();
+        });
 
     setIsLiked(updatedIsLiked);
     setLikes(updatedLikes);

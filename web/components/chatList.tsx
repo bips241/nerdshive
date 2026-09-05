@@ -14,40 +14,55 @@ interface User {
   avatar: string;
 }
 
+// In-memory cache for mutual follow chat users across route changes
+let globalCachedChatUsers: User[] | null = null;
+let globalCachedMyUserId: string | undefined = undefined;
+
 const ChatList: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [myUserid, setMyUserid] = useState<string | undefined>(undefined);
+  const [users, setUsers] = useState<User[]>(() => globalCachedChatUsers || []);
+  const [loading, setLoading] = useState<boolean>(() => !globalCachedChatUsers);
+  const [myUserid, setMyUserid] = useState<string | undefined>(() => globalCachedMyUserId);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const fetchSession = async () => {
-      const session = await getSession();
-      setMyUserid(session?.user?._id);
-    };
-
-    fetchSession();
+    if (!globalCachedMyUserId) {
+      getSession().then((session) => {
+        if (session?.user?._id) {
+          globalCachedMyUserId = session.user._id;
+          setMyUserid(session.user._id);
+        }
+      });
+    }
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchMessages = async () => {
       try {
-        const response = await fetch('/api/chats');
-        const data: User[] = await response.json();
+        const response = await fetch('/api/chats', {
+          headers: { 'Cache-Control': 'max-age=30' },
+        });
         if (response.ok) {
+          const data: User[] = await response.json();
           const uniqueUsers = Array.from(new Map(data.map((user: User) => [user.id, user])).values());
-          setUsers(uniqueUsers);
-        } else {
-          console.error('error in chats ui');
+          globalCachedChatUsers = uniqueUsers;
+          if (isMounted) {
+            setUsers(uniqueUsers);
+          }
         }
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchMessages();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

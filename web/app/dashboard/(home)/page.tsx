@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const revalidate = 15;
 
 import React, { Suspense } from 'react';
 import { getSession } from '@/lib/getSession';

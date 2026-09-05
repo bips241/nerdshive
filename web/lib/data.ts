@@ -2,34 +2,35 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import {User,Post,Comment,Like,SavedPost} from '../models/User';
 import connectDB from './db';
+import { auth } from "@/auth";
 import { getUserId } from "./getSession";
 
-
-
-export async function fetchPosts() {
-  const userId = await getUserId();
-  await connectDB();
-  noStore();
+export async function fetchPosts(limit = 20) {
+  let userId: string | null = null;
   try {
-    const posts = await Post.find({}).select('-__v')
+    const session = await auth();
+    userId = session?.user?._id?.toString() || null;
+  } catch (_) {}
+
+  await connectDB();
+  try {
+    const posts = await Post.find({})
+      .select('-__v')
       .populate({
         path: 'comments',
+        options: { limit: 5, sort: { createdAt: -1 } },
         populate: {
           path: 'userId',
-          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+          select: 'user_name image name',
         },
-        options: { sort: { createdAt: -1 } },
       })
       .populate({
         path: 'likes',
-        populate: {
-          path: 'userId',
-          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
-        },
+        select: 'userId',
       })
       .populate({
         path: 'userId',
-        select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+        select: 'user_name image name email',
       })
       .populate({
         path: 'hackathonCrew.members.user',
@@ -43,21 +44,30 @@ export async function fetchPosts() {
         path: 'shipLog.alphaTesters',
         select: 'user_name image name',
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
 
-    const plainPosts = posts.map(post => {
-      // console.log('Post:', post);
-      return post.toObject();
-    });
+    return posts.map((post: any) => {
+      const likesCount = post.likes?.length || 0;
+      const isLikedByMe =
+        (post.likes as any[])?.some(
+          (like: any) => (like.userId?._id || like.userId || like).toString() === userId
+        ) || false;
 
-    return plainPosts.map(post => {
-      const likesCount = post.likes?.length || 0; 
-      const isLikedByMe = (post.likes as any[])?.some((like: any) => (like.userId?._id || like.userId || like).toString() === userId) || false; 
-
-      const res = {...post,
+      const res = {
+        ...post,
+        _id: post._id.toString(),
+        userId: post.userId
+          ? {
+              ...post.userId,
+              _id: post.userId._id?.toString() || post.userId.toString(),
+            }
+          : post.userId,
         likesCount,
-        isLikedByMe};
-      return  JSON.stringify(res);
+        isLikedByMe,
+      };
+      return JSON.stringify(res);
     });
   } catch (error) {
     console.error('Database Error:', error);
