@@ -7,7 +7,7 @@ const { io } = require('socket.io-client');
 
 const SOCKET_SERVER_URL = process.env.SOCKET_SERVER_URL || 'http://localhost:10000';
 const CONCURRENT_CLIENTS = Number(process.env.CONCURRENT_CLIENTS || 20);
-const INTENTS = ['hiring', 'looking_for_job', 'project_teammate'];
+const INTENTS = ['pair_debug', 'project_teammate', 'system_design', 'hiring', 'looking_for_job'];
 
 async function runMatchLoadTest() {
   console.log(`=======================================================`);

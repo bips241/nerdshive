@@ -23,12 +23,17 @@ export class MatchService {
   private inMemoryQueues: Map<string, MatchCandidate[]> = new Map();
 
   constructor(private readonly eventBus: RedisEventBus) {
+    this.inMemoryQueues.set('pair_debug', []);
+    this.inMemoryQueues.set('project_teammate', []);
+    this.inMemoryQueues.set('system_design', []);
     this.inMemoryQueues.set('hiring', []);
     this.inMemoryQueues.set('looking_for_job', []);
-    this.inMemoryQueues.set('project_teammate', []);
   }
 
   public async joinQueue(intent: string, peerId: string, socketId: string): Promise<MatchResult> {
+    if (!this.inMemoryQueues.has(intent)) {
+      this.inMemoryQueues.set(intent, []);
+    }
     const queue = this.inMemoryQueues.get(intent) || [];
 
     const existingIndex = queue.findIndex((c) => c.socketId === socketId || c.peerId === peerId);
@@ -83,15 +88,17 @@ export class MatchService {
     if (intent) {
       cleanIntent(intent);
     } else {
-      ['hiring', 'looking_for_job', 'project_teammate'].forEach(cleanIntent);
+      ['pair_debug', 'project_teammate', 'system_design', 'hiring', 'looking_for_job'].forEach(cleanIntent);
     }
   }
 
   public async getQueueDepth(): Promise<Record<string, number>> {
     return {
+      pair_debug: this.inMemoryQueues.get('pair_debug')?.length || 0,
+      project_teammate: this.inMemoryQueues.get('project_teammate')?.length || 0,
+      system_design: this.inMemoryQueues.get('system_design')?.length || 0,
       hiring: this.inMemoryQueues.get('hiring')?.length || 0,
       looking_for_job: this.inMemoryQueues.get('looking_for_job')?.length || 0,
-      project_teammate: this.inMemoryQueues.get('project_teammate')?.length || 0,
     };
   }
 }

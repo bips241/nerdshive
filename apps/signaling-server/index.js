@@ -78,11 +78,14 @@ if (process.env.REDIS_URL) {
 
 // In-Memory Fallback State
 const intentQueues = {
+  pair_debug: [],
+  project_teammate: [],
+  system_design: [],
   hiring: [],
   looking_for_job: [],
-  project_teammate: [],
 };
 
+const directRooms = new Map(); // roomId -> { socketId, peerId }
 const activeMatches = new Map();
 const queuedState = new Map();
 
@@ -94,17 +97,27 @@ function roomFor(a, b) {
 function removeFromMemoryQueues(socketId, reason = 'unknown') {
   Object.keys(intentQueues).forEach((intent) => {
     const queue = intentQueues[intent];
-    const before = queue.length;
-    for (let i = queue.length - 1; i >= 0; i -= 1) {
-      if (queue[i]?.socketId === socketId) {
-        queue.splice(i, 1);
+    if (Array.isArray(queue)) {
+      const before = queue.length;
+      for (let i = queue.length - 1; i >= 0; i -= 1) {
+        if (queue[i]?.socketId === socketId) {
+          queue.splice(i, 1);
+        }
+      }
+      const after = queue.length;
+      if (before !== after) {
+        console.log(`[DEQUEUE:${instanceId}] intent=${intent} socket=${socketId} reason=${reason} before=${before} after=${after}`);
       }
     }
-    const after = queue.length;
-    if (before !== after) {
-      console.log(`[DEQUEUE:${instanceId}] intent=${intent} socket=${socketId} reason=${reason} before=${before} after=${after}`);
-    }
   });
+
+  // Also purge any direct room registrations for this socket
+  for (const [roomId, roomData] of directRooms.entries()) {
+    if (roomData.socketId === socketId) {
+      directRooms.delete(roomId);
+      console.log(`[DIRECT_ROOM_CLEAN:${instanceId}] room=${roomId} socket=${socketId}`);
+    }
+  }
 }
 
 function leaveMemoryMatch(socket) {
@@ -120,8 +133,10 @@ function leaveMemoryMatch(socket) {
 }
 
 function popValidMemoryPartner(intent, currentSocketId) {
+  if (!intentQueues[intent]) {
+    intentQueues[intent] = [];
+  }
   const queue = intentQueues[intent];
-  if (!queue) return null;
 
   while (queue.length > 0) {
     const candidate = queue.shift();
@@ -170,20 +185,24 @@ app.get('/', (req, res) => {
 app.get('/health', async (req, res) => {
   let redisStatus = 'disabled';
   let queueSizes = {
-    hiring: intentQueues.hiring.length,
-    looking_for_job: intentQueues.looking_for_job.length,
-    project_teammate: intentQueues.project_teammate.length,
+    pair_debug: intentQueues.pair_debug?.length || 0,
+    project_teammate: intentQueues.project_teammate?.length || 0,
+    system_design: intentQueues.system_design?.length || 0,
+    hiring: intentQueues.hiring?.length || 0,
+    looking_for_job: intentQueues.looking_for_job?.length || 0,
   };
 
   if (isRedisReady && redisClient) {
     try {
-      const [h, l, p] = await Promise.all([
+      const [pd, pt, sd, h, l] = await Promise.all([
+        redisClient.llen('match_queue:pair_debug'),
+        redisClient.llen('match_queue:project_teammate'),
+        redisClient.llen('match_queue:system_design'),
         redisClient.llen('match_queue:hiring'),
         redisClient.llen('match_queue:looking_for_job'),
-        redisClient.llen('match_queue:project_teammate'),
       ]);
       redisStatus = 'connected';
-      queueSizes = { hiring: h, looking_for_job: l, project_teammate: p };
+      queueSizes = { pair_debug: pd, project_teammate: pt, system_design: sd, hiring: h, looking_for_job: l };
     } catch (e) {
       redisStatus = 'error';
     }
@@ -225,14 +244,20 @@ io.on('connection', (socket) => {
 
     console.log(`[JOIN_QUEUE:${instanceId}] intent=${intent} socket=${socket.id} peerId=${peerId}`);
 
+    // Ensure queue exists for the requested intent
+    if (!intentQueues[intent]) {
+      intentQueues[intent] = [];
+    }
+
     const currentQueued = queuedState.get(socket.id);
     if (currentQueued && currentQueued.intent === intent && currentQueued.peerId === peerId) {
-      console.log(`[DEDUP:${instanceId}] socket=${socket.id} already queued`);
-      socket.emit('queued', { intent });
+      console.log(`[DEDUP:${instanceId}] socket=${socket.id} already queued in ${intent}`);
+      socket.emit('queued', { intent, queueSize: intentQueues[intent].length });
       return;
     }
 
-    removeFromMemoryQueues(socket.id, 'join_queue');
+    // Purge socket from all queues before joining a new intent queue
+    removeFromMemoryQueues(socket.id, `join_queue_${intent}`);
     queuedState.delete(socket.id);
     leaveMemoryMatch(socket);
 
@@ -257,8 +282,8 @@ io.on('connection', (socket) => {
       queuedState.delete(socket.id);
       queuedState.delete(partner.socketId);
 
-      socket.emit('match_found', { peerId: partner.peerId, roomId, isInitiator: true });
-      io.to(partner.socketId).emit('match_found', { peerId, roomId, isInitiator: false });
+      socket.emit('match_found', { peerId: partner.peerId, roomId, isInitiator: true, intent });
+      io.to(partner.socketId).emit('match_found', { peerId, roomId, isInitiator: false, intent });
     } else {
       if (isRedisReady && redisClient) {
         await enqueueRedisUser(intent, socket.id, peerId);
@@ -268,14 +293,57 @@ io.on('connection', (socket) => {
       }
 
       queuedState.set(socket.id, { intent, peerId });
-      socket.emit('queued', { intent });
+      socket.emit('queued', { intent, queueSize: intentQueues[intent]?.length || 1 });
     }
+  });
+
+  socket.on('leave_queue', ({ intent } = {}) => {
+    console.log(`[LEAVE_QUEUE:${instanceId}] socket=${socket.id} intent=${intent}`);
+    removeFromMemoryQueues(socket.id, 'leave_queue');
+    queuedState.delete(socket.id);
+    leaveMemoryMatch(socket);
   });
 
   socket.on('skip', () => {
     console.log(`[SKIP:${instanceId}] socket=${socket.id}`);
     removeFromMemoryQueues(socket.id, 'skip');
     queuedState.delete(socket.id);
+    leaveMemoryMatch(socket);
+  });
+
+  // Direct Peer-to-Peer Invite Link Support
+  socket.on('direct_room:join', ({ roomId, peerId, intent }) => {
+    if (!roomId || !peerId) return;
+    console.log(`[DIRECT_ROOM_JOIN:${instanceId}] roomId=${roomId} socket=${socket.id} peerId=${peerId}`);
+
+    removeFromMemoryQueues(socket.id, 'direct_room_join');
+    queuedState.delete(socket.id);
+    leaveMemoryMatch(socket);
+
+    const existing = directRooms.get(roomId);
+    if (existing && existing.socketId !== socket.id) {
+      directRooms.delete(roomId);
+      const compositeRoomId = `direct_${roomId}`;
+      socket.join(compositeRoomId);
+      io.in(existing.socketId).socketsJoin(compositeRoomId);
+
+      activeMatches.set(socket.id, existing.socketId);
+      activeMatches.set(existing.socketId, socket.id);
+
+      socket.emit('match_found', { peerId: existing.peerId, roomId: compositeRoomId, isInitiator: true, isDirect: true, intent });
+      io.to(existing.socketId).emit('match_found', { peerId, roomId: compositeRoomId, isInitiator: false, isDirect: true, intent });
+    } else {
+      directRooms.set(roomId, { socketId: socket.id, peerId });
+      socket.emit('direct_room:waiting', { roomId, intent });
+    }
+  });
+
+  socket.on('direct_room:leave', ({ roomId }) => {
+    if (!roomId) return;
+    const existing = directRooms.get(roomId);
+    if (existing && existing.socketId === socket.id) {
+      directRooms.delete(roomId);
+    }
     leaveMemoryMatch(socket);
   });
 
