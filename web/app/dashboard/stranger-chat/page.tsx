@@ -24,6 +24,7 @@ import {
   Users,
   Briefcase,
   ExternalLink,
+  Trophy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -215,6 +216,7 @@ export default function StrangerVideoChatPage() {
   // Active intent & room state
   const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
   const [targetRoom, setTargetRoom] = useState<string | null>(null);
+  const [targetHackathon, setTargetHackathon] = useState<string | null>(null);
 
   // Connection & media status
   const [connected, setConnected] = useState(false);
@@ -331,15 +333,24 @@ export default function StrangerVideoChatPage() {
     const initialRoom = searchParams?.get('room');
     const initialSnippet = searchParams?.get('snippet');
     const initialTitle = searchParams?.get('title');
+    const initialHackathon = searchParams?.get('hackathon');
 
     if (initialRoom) {
       setTargetRoom(initialRoom);
+    }
+
+    if (initialHackathon) {
+      setTargetHackathon(initialHackathon);
     }
 
     if (initialMode && INTENT_CONFIGS[initialMode]) {
       setSelectedIntent(initialMode);
       if (initialSnippet) {
         setWorkspaceContent(`// ${initialTitle || 'Debugging Session'}\n${initialSnippet}`);
+      } else if (initialHackathon) {
+        setWorkspaceContent(
+          `# ⚡ Speed Match Dossier: ${initialHackathon.toUpperCase()}\n\n## 🎯 Target Hackathon:\n${initialHackathon}\n\n## 🛠️ My Core Tech Stack:\n- Frontend: React / Next.js / Tailwind\n- Backend: Node.js / Go / Python\n- AI / ML / Web3: \n\n## 🤝 Roles Urgently Needed for Squad:\n- [ ] UI/UX Designer\n- [ ] Backend Systems Specialist\n- [ ] Full-Stack Partner\n`
+        );
       } else {
         setWorkspaceContent(INTENT_CONFIGS[initialMode].defaultContent);
       }
@@ -810,6 +821,12 @@ export default function StrangerVideoChatPage() {
                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${activeConfig?.badgeClass}`}>
                   {activeConfig?.label}
                 </span>
+                {targetHackathon && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 flex items-center gap-1">
+                    <Trophy className="h-3 w-3 text-amber-500" />
+                    {targetHackathon.toUpperCase()} Radar
+                  </span>
+                )}
               </div>
             </div>
 

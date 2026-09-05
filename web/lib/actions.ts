@@ -17,7 +17,7 @@ import {
   UpdateUser,
 } from "@/schemas/Post";
 
-import { User, Post, Like, SavedPost, Comment, Follows, ProjectRequest } from "@/models/User";
+import { User, Post, Like, SavedPost, Comment, Follows, ProjectRequest, Server } from "@/models/User";
 import connectDB from "@/lib/db";
 
 export async function createPost(values: z.infer<typeof CreatePost>) {
@@ -501,7 +501,9 @@ export const submitArchitectureRfcPost = async (data: {
 };
 
 export const submitHackathonCrewPost = async (data: {
+  hackathonId?: string;
   hackathonName: string;
+  targetTrack?: string;
   urgencyDate?: string;
   rolesHave: string[];
   rolesNeed: string[];
@@ -511,12 +513,32 @@ export const submitHackathonCrewPost = async (data: {
   await connectDB();
   const userId = await getUserId();
   try {
+    // 1. Auto-provision dedicated private Squad Server in Messages & Voice Lounges
+    const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const trackSuffix = data.targetTrack ? ` [${data.targetTrack}]` : "";
+    const squadServer = await Server.create({
+      name: `${data.hackathonName} Squad${trackSuffix}`,
+      description: `Official private collaboration lounge for ${data.hackathonName} squad`,
+      ownerId: userId,
+      inviteCode,
+      members: [{ user: userId, role: "owner", joinedAt: new Date() }],
+      channels: [
+        { name: "general", type: "text", topic: "Squad planning & tactical coordination" },
+        { name: "resources", type: "text", topic: "Repository, API keys, docs, and submission specs" },
+        { name: "pair-hacking", type: "voice", topic: "WebRTC pair programming & audio lounge" },
+      ],
+    });
+
+    // 2. Create the Hackathon Crew Post linked to the Server and Hackathon Event
     const newPost = await Post.create({
       userId,
       postType: "hackathon_crew",
-      caption: `[Team Call] ${data.hackathonName} — Seeking ${data.rolesNeed.join(", ")}`,
+      caption: `[Team Call] ${data.hackathonName}${trackSuffix} — Seeking ${data.rolesNeed.join(", ")}`,
       hackathonCrew: {
+        hackathonId: data.hackathonId || undefined,
         hackathonName: data.hackathonName,
+        squadServerId: squadServer._id,
+        targetTrack: data.targetTrack || undefined,
         urgencyDate: data.urgencyDate ? new Date(data.urgencyDate) : undefined,
         rolesHave: data.rolesHave || [],
         rolesNeed: data.rolesNeed || [],
@@ -529,7 +551,7 @@ export const submitHackathonCrewPost = async (data: {
     });
     await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
     revalidatePath("/dashboard");
-    return { success: true, post: newPost };
+    return { success: true, post: newPost, squadServerId: squadServer._id.toString() };
   } catch (error) {
     console.error("Hackathon crew submission error:", error);
     throw new Error("Database Error: Failed to create Hackathon Crew post.");
@@ -1004,6 +1026,43 @@ export const manageCrewApplicant = async ({
       const maxSquadSize = post.hackathonCrew.maxSquadSize || 4;
       if (post.hackathonCrew.members.length >= maxSquadSize) {
         post.hackathonCrew.squadStatus = "full";
+      }
+
+      // Auto-enroll accepted teammate into private Squad Server
+      try {
+        let serverId = post.hackathonCrew.squadServerId;
+        if (serverId) {
+          await Server.findByIdAndUpdate(serverId, {
+            $addToSet: {
+              members: {
+                user: applicantUserId,
+                role: "member",
+                joinedAt: new Date(),
+              },
+            },
+          });
+        } else {
+          // Provision server if missing for legacy post
+          const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+          const newServer = await Server.create({
+            name: `${post.hackathonCrew.hackathonName} Squad`,
+            description: `Official private lounge for ${post.hackathonCrew.hackathonName} squad`,
+            ownerId: post.userId,
+            inviteCode,
+            members: [
+              { user: post.userId, role: "owner", joinedAt: new Date() },
+              { user: applicantUserId, role: "member", joinedAt: new Date() },
+            ],
+            channels: [
+              { name: "general", type: "text", topic: "Squad planning & tactical coordination" },
+              { name: "resources", type: "text", topic: "Docs, repo, API keys, and links" },
+              { name: "pair-hacking", type: "voice", topic: "WebRTC voice & video lounge" },
+            ],
+          });
+          post.hackathonCrew.squadServerId = newServer._id;
+        }
+      } catch (serverErr) {
+        console.error("Error updating squad server membership:", serverErr);
       }
     }
 

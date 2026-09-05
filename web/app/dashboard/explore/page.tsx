@@ -7,8 +7,9 @@ import Timestamp from '@/components/Timestamp';
 import CollabReqButton from '@/components/collabReq';
 import { auth } from '@/auth';
 import Link from 'next/link';
-import { Compass, Sparkles, GitFork, Users, Search } from 'lucide-react';
+import { Compass, Sparkles, GitFork, Users, Search, Trophy, ShieldCheck, Clock, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getVerifiedHackathons } from '@/lib/hackathon-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ export default async function ExplorePage({
     ];
   }
 
-  const [projects, hackathonSquads] = await Promise.all([
+  const [projects, hackathonSquads, verifiedHackathons] = await Promise.all([
     Post.find(query)
       .populate({
         path: 'userId',
@@ -55,8 +56,9 @@ export default async function ExplorePage({
         select: 'user_name image email',
       })
       .sort({ createdAt: -1 })
-      .limit(3)
+      .limit(6)
       .lean(),
+    getVerifiedHackathons(),
   ]);
 
   const popularTags = [
@@ -83,6 +85,89 @@ export default async function ExplorePage({
           Discover active open-source projects, hackathon teams, and teammates looking for complementary skillsets.
         </p>
       </div>
+
+      {/* Verified Real-World Hackathons Showcase */}
+      {verifiedHackathons && verifiedHackathons.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              <h2 className="text-base font-bold text-foreground">Verified Real-World Hackathons</h2>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">
+              Official Partner Events
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {verifiedHackathons.map((h: any) => {
+              const deadline = h.submissionDeadline ? new Date(h.submissionDeadline) : null;
+              const now = new Date();
+              const daysLeft = deadline
+                ? Math.max(0, Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+                : null;
+
+              return (
+                <div
+                  key={h._id}
+                  className="p-4 rounded-xl border bg-gradient-to-br from-card via-card to-amber-500/5 hover:border-amber-500/30 transition-all flex flex-col justify-between space-y-3 shadow-sm"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-foreground truncate block">
+                            {h.name}
+                          </span>
+                          <ShieldCheck className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground line-clamp-1 block">
+                          {h.location}
+                        </span>
+                      </div>
+
+                      {daysLeft !== null && (
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
+                          {daysLeft}d left
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {h.tagline}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] font-bold text-amber-500">
+                        {h.prizePool}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {h.activeSquadsCount} {h.activeSquadsCount === 1 ? 'squad' : 'squads'} formed
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                    <Link
+                      href={`/dashboard/hackathons/${h.slug}`}
+                      className="flex-1 text-center py-1.5 px-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-[11px] border transition-colors"
+                    >
+                      Event Hub &rarr;
+                    </Link>
+                    <Link
+                      href={`/dashboard/stranger-chat?mode=project_teammate&hackathon=${h.slug}`}
+                      className="py-1.5 px-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-[11px] border border-primary/20 transition-colors shrink-0"
+                      title="Instant Teammate Speed Radar"
+                    >
+                      ⚡ Speed Match
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Active Hackathon Squads & Crew Calls */}
       <div className="space-y-3">

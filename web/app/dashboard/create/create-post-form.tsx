@@ -29,6 +29,7 @@ import {
   submitHackathonCrewPost,
   submitTechShowdownPost,
 } from "@/lib/actions";
+import { getVerifiedHackathons } from "@/lib/hackathon-actions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CloudUpload,
@@ -43,10 +44,12 @@ import {
   Code2,
   Sparkles,
   ArrowRight,
+  ShieldCheck,
+  Trophy,
 } from "lucide-react";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { useState, useCallback } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -112,6 +115,49 @@ function CreatePage() {
   const [hackRolesNeed, setHackRolesNeed] = useState("");
   const [hackMaxSquadSize, setHackMaxSquadSize] = useState(4);
   const [hackCommitment, setHackCommitment] = useState<"hardcore" | "moderate" | "casual">("moderate");
+  const [hackathonList, setHackathonList] = useState<any[]>([]);
+  const [selectedHackathonId, setSelectedHackathonId] = useState<string>("custom");
+  const [hackTargetTrack, setHackTargetTrack] = useState<string>("");
+  const [hackTracks, setHackTracks] = useState<any[]>([]);
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    async function loadHackathons() {
+      try {
+        const list = await getVerifiedHackathons();
+        setHackathonList(list);
+
+        const typeParam = searchParams.get("type");
+        const slugParam = searchParams.get("hackathonSlug");
+        const nameParam = searchParams.get("hackathonName");
+
+        if (typeParam === "hackathon_crew") {
+          setSelectedOption("hackathonCrew");
+        }
+
+        if (slugParam && list.length > 0) {
+          const match = list.find((h: any) => h.slug === slugParam);
+          if (match) {
+            setSelectedHackathonId(match._id);
+            setHackName(match.name);
+            if (match.submissionDeadline) {
+              setHackUrgencyDate(new Date(match.submissionDeadline).toISOString().split("T")[0]);
+            }
+            if (match.tracks && match.tracks.length > 0) {
+              setHackTracks(match.tracks);
+              setHackTargetTrack(match.tracks[0].name);
+            }
+          } else if (nameParam) {
+            setHackName(nameParam);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading hackathons:", err);
+      }
+    }
+    loadHackathons();
+  }, [searchParams]);
 
   // 5. Tech Showdown State
   const [showdownTopic, setShowdownTopic] = useState("");
@@ -283,7 +329,9 @@ function CreatePage() {
       const rolesHaveArr = hackRolesHave.split(",").map((s) => s.trim()).filter(Boolean);
       const rolesNeedArr = hackRolesNeed.split(",").map((s) => s.trim()).filter(Boolean);
       await submitHackathonCrewPost({
+        hackathonId: selectedHackathonId !== "custom" ? selectedHackathonId : undefined,
         hackathonName: hackName.trim(),
+        targetTrack: hackTargetTrack || undefined,
         urgencyDate: hackUrgencyDate || undefined,
         rolesHave: rolesHaveArr,
         rolesNeed: rolesNeedArr,
@@ -815,14 +863,102 @@ function CreatePage() {
           {selectedOption === "hackathonCrew" && (
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <Label>Hackathon / Competition Name</Label>
-                <Input
-                  placeholder="e.g. HackMIT 2026, ETHGlobal DevConnect, MLH Local Hack Day"
-                  value={hackName}
-                  onChange={(e) => setHackName(e.target.value)}
-                  required
-                />
+                <div className="flex items-center justify-between">
+                  <Label>Target Hackathon</Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Verified Hackathons feature official tracks & private squad servers
+                  </span>
+                </div>
+                <Select
+                  value={selectedHackathonId}
+                  onValueChange={(val) => {
+                    setSelectedHackathonId(val);
+                    if (val === "custom") {
+                      setHackName("");
+                      setHackTracks([]);
+                      setHackTargetTrack("");
+                    } else {
+                      const match = hackathonList.find((h: any) => h._id === val);
+                      if (match) {
+                        setHackName(match.name);
+                        if (match.submissionDeadline) {
+                          setHackUrgencyDate(new Date(match.submissionDeadline).toISOString().split("T")[0]);
+                        }
+                        if (match.tracks && match.tracks.length > 0) {
+                          setHackTracks(match.tracks);
+                          setHackTargetTrack(match.tracks[0].name);
+                        } else {
+                          setHackTracks([]);
+                          setHackTargetTrack("");
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Verified Hackathon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hackathonList.map((h: any) => (
+                      <SelectItem key={h._id} value={h._id}>
+                        ⚡ {h.name} — {h.prizePool}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">✍️ Other / Custom Event</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {selectedHackathonId === "custom" ? (
+                <div className="space-y-1.5">
+                  <Label>Custom Hackathon Name</Label>
+                  <Input
+                    placeholder="e.g. Local University Hackathon, Global AI Sprint"
+                    value={hackName}
+                    onChange={(e) => setHackName(e.target.value)}
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-500" />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-foreground">{hackName}</span>
+                        <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
+                          Verified Partner
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Submissions will be displayed in the official {hackName} Event Hub
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Official Tracks Dropdown */}
+              {hackTracks.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Official Track / Bounty Focus</Label>
+                  <Select
+                    value={hackTargetTrack}
+                    onValueChange={(val) => setHackTargetTrack(val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Competition Track" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hackTracks.map((track: any, idx: number) => (
+                        <SelectItem key={idx} value={track.name}>
+                          🎯 {track.name} {track.prizePool ? `(${track.prizePool})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">

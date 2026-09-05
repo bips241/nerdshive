@@ -51,6 +51,7 @@ interface HackathonCrewClientProps {
   initialApplicants: SquadApplicant[];
   rolesNeed: string[];
   rolesHave: string[];
+  squadServerId?: string;
 }
 
 export default function HackathonCrewClient({
@@ -65,6 +66,7 @@ export default function HackathonCrewClient({
   initialApplicants = [],
   rolesNeed = [],
   rolesHave = [],
+  squadServerId,
 }: HackathonCrewClientProps) {
   const [squadStatus, setSquadStatus] = useState(initialSquadStatus);
   const [members, setMembers] = useState<SquadMember[]>(initialMembers || []);
@@ -267,7 +269,7 @@ export default function HackathonCrewClient({
           {/* Squad Member / Leader Communication: Direct Link to Real-Time Chat System */}
           {(isLeader || isMember) && (
             <Link
-              href="/dashboard/messages"
+              href={squadServerId ? `/dashboard/messages?server=${squadServerId}` : "/dashboard/messages"}
               className="inline-flex items-center justify-center gap-1.5 px-3.5 min-h-[36px] rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border whitespace-nowrap transition-colors"
             >
               <MessageSquare className="h-3.5 w-3.5 text-primary" /> Squad Chat Room &rarr;

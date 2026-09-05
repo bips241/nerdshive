@@ -10,7 +10,11 @@ export const metadata = {
   description: 'Real-time developer chat, multi-party voice lounges, and collaborative video rooms.',
 };
 
-const MessagesPage = async () => {
+const MessagesPage = async ({
+  searchParams,
+}: {
+  searchParams?: { server?: string };
+}) => {
   const session = await auth();
 
   if (!session?.user?._id) {
@@ -29,7 +33,7 @@ const MessagesPage = async () => {
 
   return (
     <div className="h-[calc(100vh)] w-full overflow-hidden">
-      <DiscordLayout currentUser={currentUser} />
+      <DiscordLayout currentUser={currentUser} initialServerId={searchParams?.server} />
     </div>
   );
 };

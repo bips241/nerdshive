@@ -33,6 +33,10 @@ import {
   ServerSchema,
   IServer,
 } from './entities/server.entity';
+import {
+  HackathonEventSchema,
+  IHackathonEvent,
+} from './entities/hackathon.entity';
 
 // Re-export entity schemas & types
 export * from './entities/user.entity';
@@ -40,6 +44,7 @@ export * from './entities/post.entity';
 export * from './entities/collaboration.entity';
 export * from './entities/chat.entity';
 export * from './entities/server.entity';
+export * from './entities/hackathon.entity';
 
 // Initialized Mongoose Models (Singleton registry with explicit Model typing)
 export const User: Model<IUser> =
@@ -85,3 +90,7 @@ export const Message: Model<IMessage> =
 export const Server: Model<IServer> =
   (mongoose.models?.Server as Model<IServer>) ||
   mongoose.model<IServer>('Server', ServerSchema);
+
+export const HackathonEvent: Model<IHackathonEvent> =
+  (mongoose.models?.HackathonEvent as Model<IHackathonEvent>) ||
+  mongoose.model<IHackathonEvent>('HackathonEvent', HackathonEventSchema);

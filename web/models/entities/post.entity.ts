@@ -73,7 +73,10 @@ export interface IPost extends Document {
     votesRevise?: mongoose.Types.ObjectId[];
   };
   hackathonCrew?: {
+    hackathonId?: mongoose.Types.ObjectId;
     hackathonName: string;
+    squadServerId?: mongoose.Types.ObjectId;
+    targetTrack?: string;
     urgencyDate?: Date;
     rolesHave: string[];
     rolesNeed: string[];
@@ -193,7 +196,10 @@ export const PostSchema: Schema<IPost> = new Schema(
       votesRevise: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     },
     hackathonCrew: {
+      hackathonId: { type: Schema.Types.ObjectId, ref: 'HackathonEvent' },
       hackathonName: { type: String },
+      squadServerId: { type: Schema.Types.ObjectId, ref: 'Server' },
+      targetTrack: { type: String },
       urgencyDate: { type: Date },
       rolesHave: [{ type: String }],
       rolesNeed: [{ type: String }],

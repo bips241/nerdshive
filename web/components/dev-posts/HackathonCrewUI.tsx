@@ -65,12 +65,19 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
 
       {/* Main Content Card */}
       <Card className="p-5 sm:p-6 space-y-5 bg-card border rounded-2xl shadow-md border-amber-500/20">
-        {/* Hackathon Title & Commitment */}
+        {/* Hackathon Title, Track & Commitment */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="space-y-1">
-            <span className="text-[11px] uppercase font-bold tracking-wider text-amber-500 flex items-center gap-1">
-              <Trophy className="h-3.5 w-3.5" /> Target Hackathon
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase font-bold tracking-wider text-amber-500 flex items-center gap-1">
+                <Trophy className="h-3.5 w-3.5" /> Target Hackathon
+              </span>
+              {crew.targetTrack && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
+                  Track: {crew.targetTrack}
+                </span>
+              )}
+            </div>
             <h2 className="text-xl font-extrabold tracking-tight text-foreground">
               {crew.hackathonName}
             </h2>
@@ -153,6 +160,7 @@ const HackathonCrewUI: React.FC<HackathonCrewUIProps> = async ({ post }) => {
           initialApplicants={crew.applicants || []}
           rolesNeed={crew.rolesNeed || []}
           rolesHave={crew.rolesHave || []}
+          squadServerId={crew.squadServerId?.toString()}
         />
       </Card>
 

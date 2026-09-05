@@ -67,11 +67,13 @@ interface DiscordLayoutProps {
     avatar?: string;
   };
   initialMutualFollows?: any[];
+  initialServerId?: string;
 }
 
 export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
   currentUser,
   initialMutualFollows = [],
+  initialServerId,
 }) => {
   const [servers, setServers] = useState<any[]>([]);
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
@@ -133,6 +135,23 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
 
     loadData();
   }, []);
+
+  // 1b. Auto-activate target squad server when linked from squad card
+  useEffect(() => {
+    if (initialServerId && servers.length > 0) {
+      const match = servers.find((s) => s._id === initialServerId);
+      if (match) {
+        setActiveTab('rooms');
+        setActiveDirectChat(null);
+        setActiveServerId(match._id);
+        const defaultChannel =
+          match.channels?.find((c: any) => c.type === 'text') || match.channels?.[0];
+        if (defaultChannel) {
+          setActiveChannelId(defaultChannel._id);
+        }
+      }
+    }
+  }, [initialServerId, servers]);
 
   const currentServer = servers.find((s) => s._id === activeServerId);
   const currentChannel = currentServer?.channels?.find(
