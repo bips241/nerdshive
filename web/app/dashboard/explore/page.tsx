@@ -38,15 +38,26 @@ export default async function ExplorePage({
     ];
   }
 
-  const projects = await Post.find(query)
-    .populate({
-      path: 'userId',
-      model: User,
-      select: 'user_name image email',
-    })
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .lean();
+  const [projects, hackathonSquads] = await Promise.all([
+    Post.find(query)
+      .populate({
+        path: 'userId',
+        model: User,
+        select: 'user_name image email',
+      })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean(),
+    Post.find({ postType: 'hackathon_crew' })
+      .populate({
+        path: 'userId',
+        model: User,
+        select: 'user_name image email',
+      })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .lean(),
+  ]);
 
   const popularTags = [
     'All',
@@ -73,73 +84,90 @@ export default async function ExplorePage({
         </p>
       </div>
 
-      {/* Hackathon Urgency Team Formation Hub */}
+      {/* Active Hackathon Squads & Crew Calls */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-500" />
-            <h2 className="text-base font-bold text-foreground">Active Hackathon Formation Rooms</h2>
+            <h2 className="text-base font-bold text-foreground">Active Hackathon Formation Squads</h2>
           </div>
-          <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live Matchmaking
-          </span>
+          <Link
+            href="/dashboard/create"
+            className="text-xs text-primary font-semibold hover:underline"
+          >
+            + Create Squad Call
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-4 rounded-xl border bg-gradient-to-br from-card to-secondary/30 space-y-2 relative overflow-hidden">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-primary">⚡ HackMIT 2026</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-semibold border border-amber-500/20">
-                ⏳ 4h left
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Teams seeking: <span className="font-semibold text-foreground">UI/UX + Rust</span>
+        {hackathonSquads.length === 0 ? (
+          <div className="p-6 rounded-xl border border-dashed border-border text-center space-y-2 bg-card/40">
+            <Users className="w-8 h-8 text-muted-foreground mx-auto opacity-50" />
+            <p className="text-xs font-semibold text-foreground">No squads actively recruiting right now</p>
+            <p className="text-[11px] text-muted-foreground">
+              Assembling a team for an upcoming hackathon? Create a Crew Call to recruit builders with complementary skills.
             </p>
-            <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
-              <span>18 active builders</span>
-              <Link href="/dashboard/stranger-chat" className="text-primary font-semibold hover:underline">
-                Join Queue &rarr;
+            <div className="pt-1">
+              <Link
+                href="/dashboard/create"
+                className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                + Post Hackathon Crew Call
               </Link>
             </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {hackathonSquads.map((squad: any) => {
+              const crew = squad.hackathonCrew || {};
+              const membersCount = crew.members?.length || 1;
+              const maxSquad = crew.maxSquadSize || 4;
+              return (
+                <div
+                  key={squad._id}
+                  className="p-4 rounded-xl border bg-gradient-to-br from-card to-secondary/30 space-y-2.5 relative overflow-hidden flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs font-bold text-primary truncate max-w-[70%]">
+                        ⚡ {crew.hackathonName || 'Hackathon Squad'}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-semibold border border-amber-500/20 shrink-0">
+                        {membersCount}/{maxSquad} spots
+                      </span>
+                    </div>
 
-          <div className="p-4 rounded-xl border bg-gradient-to-br from-card to-secondary/30 space-y-2 relative overflow-hidden">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-purple-500">🌐 ETHGlobal DevConnect</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-semibold border border-purple-500/20">
-                ⏳ 1d left
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Teams seeking: <span className="font-semibold text-foreground">Solidity + Next.js</span>
-            </p>
-            <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
-              <span>32 active builders</span>
-              <Link href="/dashboard/stranger-chat" className="text-primary font-semibold hover:underline">
-                Join Queue &rarr;
-              </Link>
-            </div>
-          </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {crew.projectIdea || squad.caption || 'Looking for builders to assemble a hackathon team.'}
+                    </p>
 
-          <div className="p-4 rounded-xl border bg-gradient-to-br from-card to-secondary/30 space-y-2 relative overflow-hidden">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-blue-500">🤖 AI Agents Hackathon</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-semibold border border-blue-500/20">
-                ⏳ 3d left
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Teams seeking: <span className="font-semibold text-foreground">Python + PyTorch</span>
-            </p>
-            <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
-              <span>24 active builders</span>
-              <Link href="/dashboard/stranger-chat" className="text-primary font-semibold hover:underline">
-                Join Queue &rarr;
-              </Link>
-            </div>
+                    {crew.rolesNeed && crew.rolesNeed.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {crew.rolesNeed.slice(0, 3).map((role: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium"
+                          >
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+                    <span>Lead: @{squad.userId?.user_name || 'developer'}</span>
+                    <Link
+                      href={`/dashboard/p/${squad._id}`}
+                      className="text-primary font-semibold hover:underline"
+                    >
+                      View Squad &rarr;
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tech Stack Pills */}
