@@ -2,12 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
+export type CockpitTab = 'pulse' | 'chat' | 'comments';
+
 interface FeedContextType {
   posts: any[];
   setPosts: React.Dispatch<React.SetStateAction<any[]>>;
   isRevalidating: boolean;
   refreshFeed: () => Promise<void>;
   updatePostOptimistic: (postId: string, updater: (prevPost: any) => any) => void;
+  cockpitTab: CockpitTab;
+  setCockpitTab: (tab: CockpitTab) => void;
+  activeDiscussionPost: any | null;
+  focusPostDiscussion: (post: any) => void;
 }
 
 const FeedContext = createContext<FeedContextType | null>(null);
@@ -27,6 +33,13 @@ export const FeedProvider: React.FC<{
   });
 
   const [isRevalidating, setIsRevalidating] = useState(false);
+  const [cockpitTab, setCockpitTab] = useState<CockpitTab>('pulse');
+  const [activeDiscussionPost, setActiveDiscussionPost] = useState<any | null>(null);
+
+  const focusPostDiscussion = useCallback((post: any) => {
+    setActiveDiscussionPost(post);
+    setCockpitTab('comments');
+  }, []);
 
   // Sync module cache whenever posts state updates
   useEffect(() => {
@@ -85,6 +98,10 @@ export const FeedProvider: React.FC<{
         isRevalidating,
         refreshFeed,
         updatePostOptimistic,
+        cockpitTab,
+        setCockpitTab,
+        activeDiscussionPost,
+        focusPostDiscussion,
       }}
     >
       {children}
