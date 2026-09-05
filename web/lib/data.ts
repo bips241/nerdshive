@@ -31,6 +31,18 @@ export async function fetchPosts() {
         path: 'userId',
         select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
       })
+      .populate({
+        path: 'hackathonCrew.members.user',
+        select: 'user_name image name',
+      })
+      .populate({
+        path: 'hackathonCrew.applicants.user',
+        select: 'user_name image name',
+      })
+      .populate({
+        path: 'shipLog.alphaTesters',
+        select: 'user_name image name',
+      })
       .sort({ createdAt: -1 });
 
     const plainPosts = posts.map(post => {
@@ -77,6 +89,18 @@ export async function fetchPostById(id: any) {
           path: 'userId',
           select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
         }
+      })
+      .populate({
+        path: 'hackathonCrew.members.user',
+        select: 'user_name image name',
+      })
+      .populate({
+        path: 'hackathonCrew.applicants.user',
+        select: 'user_name image name',
+      })
+      .populate({
+        path: 'shipLog.alphaTesters',
+        select: 'user_name image name',
       })
       .populate('savedBy')
       .populate('userId');
@@ -126,6 +150,18 @@ export async function fetchProfilePosts(username: string) {
       .populate({
         path: 'userId',
         select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
+      })
+      .populate({
+        path: 'hackathonCrew.members.user',
+        select: 'user_name image name',
+      })
+      .populate({
+        path: 'hackathonCrew.applicants.user',
+        select: 'user_name image name',
+      })
+      .populate({
+        path: 'shipLog.alphaTesters',
+        select: 'user_name image name',
       })
       .sort({ createdAt: -1 });
 

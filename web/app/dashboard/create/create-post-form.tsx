@@ -82,10 +82,7 @@ function CreatePage() {
   const [shipDemoUrl, setShipDemoUrl] = useState("");
   const [shipRepoUrl, setShipRepoUrl] = useState("");
   const [shipTechStack, setShipTechStack] = useState("");
-  const [feedbackWanted, setFeedbackWanted] = useState<string[]>([
-    "UI/UX Feedback",
-    "Architecture Critique",
-  ]);
+  const [feedbackWanted, setFeedbackWanted] = useState<string[]>([]);
 
   // 2. Code SOS State
   const [sosTitle, setSosTitle] = useState("");
@@ -100,16 +97,20 @@ function CreatePage() {
   const [rfcChallenge, setRfcChallenge] = useState("");
   const [rfcDiagram, setRfcDiagram] = useState("");
   const [rfcAudience, setRfcAudience] = useState("Senior / Staff Engineers");
-  const [rfcTradeOffs, setRfcTradeOffs] = useState<Array<{ option: string; pros: string; cons: string }>>([
-    { option: "Option A: Event-Driven Queue", pros: "Scalable & decoupled", cons: "Higher eventual consistency delay" },
-    { option: "Option B: Direct RPC Gateway", pros: "Low latency & simpler", cons: "Coupled dependencies" },
-  ]);
+  const [showRfcTradeOffs, setShowRfcTradeOffs] = useState(false);
+  const [rfcOptionAName, setRfcOptionAName] = useState("");
+  const [rfcOptionAPros, setRfcOptionAPros] = useState("");
+  const [rfcOptionACons, setRfcOptionACons] = useState("");
+  const [rfcOptionBName, setRfcOptionBName] = useState("");
+  const [rfcOptionBPros, setRfcOptionBPros] = useState("");
+  const [rfcOptionBCons, setRfcOptionBCons] = useState("");
 
   // 4. Hackathon Crew State
   const [hackName, setHackName] = useState("");
   const [hackUrgencyDate, setHackUrgencyDate] = useState("");
   const [hackRolesHave, setHackRolesHave] = useState("");
   const [hackRolesNeed, setHackRolesNeed] = useState("");
+  const [hackMaxSquadSize, setHackMaxSquadSize] = useState(4);
   const [hackCommitment, setHackCommitment] = useState<"hardcore" | "moderate" | "casual">("moderate");
 
   // 5. Tech Showdown State
@@ -240,11 +241,27 @@ function CreatePage() {
     }
     setIsSubmitting(true);
     try {
+      const tradeOffs = [];
+      if (rfcOptionAName.trim()) {
+        tradeOffs.push({
+          option: rfcOptionAName.trim(),
+          pros: rfcOptionAPros.trim(),
+          cons: rfcOptionACons.trim(),
+        });
+      }
+      if (rfcOptionBName.trim()) {
+        tradeOffs.push({
+          option: rfcOptionBName.trim(),
+          pros: rfcOptionBPros.trim(),
+          cons: rfcOptionBCons.trim(),
+        });
+      }
+
       await submitArchitectureRfcPost({
         title: rfcTitle.trim(),
         challenge: rfcChallenge.trim(),
         diagramMarkdown: rfcDiagram.trim() || undefined,
-        tradeOffs: rfcTradeOffs.filter((t) => t.option.trim()),
+        tradeOffs,
         targetAudience: rfcAudience,
       });
       toast.success("Architecture RFC posted for senior review!");
@@ -271,6 +288,7 @@ function CreatePage() {
         rolesHave: rolesHaveArr,
         rolesNeed: rolesNeedArr,
         commitmentLevel: hackCommitment,
+        maxSquadSize: hackMaxSquadSize || 4,
       });
       toast.success("Hackathon Crew call published!");
       router.push("/dashboard");
@@ -714,6 +732,75 @@ function CreatePage() {
                 />
               </div>
 
+              {/* Optional Trade-offs Comparison */}
+              <div className="pt-2 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-foreground">Design Trade-offs Under Consideration (Optional)</Label>
+                    <p className="text-[11px] text-muted-foreground">Compare two competing architectural approaches (e.g. Option A vs Option B)</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowRfcTradeOffs(!showRfcTradeOffs)}
+                    className="text-xs h-7"
+                  >
+                    {showRfcTradeOffs ? "Remove Trade-offs" : "+ Compare Options"}
+                  </Button>
+                </div>
+
+                {showRfcTradeOffs && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-secondary/20 border">
+                    {/* Option A */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-indigo-400">Option A</Label>
+                      <Input
+                        placeholder="Option A Name (e.g. PostgreSQL with Citus)"
+                        value={rfcOptionAName}
+                        onChange={(e) => setRfcOptionAName(e.target.value)}
+                        className="text-xs"
+                      />
+                      <Input
+                        placeholder="Pros (e.g. Strong consistency, SQL joins)"
+                        value={rfcOptionAPros}
+                        onChange={(e) => setRfcOptionAPros(e.target.value)}
+                        className="text-xs text-emerald-500"
+                      />
+                      <Input
+                        placeholder="Cons (e.g. Connection pooling complexity)"
+                        value={rfcOptionACons}
+                        onChange={(e) => setRfcOptionACons(e.target.value)}
+                        className="text-xs text-rose-400"
+                      />
+                    </div>
+
+                    {/* Option B */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-violet-400">Option B</Label>
+                      <Input
+                        placeholder="Option B Name (e.g. ScyllaDB / Cassandra)"
+                        value={rfcOptionBName}
+                        onChange={(e) => setRfcOptionBName(e.target.value)}
+                        className="text-xs"
+                      />
+                      <Input
+                        placeholder="Pros (e.g. Linear write scalability)"
+                        value={rfcOptionBPros}
+                        onChange={(e) => setRfcOptionBPros(e.target.value)}
+                        className="text-xs text-emerald-500"
+                      />
+                      <Input
+                        placeholder="Cons (e.g. Eventual consistency model)"
+                        value={rfcOptionBCons}
+                        onChange={(e) => setRfcOptionBCons(e.target.value)}
+                        className="text-xs text-rose-400"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-between items-center pt-3 border-t">
                 <Button variant="ghost" onClick={() => setSelectedOption(null)}>Back</Button>
                 <Button onClick={handleArchitectureRfcSubmit} disabled={isSubmitting} className="font-semibold gap-1.5">
@@ -737,9 +824,9 @@ function CreatePage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Urgency / Registration Deadline</Label>
+                  <Label>Registration Deadline</Label>
                   <Input
                     type="date"
                     value={hackUrgencyDate}
@@ -747,7 +834,25 @@ function CreatePage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Team Commitment Level</Label>
+                  <Label>Max Squad Size</Label>
+                  <Select
+                    value={hackMaxSquadSize.toString()}
+                    onValueChange={(val) => setHackMaxSquadSize(parseInt(val))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Squad Size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 Members (Duo)</SelectItem>
+                      <SelectItem value="3">3 Members (Trio)</SelectItem>
+                      <SelectItem value="4">4 Members (Standard)</SelectItem>
+                      <SelectItem value="5">5 Members (Large)</SelectItem>
+                      <SelectItem value="6">6 Members (Full Team)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Commitment Level</Label>
                   <Select
                     value={hackCommitment}
                     onValueChange={(val: any) => setHackCommitment(val)}
@@ -756,9 +861,9 @@ function CreatePage() {
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hardcore">🏆 Hardcore (Sprint to win prizes)</SelectItem>
-                      <SelectItem value="moderate">⚡ Moderate (Solid prototype + learning)</SelectItem>
-                      <SelectItem value="casual">☕ Casual (Fun networking & exploratory)</SelectItem>
+                      <SelectItem value="hardcore">🏆 Hardcore (Sprint to win)</SelectItem>
+                      <SelectItem value="moderate">⚡ Moderate (Prototype + learn)</SelectItem>
+                      <SelectItem value="casual">☕ Casual (Fun & exploratory)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

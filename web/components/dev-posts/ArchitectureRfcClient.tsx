@@ -43,15 +43,18 @@ export default function ArchitectureRfcClient({
   const [userVote, setUserVote] = useState(initialUserVote);
   const [isVoting, setIsVoting] = useState(false);
 
+  const hasTradeOffs = Boolean(optionAName && optionBName);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
-  const [selectedDecision, setSelectedDecision] = useState(optionAName);
+  const [selectedDecision, setSelectedDecision] = useState(
+    hasTradeOffs ? optionAName : 'Architecture Approved'
+  );
   const [summaryInput, setSummaryInput] = useState('');
   const [isFinalizing, setIsFinalizing] = useState(false);
 
   const totalVotes = votesA + votesB + votesRevise;
-  const pctA = totalVotes > 0 ? Math.round((votesA / totalVotes) * 100) : 33;
+  const pctA = totalVotes > 0 ? Math.round((votesA / totalVotes) * 100) : (hasTradeOffs ? 33 : 50);
   const pctB = totalVotes > 0 ? Math.round((votesB / totalVotes) * 100) : 33;
-  const pctRevise = totalVotes > 0 ? Math.round((votesRevise / totalVotes) * 100) : 34;
+  const pctRevise = totalVotes > 0 ? Math.round((votesRevise / totalVotes) * 100) : (hasTradeOffs ? 34 : 50);
 
   const handleVote = async (choice: 'adoptA' | 'adoptB' | 'revise') => {
     setIsVoting(true);
@@ -62,7 +65,10 @@ export default function ArchitectureRfcClient({
         setVotesA(res.votesAdoptA ?? votesA);
         setVotesB(res.votesAdoptB ?? votesB);
         setVotesRevise(res.votesRevise ?? votesRevise);
-        toast.success(`Consensus vote recorded: ${choice === 'adoptA' ? optionAName : choice === 'adoptB' ? optionBName : 'Needs Revision'}`);
+        const choiceLabel = hasTradeOffs
+          ? (choice === 'adoptA' ? optionAName : choice === 'adoptB' ? optionBName : 'Needs Revision')
+          : (choice === 'adoptA' ? 'Approve Architecture' : 'Request Revisions');
+        toast.success(`Consensus vote recorded: ${choiceLabel}`);
       } else {
         toast.error(res.failure || 'Failed to vote');
       }
@@ -109,7 +115,7 @@ export default function ArchitectureRfcClient({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wide">
               <CheckCircle2 className="h-4 w-4 text-indigo-500" />
-              Consensus Finalized • Adopted: {adoptedOption}
+              Consensus Finalized • {adoptedOption.startsWith('Adopt') || adoptedOption.startsWith('Architecture') ? adoptedOption : `Adopted: ${adoptedOption}`}
             </div>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500">
               Approved Architecture
@@ -144,52 +150,77 @@ export default function ArchitectureRfcClient({
           {/* Consensus Progress Split Bar */}
           <div className="h-2.5 w-full rounded-full overflow-hidden flex bg-muted">
             <div
-              style={{ width: `${pctA}%` }}
+              style={{ width: `${hasTradeOffs ? pctA : (votesA + votesRevise > 0 ? Math.round((votesA / (votesA + votesRevise)) * 100) : 50)}%` }}
               className="bg-indigo-500 transition-all duration-500"
-              title={`${optionAName}: ${pctA}%`}
+              title={hasTradeOffs ? `${optionAName}: ${pctA}%` : `Approve: ${pctA}%`}
             />
+            {hasTradeOffs && (
+              <div
+                style={{ width: `${pctB}%` }}
+                className="bg-violet-500 transition-all duration-500"
+                title={`${optionBName}: ${pctB}%`}
+              />
+            )}
             <div
-              style={{ width: `${pctB}%` }}
-              className="bg-violet-500 transition-all duration-500"
-              title={`${optionBName}: ${pctB}%`}
-            />
-            <div
-              style={{ width: `${pctRevise}%` }}
+              style={{ width: `${hasTradeOffs ? pctRevise : (votesA + votesRevise > 0 ? Math.round((votesRevise / (votesA + votesRevise)) * 100) : 50)}%` }}
               className="bg-amber-500 transition-all duration-500"
               title={`Revise: ${pctRevise}%`}
             />
           </div>
 
           {/* Interactive Voting Buttons */}
-          <div className="grid grid-cols-3 gap-2">
-            <Button
-              size="sm"
-              variant={userVote === 'adoptA' ? 'default' : 'outline'}
-              onClick={() => handleVote('adoptA')}
-              disabled={isVoting}
-              className={`text-xs h-8 truncate ${userVote === 'adoptA' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}`}
-            >
-              {optionAName} ({pctA}%)
-            </Button>
-            <Button
-              size="sm"
-              variant={userVote === 'adoptB' ? 'default' : 'outline'}
-              onClick={() => handleVote('adoptB')}
-              disabled={isVoting}
-              className={`text-xs h-8 truncate ${userVote === 'adoptB' ? 'bg-violet-600 hover:bg-violet-700 text-white' : ''}`}
-            >
-              {optionBName} ({pctB}%)
-            </Button>
-            <Button
-              size="sm"
-              variant={userVote === 'revise' ? 'default' : 'outline'}
-              onClick={() => handleVote('revise')}
-              disabled={isVoting}
-              className={`text-xs h-8 truncate ${userVote === 'revise' ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`}
-            >
-              Revise ({pctRevise}%)
-            </Button>
-          </div>
+          {hasTradeOffs ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                size="sm"
+                variant={userVote === 'adoptA' ? 'default' : 'outline'}
+                onClick={() => handleVote('adoptA')}
+                disabled={isVoting}
+                className={`text-xs min-h-[36px] px-2.5 ${userVote === 'adoptA' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}`}
+              >
+                <span className="truncate">{optionAName} ({pctA}%)</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={userVote === 'adoptB' ? 'default' : 'outline'}
+                onClick={() => handleVote('adoptB')}
+                disabled={isVoting}
+                className={`text-xs min-h-[36px] px-2.5 ${userVote === 'adoptB' ? 'bg-violet-600 hover:bg-violet-700 text-white' : ''}`}
+              >
+                <span className="truncate">{optionBName} ({pctB}%)</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={userVote === 'revise' ? 'default' : 'outline'}
+                onClick={() => handleVote('revise')}
+                disabled={isVoting}
+                className={`text-xs min-h-[36px] px-2.5 ${userVote === 'revise' ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`}
+              >
+                <span className="truncate">Revise ({pctRevise}%)</span>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant={userVote === 'adoptA' ? 'default' : 'outline'}
+                onClick={() => handleVote('adoptA')}
+                disabled={isVoting}
+                className={`text-xs min-h-[36px] px-2.5 ${userVote === 'adoptA' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}`}
+              >
+                <span className="truncate">Approve Architecture ({pctA}%)</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={userVote === 'revise' ? 'default' : 'outline'}
+                onClick={() => handleVote('revise')}
+                disabled={isVoting}
+                className={`text-xs min-h-[36px] px-2.5 ${userVote === 'revise' ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`}
+              >
+                <span className="truncate">Request Changes ({pctRevise}%)</span>
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -209,15 +240,27 @@ export default function ArchitectureRfcClient({
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Adopted Option:</label>
+                <label className="text-xs font-semibold text-muted-foreground">Decision Outcome:</label>
                 <select
                   value={selectedDecision}
                   onChange={(e) => setSelectedDecision(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-lg border bg-background text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value={optionAName}>Adopt Option A: {optionAName}</option>
-                  <option value={optionBName}>Adopt Option B: {optionBName}</option>
-                  <option value="Hybrid / Custom">Hybrid Architecture</option>
+                  {hasTradeOffs ? (
+                    <>
+                      <option value={optionAName}>Adopt Option: {optionAName}</option>
+                      <option value={optionBName}>Adopt Option: {optionBName}</option>
+                      <option value="Hybrid / Custom Architecture">Hybrid / Custom Architecture</option>
+                      <option value="Needs Major Revision">Needs Major Revision</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Architecture Approved">Architecture Approved</option>
+                      <option value="Approved with Minor Changes">Approved with Minor Changes</option>
+                      <option value="Revisions Required">Revisions Required</option>
+                      <option value="Declined / Shelved">Declined / Shelved</option>
+                    </>
+                  )}
                 </select>
               </div>
 

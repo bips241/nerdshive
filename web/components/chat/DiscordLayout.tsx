@@ -6,19 +6,21 @@ import {
   Volume2,
   Video,
   Plus,
-  Compass,
   MessageSquare,
   Users,
   Settings,
   Mic,
   MicOff,
-  Headphones,
+  VolumeX,
   Copy,
   Check,
   Sparkles,
   ChevronDown,
-  LogOut,
-  FolderPlus,
+  PhoneOff,
+  Search,
+  AtSign,
+  Layers,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +30,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -54,6 +55,7 @@ import {
   getOrCreateDirectChatRoomAction,
 } from '@/lib/chat-actions';
 import { toast } from 'sonner';
+import UserAvatar from '../UserAvatar';
 
 interface DiscordLayoutProps {
   currentUser: {
@@ -75,9 +77,10 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
 
-  // Direct Message Mode state
-  const [isDmMode, setIsDmMode] = useState(false);
+  // Mode: 'dm' vs 'rooms'
+  const [activeTab, setActiveTab] = useState<'dm' | 'rooms'>('dm');
   const [directUsers, setDirectUsers] = useState<any[]>(initialMutualFollows);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeDirectChat, setActiveDirectChat] = useState<any | null>(null);
 
   // Active Voice/Video Connection
@@ -105,34 +108,26 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
 
-  // 1. Fetch initial servers and fallback DMs
+  // 1. Fetch initial servers and DMs (Zero hardcoded fake rooms)
   useEffect(() => {
     async function loadData() {
       try {
         const userServers = await getUserServers();
         setServers(userServers);
 
-        if (userServers.length > 0) {
-          const firstServer = userServers[0];
-          setActiveServerId(firstServer._id);
-          const firstChannel = firstServer.channels?.[0];
-          if (firstChannel) {
-            setActiveChannelId(firstChannel._id);
-          }
-        } else {
-          setIsDmMode(true);
-        }
-
         // Fetch mutual follows for DMs if not provided
         if (directUsers.length === 0) {
           const res = await fetch('/api/chats');
           if (res.ok) {
             const data = await res.json();
-            setDirectUsers(data);
+            const unique = Array.isArray(data)
+              ? Array.from(new Map(data.map((u: any) => [u.id || u._id, u])).values())
+              : [];
+            setDirectUsers(unique);
           }
         }
       } catch (err) {
-        console.error('Error loading servers:', err);
+        console.error('Error loading servers or chats:', err);
       }
     }
 
@@ -146,7 +141,7 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
 
   // Handle Switch to Direct Messages
   const handleSelectDm = async (user: any) => {
-    setIsDmMode(true);
+    setActiveTab('dm');
     setActiveServerId(null);
     setActiveChannelId(null);
 
@@ -165,23 +160,11 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
     }
   };
 
-  // Handle Switch to Server
-  const handleSelectServer = (server: any) => {
-    setIsDmMode(false);
+  // Handle Select Channel in Room
+  const handleSelectChannel = (server: any, channel: any) => {
+    setActiveTab('rooms');
     setActiveDirectChat(null);
     setActiveServerId(server._id);
-
-    const defaultChannel =
-      server.channels?.find((c: any) => c.type === 'text') ||
-      server.channels?.[0];
-
-    if (defaultChannel) {
-      setActiveChannelId(defaultChannel._id);
-    }
-  };
-
-  // Handle Select Channel
-  const handleSelectChannel = (channel: any) => {
     setActiveChannelId(channel._id);
 
     if (channel.type === 'voice' || channel.type === 'video') {
@@ -189,7 +172,7 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
     }
   };
 
-  // Create Server
+  // Create Server / Squad Room
   const handleCreateServer = async () => {
     if (!newServerName.trim()) return;
 
@@ -203,20 +186,21 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
         setServers((prev) => [res.server, ...prev]);
         setActiveServerId(res.server._id);
         setActiveChannelId(res.server.channels?.[0]?._id);
-        setIsDmMode(false);
+        setActiveTab('rooms');
+        setActiveDirectChat(null);
         setServerModalOpen(false);
         setNewServerName('');
         setNewServerDesc('');
-        toast.success(`Server "${res.server.name}" created!`);
+        toast.success(`Squad room "${res.server.name}" created!`);
       } else if (res.error) {
         toast.error(res.error);
       }
     } catch (err) {
-      toast.error('Failed to create server');
+      toast.error('Failed to create squad room');
     }
   };
 
-  // Create Channel
+  // Create Channel inside Server
   const handleCreateChannel = async () => {
     if (!newChannelName.trim() || !activeServerId) return;
 
@@ -241,6 +225,9 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
           })
         );
         setActiveChannelId(res.channel._id);
+        if (res.channel.type === 'voice' || res.channel.type === 'video') {
+          setActiveVoiceChannel(res.channel);
+        }
         setChannelModalOpen(false);
         setNewChannelName('');
         setNewChannelTopic('');
@@ -260,21 +247,21 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
     try {
       const res = await joinServerByInviteAction(inviteCodeInput.trim());
       if (res.success && res.server) {
-        // Add if not present
         if (!servers.some((s) => s._id === res.server._id)) {
           setServers((prev) => [res.server, ...prev]);
         }
         setActiveServerId(res.server._id);
         setActiveChannelId(res.server.channels?.[0]?._id);
-        setIsDmMode(false);
+        setActiveTab('rooms');
+        setActiveDirectChat(null);
         setJoinModalOpen(false);
         setInviteCodeInput('');
-        toast.success(`Joined server "${res.server.name}"!`);
+        toast.success(`Joined room "${res.server.name}"!`);
       } else if (res.error) {
         toast.error(res.error);
       }
     } catch (err) {
-      toast.error('Failed to join server');
+      toast.error('Failed to join room');
     }
   };
 
@@ -288,507 +275,492 @@ export const DiscordLayout: React.FC<DiscordLayoutProps> = ({
     }
   };
 
-  const textChannels = currentServer?.channels?.filter((c: any) => c.type === 'text') || [];
-  const voiceChannels = currentServer?.channels?.filter(
-    (c: any) => c.type === 'voice' || c.type === 'video'
-  ) || [];
+  const filteredUsers = directUsers.filter((u) => {
+    const query = searchQuery.toLowerCase();
+    const name = (u.user_name || u.name || '').toLowerCase();
+    return name.includes(query);
+  });
 
   return (
-    <div className="flex h-screen w-full bg-[#1e1f22] overflow-hidden select-none font-sans">
+    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden select-none font-sans">
       {/* ========================================================= */}
-      {/* 1. LEFT RAIL: SERVER LIST & DIRECT MESSAGES               */}
+      {/* 1. LEFT PANEL: MESSAGES & SQUAD ROOMS SIDEBAR             */}
       {/* ========================================================= */}
-      <div className="w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 gap-2 border-r border-[#111214]/60 z-20 shrink-0">
-        {/* Direct Messages Icon Button */}
-        <button
-          onClick={() => {
-            setIsDmMode(true);
-            setActiveServerId(null);
-            if (directUsers.length > 0 && !activeDirectChat) {
-              handleSelectDm(directUsers[0]);
-            }
-          }}
-          className={`relative group w-12 h-12 flex items-center justify-center rounded-3xl hover:rounded-2xl transition-all duration-300 ${
-            isDmMode
-              ? 'bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/30'
-              : 'bg-[#313338] text-gray-200 hover:bg-indigo-600 hover:text-white'
-          }`}
-          title="Direct Messages"
-        >
-          {/* Active Pill Indicator */}
-          {isDmMode && (
-            <span className="absolute -left-3 w-2 h-10 bg-white rounded-r-full transition-all" />
-          )}
-          <MessageSquare className="w-5 h-5" />
-        </button>
+      <div className="w-72 sm:w-80 h-full border-r border-border bg-card/20 flex flex-col shrink-0">
+        {/* Header & Quick Action */}
+        <div className="p-4 border-b border-border flex items-center justify-between gap-2">
+          <div className="space-y-0.5">
+            <h2 className="text-base font-extrabold tracking-tight text-foreground flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-primary" /> Messages & Rooms
+            </h2>
+            <p className="text-[11px] text-muted-foreground">Real-time chats & squad lounges</p>
+          </div>
 
-        {/* Separator */}
-        <div className="w-8 h-[2px] bg-[#35373c] rounded-full my-1" />
-
-        {/* Server Icons List */}
-        <div className="flex-1 w-full flex flex-col items-center gap-2 overflow-y-auto overflow-x-hidden no-scrollbar">
-          {servers.map((server) => {
-            const isActive = activeServerId === server._id && !isDmMode;
-            const initials = server.name.slice(0, 2).toUpperCase();
-
-            return (
-              <button
-                key={server._id}
-                onClick={() => handleSelectServer(server)}
-                className={`relative group w-12 h-12 flex items-center justify-center rounded-3xl hover:rounded-2xl transition-all duration-300 ${
-                  isActive
-                    ? 'bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/30'
-                    : 'bg-[#313338] text-gray-200 hover:bg-indigo-600 hover:text-white'
-                }`}
-                title={server.name}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-8 p-0 rounded-lg bg-secondary/40 border-border text-foreground hover:bg-secondary"
               >
-                {/* Active Pill Indicator */}
-                {isActive && (
-                  <span className="absolute -left-3 w-2 h-10 bg-white rounded-r-full transition-all" />
-                )}
-                {server.iconUrl ? (
-                  <img
-                    src={server.iconUrl}
-                    alt={server.name}
-                    className="w-full h-full object-cover rounded-2xl"
-                  />
-                ) : (
-                  <span className="font-bold text-sm tracking-wider">{initials}</span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Add Server Button */}
-          <Dialog open={serverModalOpen} onOpenChange={setServerModalOpen}>
-            <DialogTrigger asChild>
-              <button
-                className="w-12 h-12 flex items-center justify-center rounded-3xl hover:rounded-2xl bg-[#313338] text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-md group"
-                title="Create a Server"
+                <Plus className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-card border-border text-foreground">
+              <DropdownMenuItem
+                onClick={() => setServerModalOpen(true)}
+                className="text-xs cursor-pointer gap-2"
               >
-                <Plus className="w-6 h-6 transition-transform group-hover:rotate-90" />
-              </button>
-            </DialogTrigger>
-            <DialogContent className="bg-[#313338] border-[#383a40] text-gray-100 sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-center text-gray-100">
-                  Create Your Server
-                </DialogTitle>
-                <p className="text-xs text-center text-gray-400">
-                  Your server is where you and your squad hang out. Make yours and start talking.
-                </p>
-              </DialogHeader>
-
-              <div className="space-y-4 mt-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                    Server Name
-                  </label>
-                  <Input
-                    value={newServerName}
-                    onChange={(e) => setNewServerName(e.target.value)}
-                    placeholder="e.g. Distributed Systems Club"
-                    className="bg-[#1e1f22] border-[#383a40] text-gray-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                    Description
-                  </label>
-                  <Input
-                    value={newServerDesc}
-                    onChange={(e) => setNewServerDesc(e.target.value)}
-                    placeholder="What is this community about?"
-                    className="bg-[#1e1f22] border-[#383a40] text-gray-200"
-                  />
-                </div>
-
-                <div className="flex justify-between items-center pt-2">
-                  <Button
-                    variant="link"
-                    onClick={() => {
-                      setServerModalOpen(false);
-                      setJoinModalOpen(true);
-                    }}
-                    className="text-xs text-indigo-400 p-0"
-                  >
-                    Have an invite already? Join Server
-                  </Button>
-                  <Button
-                    onClick={handleCreateServer}
-                    disabled={!newServerName.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                  >
-                    Create
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Join Server Modal */}
-          <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
-            <DialogContent className="bg-[#313338] border-[#383a40] text-gray-100 sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-center text-gray-100">
-                  Join a Server
-                </DialogTitle>
-                <p className="text-xs text-center text-gray-400">
-                  Enter an invite code below to join an existing community.
-                </p>
-              </DialogHeader>
-
-              <div className="space-y-4 mt-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                    Invite Code
-                  </label>
-                  <Input
-                    value={inviteCodeInput}
-                    onChange={(e) => setInviteCodeInput(e.target.value)}
-                    placeholder="e.g. nerdshive-hub-abc123"
-                    className="bg-[#1e1f22] border-[#383a40] text-gray-200"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" onClick={() => setJoinModalOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleJoinServer}
-                    disabled={!inviteCodeInput.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                  >
-                    Join Server
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+                <Plus className="w-3.5 h-3.5 text-primary" /> Create Squad Room
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setJoinModalOpen(true)}
+                className="text-xs cursor-pointer gap-2"
+              >
+                <LinkIcon className="w-3.5 h-3.5 text-muted-foreground" /> Join with Invite Code
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
 
-      {/* ========================================================= */}
-      {/* 2. MIDDLE COLUMN: CHANNELS OR DIRECT MESSAGES             */}
-      {/* ========================================================= */}
-      <div className="w-60 bg-[#2b2d31] flex flex-col justify-between shrink-0 border-r border-[#1f2023]/60 z-10">
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Header */}
-          {isDmMode ? (
-            <div className="h-12 px-4 border-b border-[#1f2023] flex items-center shadow-sm">
-              <h2 className="font-bold text-sm text-gray-200 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-400" />
-                Direct Messages
-              </h2>
+        {/* Segmented Control: Direct Chats vs Squad Rooms */}
+        <div className="p-2 border-b border-border bg-card/10">
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-secondary/40 border border-border/80">
+            <button
+              onClick={() => setActiveTab('dm')}
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === 'dm'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <AtSign className="w-3.5 h-3.5" /> Direct ({directUsers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('rooms')}
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === 'rooms'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" /> Squads ({servers.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        {activeTab === 'dm' && (
+          <div className="px-3 pt-2">
+            <div className="flex items-center gap-2 bg-secondary/30 border border-border/80 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground">
+              <Search className="w-3.5 h-3.5 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter developers..."
+                className="bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none w-full text-xs"
+              />
             </div>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-12 px-4 border-b border-[#1f2023] flex items-center justify-between shadow-sm hover:bg-[#35373c]/50 transition-colors w-full text-left">
-                  <span className="font-bold text-sm text-gray-200 truncate">
-                    {currentServer?.name || 'Server'}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-[#111214] border-[#2b2d31] text-gray-200">
-                <DropdownMenuItem
-                  onClick={handleCopyInvite}
-                  className="flex items-center justify-between text-indigo-400 focus:bg-indigo-600 focus:text-white cursor-pointer"
-                >
-                  <span>Invite People</span>
-                  {copiedInvite ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[#2b2d31]" />
-                <DropdownMenuItem
-                  onClick={() => setChannelModalOpen(true)}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create Channel</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          </div>
+        )}
+
+        {/* Content Stream: Direct Chats or Squad Rooms */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {/* TAB 1: DIRECT MESSAGES */}
+          {activeTab === 'dm' && (
+            <div className="space-y-1">
+              {filteredUsers.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground space-y-2">
+                  <AtSign className="w-6 h-6 mx-auto text-muted-foreground/40" />
+                  <p>No direct chats found.</p>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    Follow developers on the feed or pair-debug together to start messaging.
+                  </p>
+                </div>
+              ) : (
+                filteredUsers.map((user) => {
+                  const isSelected = activeDirectChat?.targetUser?.id === user.id || activeDirectChat?.targetUser?._id === user._id;
+                  const username = user.user_name || user.name || 'Developer';
+                  return (
+                    <button
+                      key={user.id || user._id}
+                      onClick={() => handleSelectDm(user)}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-colors ${
+                        isSelected
+                          ? 'bg-secondary text-foreground font-semibold border border-border/80'
+                          : 'hover:bg-secondary/40 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <UserAvatar
+                        user={{ user_name: username, image: user.image || user.avatar, name: user.name }}
+                        className="h-8 w-8 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold truncate text-foreground">@{username}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">Click to chat</p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           )}
 
-          {/* Body: Channels or DM list */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-4 no-scrollbar">
-            {isDmMode ? (
-              /* Direct Message Contacts */
-              <div className="space-y-0.5">
-                <p className="px-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                  Direct Messages ({directUsers.length})
-                </p>
-                {directUsers.length === 0 ? (
-                  <div className="p-4 text-xs text-gray-400 text-center">
-                    Follow creators on NerdShive to start direct messaging.
+          {/* TAB 2: SQUAD & DEV ROOMS */}
+          {activeTab === 'rooms' && (
+            <div className="space-y-3">
+              {servers.length === 0 ? (
+                /* Clean Empty State: No Fake Dummy Rooms */
+                <div className="p-5 text-center space-y-3 bg-secondary/15 rounded-2xl border border-dashed border-border/80 mx-2 mt-2">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/40 border border-border flex items-center justify-center mx-auto text-muted-foreground">
+                    <Users className="w-5 h-5" />
                   </div>
-                ) : (
-                  directUsers.map((user) => {
-                    const isSelected =
-                      activeDirectChat?.targetUser?.id === user.id ||
-                      activeDirectChat?.targetUser?._id === user.id;
-                    const name = user.name || user.user_name || 'Developer';
-                    const avatar = user.avatar || user.image || '';
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-foreground">No Squad Rooms Yet</h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Create a squad room for your hackathon team, pair-debugging, or dev collective.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => setServerModalOpen(true)}
+                      className="w-full text-xs gap-1.5 font-semibold"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Create Squad Room
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setJoinModalOpen(true)}
+                      className="w-full text-xs gap-1.5 font-semibold"
+                    >
+                      Join via Invite Code
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* List of Real User Servers */
+                servers.map((server) => {
+                  const isCurrentServer = activeServerId === server._id;
+                  const textChans = (server.channels || []).filter((c: any) => c.type === 'text');
+                  const mediaChans = (server.channels || []).filter(
+                    (c: any) => c.type === 'voice' || c.type === 'video'
+                  );
 
-                    return (
-                      <button
-                        key={user.id}
-                        onClick={() => handleSelectDm(user)}
-                        className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-md text-sm font-medium transition-colors ${
-                          isSelected
-                            ? 'bg-[#35373c] text-white'
-                            : 'text-gray-400 hover:bg-[#35373c]/50 hover:text-gray-200'
-                        }`}
-                      >
-                        <div className="relative">
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={avatar} />
-                            <AvatarFallback className="bg-indigo-600 text-xs font-bold text-white">
-                              {name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#2b2d31]" />
+                  return (
+                    <div key={server._id} className="rounded-xl border border-border/80 bg-card/30 p-2.5 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-xs font-bold text-foreground truncate">{server.name}</h4>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setActiveServerId(server._id);
+                              setChannelModalOpen(true);
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+                            title="Add Channel"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        <span className="truncate">{name}</span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              /* Server Channel List */
-              <>
-                {/* Text Channels Category */}
-                <div>
-                  <div className="flex items-center justify-between px-2 mb-1 group">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      Text Channels
-                    </span>
-                    <button
-                      onClick={() => {
-                        setNewChannelType('text');
-                        setChannelModalOpen(true);
-                      }}
-                      className="text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Create Text Channel"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                      </div>
 
-                  <div className="space-y-0.5">
-                    {textChannels.map((c: any) => {
-                      const isSelected = activeChannelId === c._id;
-                      return (
-                        <button
-                          key={c._id}
-                          onClick={() => handleSelectChannel(c)}
-                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            isSelected
-                              ? 'bg-[#35373c] text-white'
-                              : 'text-gray-400 hover:bg-[#35373c]/50 hover:text-gray-200'
-                          }`}
-                        >
-                          <Hash className="w-4 h-4 text-gray-400 shrink-0" />
-                          <span className="truncate">{c.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                      {/* Text Channels */}
+                      {textChans.length > 0 && (
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+                            Text Channels
+                          </span>
+                          {textChans.map((channel: any) => {
+                            const isChanActive = activeChannelId === channel._id;
+                            return (
+                              <button
+                                key={channel._id}
+                                onClick={() => handleSelectChannel(server, channel)}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                                  isChanActive
+                                    ? 'bg-secondary text-foreground font-semibold'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/30'
+                                }`}
+                              >
+                                <Hash className="w-3.5 h-3.5 shrink-0 text-primary" />
+                                <span className="truncate">{channel.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                {/* Voice & Video Channels Category */}
-                <div>
-                  <div className="flex items-center justify-between px-2 mb-1 group">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      Voice & Video
-                    </span>
-                    <button
-                      onClick={() => {
-                        setNewChannelType('voice');
-                        setChannelModalOpen(true);
-                      }}
-                      className="text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Create Voice Channel"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-0.5">
-                    {voiceChannels.map((c: any) => {
-                      const isSelected = activeChannelId === c._id;
-                      const isConnected = activeVoiceChannel?._id === c._id;
-
-                      return (
-                        <button
-                          key={c._id}
-                          onClick={() => handleSelectChannel(c)}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            isSelected
-                              ? 'bg-[#35373c] text-white'
-                              : 'text-gray-400 hover:bg-[#35373c]/50 hover:text-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            {c.type === 'video' ? (
-                              <Video className="w-4 h-4 text-indigo-400 shrink-0" />
-                            ) : (
-                              <Volume2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                            )}
-                            <span className="truncate">{c.name}</span>
-                          </div>
-
-                          {isConnected && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+                      {/* Voice & Video Rooms */}
+                      {mediaChans.length > 0 && (
+                        <div className="space-y-0.5 pt-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+                            Voice & Video
+                          </span>
+                          {mediaChans.map((channel: any) => {
+                            const isChanActive = activeChannelId === channel._id;
+                            return (
+                              <button
+                                key={channel._id}
+                                onClick={() => handleSelectChannel(server, channel)}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                                  isChanActive
+                                    ? 'bg-emerald-500/10 text-emerald-500 font-semibold border border-emerald-500/30'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/30'
+                                }`}
+                              >
+                                {channel.type === 'video' ? (
+                                  <Video className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                                ) : (
+                                  <Volume2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                                )}
+                                <span className="truncate">{channel.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Create Channel Modal */}
-        <Dialog open={channelModalOpen} onOpenChange={setChannelModalOpen}>
-          <DialogContent className="bg-[#313338] border-[#383a40] text-gray-100 sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-100">
-                Create Channel
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4 mt-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                  Channel Type
-                </label>
-                <Select
-                  value={newChannelType}
-                  onValueChange={(v: any) => setNewChannelType(v)}
-                >
-                  <SelectTrigger className="bg-[#1e1f22] border-[#383a40] text-gray-200">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#2b2d31] border-[#383a40] text-gray-200">
-                    <SelectItem value="text"># Text Channel</SelectItem>
-                    <SelectItem value="voice">🔊 Voice Channel</SelectItem>
-                    <SelectItem value="video">📹 Video / Screen Share</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                  Channel Name
-                </label>
-                <Input
-                  value={newChannelName}
-                  onChange={(e) => setNewChannelName(e.target.value)}
-                  placeholder="e.g. system-design"
-                  className="bg-[#1e1f22] border-[#383a40] text-gray-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                  Topic (Optional)
-                </label>
-                <Input
-                  value={newChannelTopic}
-                  onChange={(e) => setNewChannelTopic(e.target.value)}
-                  placeholder="What happens in this channel?"
-                  className="bg-[#1e1f22] border-[#383a40] text-gray-200"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setChannelModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateChannel}
-                  disabled={!newChannelName.trim()}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                  Create Channel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* User Card at bottom of middle column */}
-        <div className="h-14 bg-[#232428] px-3 flex items-center justify-between border-t border-[#1f2023]/60">
+        {/* User Profile & Media Status Dock */}
+        <div className="p-3 border-t border-border bg-card/40 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="relative">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={currentUser.avatar || currentUser.image} />
-                <AvatarFallback className="bg-indigo-600 text-xs font-bold text-white">
-                  {(currentUser.user_name || currentUser.name || 'ME').slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#232428]" />
-            </div>
-            <div className="truncate">
-              <p className="text-xs font-bold text-gray-200 truncate">
-                {currentUser.user_name || currentUser.name || 'Developer'}
+            <UserAvatar
+              user={{ user_name: currentUser.user_name, image: currentUser.image || currentUser.avatar, name: currentUser.name }}
+              className="h-8 w-8 shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-foreground truncate">
+                @{currentUser.user_name || 'developer'}
               </p>
-              <p className="text-[10px] text-gray-400 font-mono">#0001</p>
+              <p className="text-[10px] text-emerald-500 font-medium">Online</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-0.5 text-gray-400">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setIsMuted(!isMuted)}
-              className="p-1.5 hover:bg-[#35373c] hover:text-gray-200 rounded transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                isMuted ? 'text-rose-400 bg-rose-500/10' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+              }`}
               title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted ? <MicOff className="w-4 h-4 text-rose-400" /> : <Mic className="w-4 h-4" />}
+              {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
             <button
               onClick={() => setIsDeafened(!isDeafened)}
-              className="p-1.5 hover:bg-[#35373c] hover:text-gray-200 rounded transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                isDeafened ? 'text-rose-400 bg-rose-500/10' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+              }`}
               title={isDeafened ? 'Undeafen' : 'Deafen'}
             >
-              <Headphones className={`w-4 h-4 ${isDeafened ? 'text-rose-400' : ''}`} />
+              {isDeafened ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
           </div>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* 3. MAIN CONTENT STAGE                                     */}
+      {/* 2. RIGHT PANEL: ACTIVE CHAT / WORKSPACE                   */}
       {/* ========================================================= */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#313338]">
-        {currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'video') ? (
-          /* Multi-Party Voice / Video Room Stage */
-          <VoiceVideoStage
-            channel={currentChannel}
-            currentUser={currentUser}
-            onDisconnect={() => {
-              setActiveVoiceChannel(null);
-              // Fallback to general text channel
-              const generalChannel = currentServer?.channels?.find((c: any) => c.type === 'text');
-              if (generalChannel) setActiveChannelId(generalChannel._id);
-            }}
-          />
-        ) : (
-          /* Realtime Text Chat Stage (replaces Firebase fireChat) */
+      <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
+        {activeDirectChat ? (
+          /* Realtime Direct Message Stream */
           <RealtimeChatView
-            channel={currentChannel}
-            serverId={activeServerId || undefined}
-            directChat={isDmMode ? activeDirectChat : undefined}
+            directChat={activeDirectChat}
             currentUser={currentUser}
           />
+        ) : currentChannel ? (
+          /* Active Channel: Voice/Video Stage vs Text Lounge */
+          currentChannel.type === 'voice' || currentChannel.type === 'video' ? (
+            <VoiceVideoStage
+              channel={currentChannel}
+              currentUser={currentUser}
+              onDisconnect={() => {
+                setActiveVoiceChannel(null);
+                setActiveChannelId(null);
+              }}
+            />
+          ) : (
+            <RealtimeChatView
+              channel={currentChannel}
+              serverId={currentServer?._id}
+              currentUser={currentUser}
+            />
+          )
+        ) : (
+          /* Clean Nerd'sHive Welcome & Launchpad: NO FAKE DUMMY CHANNELS */
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-background">
+            <div className="w-16 h-16 rounded-2xl bg-secondary/30 border border-border flex items-center justify-center mb-4 text-muted-foreground">
+              <MessageSquare className="w-8 h-8" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground">Developer Messages & Squad Lounges</h2>
+            <p className="text-xs text-muted-foreground max-w-sm mt-1 leading-relaxed">
+              Select a direct conversation from the left to chat, or launch a squad room with real-time text, voice, and collaborative video.
+            </p>
+            <div className="flex items-center gap-2.5 mt-5">
+              <Button
+                size="sm"
+                onClick={() => setServerModalOpen(true)}
+                className="text-xs gap-1.5 font-semibold"
+              >
+                <Plus className="h-3.5 w-3.5" /> Create Squad Room
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setJoinModalOpen(true)}
+                className="text-xs gap-1.5 font-semibold"
+              >
+                Join with Code
+              </Button>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* ========================================================= */}
+      {/* MODALS: CREATE SQUAD ROOM, CREATE CHANNEL, JOIN WITH CODE */}
+      {/* ========================================================= */}
+
+      {/* 1. Create Squad Room Modal */}
+      <Dialog open={serverModalOpen} onOpenChange={setServerModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" /> Create Squad Room
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Room Name</label>
+              <Input
+                placeholder="e.g. Solana Hackathon Team or Next.js Core"
+                value={newServerName}
+                onChange={(e) => setNewServerName(e.target.value)}
+                className="bg-secondary/40 border-border text-foreground text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Description (Optional)</label>
+              <Input
+                placeholder="e.g. Multi-party pair debugging & design sprint"
+                value={newServerDesc}
+                onChange={(e) => setNewServerDesc(e.target.value)}
+                className="bg-secondary/40 border-border text-foreground text-xs"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <Button size="sm" variant="ghost" onClick={() => setServerModalOpen(false)} className="text-xs">
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleCreateServer} disabled={!newServerName.trim()} className="text-xs font-semibold">
+                Create Room
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Create Channel Modal */}
+      <Dialog open={channelModalOpen} onOpenChange={setChannelModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Plus className="w-4 h-4 text-primary" /> Add Channel
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Channel Type</label>
+              <Select value={newChannelType} onValueChange={(val: any) => setNewChannelType(val)}>
+                <SelectTrigger className="bg-secondary/40 border-border text-foreground text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="text"># Text Discussion</SelectItem>
+                  <SelectItem value="voice">🔊 Low-Latency Voice Lounge</SelectItem>
+                  <SelectItem value="video">📹 Pair-Hacking & Screen Share Video</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Channel Name</label>
+              <Input
+                placeholder="e.g. api-design or pair-lounge"
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+                className="bg-secondary/40 border-border text-foreground text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Topic (Optional)</label>
+              <Input
+                placeholder="e.g. Reviewing PRs and backend architecture"
+                value={newChannelTopic}
+                onChange={(e) => setNewChannelTopic(e.target.value)}
+                className="bg-secondary/40 border-border text-foreground text-xs"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <Button size="sm" variant="ghost" onClick={() => setChannelModalOpen(false)} className="text-xs">
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleCreateChannel} disabled={!newChannelName.trim()} className="text-xs font-semibold">
+                Create Channel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Join Server with Invite Code Modal */}
+      <Dialog open={joinModalOpen} onOpenChange={setJoinModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <LinkIcon className="w-4 h-4 text-primary" /> Join with Invite Code
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3.5 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Invite Code</label>
+              <Input
+                placeholder="e.g. nerdshive-hub-xxxxxx"
+                value={inviteCodeInput}
+                onChange={(e) => setInviteCodeInput(e.target.value)}
+                className="bg-secondary/40 border-border text-foreground text-xs font-mono"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <Button size="sm" variant="ghost" onClick={() => setJoinModalOpen(false)} className="text-xs">
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleJoinServer} disabled={!inviteCodeInput.trim()} className="text-xs font-semibold">
+                Join Squad Room
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+export default DiscordLayout;

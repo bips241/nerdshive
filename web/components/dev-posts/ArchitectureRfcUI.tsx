@@ -134,8 +134,8 @@ const ArchitectureRfcUI: React.FC<ArchitectureRfcUIProps> = async ({ post }) => 
               ? 'revise'
               : null
           }
-          optionAName={rfc.tradeOffs?.[0]?.option || 'Option A'}
-          optionBName={rfc.tradeOffs?.[1]?.option || 'Option B'}
+          optionAName={rfc.tradeOffs?.[0]?.option || ''}
+          optionBName={rfc.tradeOffs?.[1]?.option || ''}
         />
       </Card>
 

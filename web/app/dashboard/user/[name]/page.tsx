@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import EditProfileButton from "@/components/editBtn";
+import EditProfileButton, { ProfileAvatarWithEditTrigger } from "@/components/editBtn";
 import FollowButton from "@/components/followBtn";
 import UserAvatar from "@/components/UserAvatar";
 import { fetchProfilePosts } from "@/lib/data";
@@ -205,12 +205,13 @@ export default async function ProfilePage({ params: { name } }: Props) {
 
       {/* Profile Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
-        <UserAvatar
+        <ProfileAvatarWithEditTrigger
           user={{
             image: profileUser.image,
             user_name: profileUser.user_name,
             email: profileUser.email,
           }}
+          isOwnProfile={isOwnProfile}
           className={`h-24 w-24 ${isOwnProfile ? "border-2 border-primary" : ""}`}
         />
         <div className="space-y-3 flex-1">
@@ -273,6 +274,7 @@ export default async function ProfilePage({ params: { name } }: Props) {
                   repo: profileUser.repo,
                   radarStatus: profileUser.radarStatus,
                   techStack: profileUser.techStack,
+                  image: profileUser.image,
                 }}
               />
             ) : session?.user ? (

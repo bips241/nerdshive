@@ -319,24 +319,24 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
   const typingArray = Array.from(typingUsers.values());
 
   return (
-    <div className="flex flex-col h-full bg-[#313338] text-gray-100 select-text">
+    <div className="flex flex-col h-full bg-background text-foreground select-text">
       {/* Top Header */}
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#1f2023] bg-[#313338] shadow-sm">
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-border bg-card/40 backdrop-blur shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-gray-400 text-lg">
-            {isDirect ? <AtSign className="w-5 h-5 text-indigo-400" /> : <Hash className="w-5 h-5 text-gray-400" />}
+          <span className="text-muted-foreground text-lg">
+            {isDirect ? <AtSign className="w-5 h-5 text-primary" /> : <Hash className="w-5 h-5 text-primary" />}
           </span>
           <div>
-            <h1 className="font-bold text-base text-gray-100 flex items-center gap-2">
+            <h1 className="font-bold text-base text-foreground flex items-center gap-2">
               {channelTitle}
               {isDirect && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal">
-                  Online
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-medium">
+                  Direct Chat
                 </span>
               )}
             </h1>
             {!isDirect && channel?.topic && (
-              <p className="text-xs text-gray-400">{channel.topic}</p>
+              <p className="text-xs text-muted-foreground">{channel.topic}</p>
             )}
           </div>
         </div>
@@ -349,30 +349,30 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="bg-[#2b2d31] border-[#383a40] hover:bg-[#383a40] text-gray-200 text-xs flex items-center gap-1.5"
+                  className="bg-secondary/40 border-border hover:bg-secondary text-foreground text-xs flex items-center gap-1.5"
                 >
-                  <Code2 className="w-3.5 h-3.5 text-indigo-400" />
+                  <Code2 className="w-3.5 h-3.5 text-primary" />
                   <span>Share Code</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-[#313338] border-[#383a40] text-gray-100 sm:max-w-lg">
+              <DialogContent className="bg-card border-border text-foreground sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-bold text-gray-100 flex items-center gap-2">
-                    <Code2 className="w-5 h-5 text-indigo-400" />
+                  <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <Code2 className="w-5 h-5 text-primary" />
                     Share Code Snippet in #{channelTitle}
                   </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 mt-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                       Language
                     </label>
                     <Select value={codeLang} onValueChange={setCodeLang}>
-                      <SelectTrigger className="bg-[#1e1f22] border-[#383a40] text-gray-200">
+                      <SelectTrigger className="bg-secondary/40 border-border text-foreground">
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#2b2d31] border-[#383a40] text-gray-200">
+                      <SelectContent className="bg-card border-border text-foreground">
                         <SelectItem value="typescript">TypeScript</SelectItem>
                         <SelectItem value="javascript">JavaScript</SelectItem>
                         <SelectItem value="python">Python</SelectItem>
@@ -386,37 +386,37 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                      Optional Message
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Optional Context / Issue
                     </label>
                     <Input
                       value={codeComment}
                       onChange={(e) => setCodeComment(e.target.value)}
-                      placeholder="e.g. Here is the bug repro..."
-                      className="bg-[#1e1f22] border-[#383a40] text-gray-200 text-sm"
+                      placeholder="e.g. Here is the bug repro or data model..."
+                      className="bg-secondary/40 border-border text-foreground text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                       Code Snippet
                     </label>
                     <textarea
                       value={codeSnippetContent}
                       onChange={(e) => setCodeSnippetContent(e.target.value)}
                       rows={8}
-                      placeholder="// Paste code here..."
-                      className="w-full bg-[#1e1f22] border border-[#383a40] rounded-md p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      placeholder="// Paste code snippet here..."
+                      className="w-full bg-secondary/40 border border-border rounded-md p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button variant="ghost" onClick={() => setCodeModalOpen(false)}>
                       Cancel
                     </Button>
                     <Button
                       onClick={handleSendCodeSnippet}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                       disabled={!codeSnippetContent.trim()}
                     >
                       Post Snippet
@@ -432,26 +432,28 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
       {/* Message Stream */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-sm text-gray-400 animate-pulse">
+          <div className="flex items-center justify-center h-full text-sm text-muted-foreground animate-pulse">
             Loading real-time message stream...
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-400">
-            <div className="w-14 h-14 rounded-full bg-[#2b2d31] flex items-center justify-center mb-3">
-              {isDirect ? <AtSign className="w-7 h-7 text-indigo-400" /> : <Hash className="w-7 h-7 text-indigo-400" />}
+          <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
+            <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border flex items-center justify-center mb-3">
+              {isDirect ? <AtSign className="w-7 h-7 text-primary" /> : <Hash className="w-7 h-7 text-primary" />}
             </div>
-            <h3 className="font-bold text-lg text-gray-200">Welcome to #{channelTitle}!</h3>
-            <p className="text-xs text-gray-400 max-w-sm mt-1">
-              This is the start of the #{channelTitle} channel. Send a message or share a snippet to kick off the conversation!
+            <h3 className="font-bold text-lg text-foreground">
+              {isDirect ? `Conversation with @${channelTitle}` : `Welcome to #${channelTitle}!`}
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-sm mt-1">
+              {isDirect
+                ? `This is the start of your direct conversation with @${channelTitle}. Send a message to start chatting.`
+                : `This is the start of #${channelTitle}. Send a message or share a snippet to kick off the discussion!`}
             </p>
           </div>
         ) : (
           messages.map((msg, index) => {
             const sender = msg.senderId;
-            const senderName = sender?.user_name || sender?.name || 'Anonymous Dev';
+            const senderName = sender?.user_name || sender?.name || 'Developer';
             const senderAvatar = sender?.image || sender?.avatar || '';
-            const isCurrentUser =
-              sender?._id === currentUser._id || sender?._id === currentUser.id;
 
             const timeString = msg.createdAt
               ? new Date(msg.createdAt).toLocaleTimeString([], {
@@ -463,36 +465,36 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
             return (
               <div
                 key={msg._id || index}
-                className="flex items-start gap-3.5 group hover:bg-[#2b2d31]/40 px-3 py-1.5 -mx-3 rounded-lg transition-colors"
+                className="flex items-start gap-3.5 group hover:bg-secondary/20 px-3 py-2 -mx-3 rounded-xl transition-colors"
               >
-                <Avatar className="w-10 h-10 mt-0.5 ring-2 ring-[#232428]">
+                <Avatar className="w-9 h-9 mt-0.5 ring-1 ring-border shrink-0">
                   <AvatarImage src={senderAvatar} />
-                  <AvatarFallback className="bg-indigo-600 text-xs font-bold text-white">
+                  <AvatarFallback className="bg-secondary text-xs font-bold text-foreground">
                     {senderName.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-semibold text-sm text-gray-100 hover:underline cursor-pointer">
+                    <span className="font-semibold text-sm text-foreground hover:underline cursor-pointer">
                       {senderName}
                     </span>
-                    <span className="text-[11px] text-gray-400 font-normal">
+                    <span className="text-[11px] text-muted-foreground font-normal">
                       {timeString}
                     </span>
                   </div>
 
                   {/* Message Text */}
                   {msg.message && (
-                    <p className="text-sm text-gray-200 mt-0.5 leading-relaxed break-words whitespace-pre-wrap">
+                    <p className="text-sm text-foreground/90 mt-0.5 leading-relaxed break-words whitespace-pre-wrap">
                       {msg.message}
                     </p>
                   )}
 
                   {/* Formatted Code Snippet Block */}
                   {msg.codeSnippet?.code && (
-                    <div className="mt-2 rounded-lg border border-[#383a40] bg-[#1e1f22] overflow-hidden max-w-2xl">
-                      <div className="flex items-center justify-between px-3 py-1.5 bg-[#2b2d31] border-b border-[#383a40] text-xs text-gray-400 font-mono">
+                    <div className="mt-2 rounded-xl border border-border bg-secondary/30 overflow-hidden max-w-2xl">
+                      <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/60 border-b border-border text-xs text-muted-foreground font-mono">
                         <span>{msg.codeSnippet.language || 'code'}</span>
                         <CopyCodeButton code={msg.codeSnippet.code} />
                       </div>
@@ -510,10 +512,10 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
       </div>
 
       {/* Typing Indicator Bar */}
-      <div className="px-6 h-5 text-xs text-gray-400 italic">
+      <div className="px-6 h-5 text-xs text-muted-foreground italic">
         {typingArray.length > 0 && (
           <div className="flex items-center gap-1.5 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-indigo-400" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>
               {typingArray.join(', ')} {typingArray.length === 1 ? 'is' : 'are'} typing...
             </span>
@@ -525,21 +527,21 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
       <div className="p-4 pt-1">
         <form
           onSubmit={handleSendMessage}
-          className="flex items-center gap-2 bg-[#383a40] rounded-lg px-4 py-2.5 shadow-inner focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all"
+          className="flex items-center gap-2 bg-secondary/40 border border-border/80 rounded-xl px-4 py-2 focus-within:ring-1 focus-within:ring-primary/40 transition-all shadow-sm"
         >
           <input
             type="text"
             value={inputText}
             onChange={handleInputChange}
-            placeholder={`Message #${channelTitle}...`}
-            className="flex-1 bg-transparent text-sm text-gray-100 placeholder-gray-400 focus:outline-none"
+            placeholder={`Message ${isDirect ? '@' : '#'}${channelTitle}...`}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground focus:outline-none"
           />
 
           <Button
             type="submit"
             size="icon"
             disabled={!inputText.trim()}
-            className="w-8 h-8 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-30 transition-opacity"
+            className="w-8 h-8 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-30 transition-opacity shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>

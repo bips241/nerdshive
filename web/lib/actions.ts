@@ -576,12 +576,59 @@ export const submitTechShowdownPost = async (data: {
 };
 
 export const voteTechShowdown = async (postId: string, choice: "optionA" | "optionB") => {
+  const session = await auth();
+  if (!session?.user?._id) return { failure: "Unauthorized. Please log in to vote." };
+  const userId = session.user._id.toString();
   await connectDB();
+
   try {
-    const incField = choice === "optionA" ? "techShowdown.optionA.votes" : "techShowdown.optionB.votes";
-    await Post.findByIdAndUpdate(postId, { $inc: { [incField]: 1 } });
+    const post = await Post.findById(postId);
+    if (!post || post.postType !== "tech_showdown") {
+      return { failure: "Tech showdown not found" };
+    }
+
+    post.techShowdown = post.techShowdown || ({} as any);
+    const voters = (post.techShowdown.voters || []) as any[];
+
+    // Check if user has already voted
+    const existingIndex = voters.findIndex(
+      (v: any) => (v.user?._id || v.user)?.toString() === userId
+    );
+
+    if (existingIndex !== -1) {
+      const prevChoice = voters[existingIndex].option;
+      if (prevChoice === choice) {
+        return { failure: `You have already voted for ${choice === "optionA" ? post.techShowdown.optionA.name : post.techShowdown.optionB.name}` };
+      }
+      // Switch vote
+      voters[existingIndex].option = choice;
+      voters[existingIndex].votedAt = new Date();
+    } else {
+      // First-time vote
+      voters.push({
+        user: userId as any,
+        option: choice,
+        votedAt: new Date(),
+      });
+    }
+
+    // Set true counts strictly from unique registered voters
+    const countA = voters.filter((v: any) => v.option === "optionA").length;
+    const countB = voters.filter((v: any) => v.option === "optionB").length;
+
+    post.techShowdown.voters = voters;
+    post.techShowdown.optionA.votes = countA;
+    post.techShowdown.optionB.votes = countB;
+
+    await post.save();
+    revalidatePath(`/dashboard/p/${postId}`);
     revalidatePath("/dashboard");
-    return { success: true };
+    return {
+      success: true,
+      votesA: countA,
+      votesB: countB,
+      userVote: choice,
+    };
   } catch (error) {
     console.error("Error voting on tech showdown:", error);
     return { failure: "Failed to cast vote" };

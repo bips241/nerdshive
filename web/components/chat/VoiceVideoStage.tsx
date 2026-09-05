@@ -481,26 +481,26 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
   const totalCount = peerList.length + 1;
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1f22] text-white select-none">
+    <div className="flex flex-col h-full bg-background text-foreground select-none">
       {/* Voice Stage Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[#2b2d31] bg-[#2b2d31]/40 backdrop-blur">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/40 backdrop-blur shadow-sm">
         <div className="flex items-center gap-3">
           <span className="text-xl">{channel.type === 'video' ? '📹' : '🔊'}</span>
           <div>
-            <h2 className="font-bold text-base text-gray-100 flex items-center gap-2">
+            <h2 className="font-bold text-base text-foreground flex items-center gap-2">
               {channel.name}
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 RTC Connected
               </span>
             </h2>
-            <p className="text-xs text-gray-400">{channel.topic || 'Low-latency Opus Audio & Video Room'}</p>
+            <p className="text-xs text-muted-foreground">{channel.topic || 'Low-latency WebRTC Audio & Video Workspace'}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-300 bg-[#1e1f22] px-3 py-1.5 rounded-md border border-[#35373c]">
-            <Users className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/40 px-3 py-1.5 rounded-lg border border-border">
+            <Users className="w-3.5 h-3.5 text-primary" />
             <span>{totalCount} in Room</span>
           </div>
         </div>
@@ -523,10 +523,10 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
         >
           {/* Local User Card */}
           <div
-            className={`relative aspect-video rounded-xl bg-[#2b2d31] overflow-hidden flex items-center justify-center border-2 transition-all duration-200 shadow-lg ${
+            className={`relative aspect-video rounded-xl bg-card overflow-hidden flex items-center justify-center border transition-all duration-200 shadow-md ${
               isSpeakingLocal
-                ? 'border-emerald-500 shadow-emerald-500/20'
-                : 'border-transparent hover:border-[#35373c]'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/10'
+                : 'border-border hover:border-neutral-700'
             }`}
           >
             {/* Video Stream */}
@@ -542,9 +542,9 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
             {isVideoDisabled && !isScreenSharing && (
               <div className="flex flex-col items-center gap-3">
                 <div className={`relative ${isSpeakingLocal ? 'scale-105' : ''} transition-transform duration-200`}>
-                  <Avatar className="w-24 h-24 ring-4 ring-[#1e1f22]">
+                  <Avatar className="w-24 h-24 ring-2 ring-border">
                     <AvatarImage src={getUserAvatar(currentUser)} />
-                    <AvatarFallback className="bg-indigo-600 text-2xl font-bold">
+                    <AvatarFallback className="bg-secondary text-foreground text-2xl font-bold">
                       {getUserName(currentUser).slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -558,7 +558,7 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
             )}
 
             {/* User Overlay Badge */}
-            <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-medium text-white">
+            <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-medium text-white border border-white/10">
               <span>{getUserName(currentUser)} (You)</span>
               {isAudioMuted && <MicOff className="w-3.5 h-3.5 text-rose-400" />}
             </div>
@@ -572,17 +572,17 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
       </div>
 
       {/* Floating Control Dock */}
-      <div className="p-4 flex items-center justify-center bg-[#111214] border-t border-[#2b2d31]">
-        <div className="flex items-center gap-3 bg-[#232428] px-5 py-2.5 rounded-2xl border border-[#35373c] shadow-2xl">
+      <div className="p-4 flex items-center justify-center bg-background border-t border-border">
+        <div className="flex items-center gap-3 bg-card px-5 py-2.5 rounded-2xl border border-border/80 shadow-xl">
           {/* Mute Button */}
           <Button
             size="icon"
             variant={isAudioMuted ? 'destructive' : 'secondary'}
             onClick={toggleAudio}
-            className="w-12 h-12 rounded-full transition-transform active:scale-95"
+            className="w-11 h-11 rounded-full transition-transform active:scale-95"
             title={isAudioMuted ? 'Unmute Microphone' : 'Mute Microphone'}
           >
-            {isAudioMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isAudioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
           </Button>
 
           {/* Deafen Button */}
@@ -590,10 +590,10 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
             size="icon"
             variant={isDeafened ? 'destructive' : 'secondary'}
             onClick={() => setIsDeafened(!isDeafened)}
-            className="w-12 h-12 rounded-full transition-transform active:scale-95"
+            className="w-11 h-11 rounded-full transition-transform active:scale-95"
             title={isDeafened ? 'Undeafen Audio' : 'Deafen (Mute Incoming Audio)'}
           >
-            {isDeafened ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            {isDeafened ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </Button>
 
           {/* Camera Button */}
@@ -601,12 +601,12 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
             size="icon"
             variant={isVideoDisabled ? 'secondary' : 'default'}
             onClick={toggleVideo}
-            className={`w-12 h-12 rounded-full transition-transform active:scale-95 ${
-              !isVideoDisabled ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''
+            className={`w-11 h-11 rounded-full transition-transform active:scale-95 ${
+              !isVideoDisabled ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''
             }`}
             title={isVideoDisabled ? 'Turn On Camera' : 'Turn Off Camera'}
           >
-            {isVideoDisabled ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            {isVideoDisabled ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
           </Button>
 
           {/* Screen Share Button */}
@@ -614,25 +614,25 @@ export const VoiceVideoStage: React.FC<VoiceVideoStageProps> = ({
             size="icon"
             variant={isScreenSharing ? 'default' : 'secondary'}
             onClick={toggleScreenShare}
-            className={`w-12 h-12 rounded-full transition-transform active:scale-95 ${
+            className={`w-11 h-11 rounded-full transition-transform active:scale-95 ${
               isScreenSharing ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''
             }`}
             title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
           >
-            <ScreenShare className="w-5 h-5" />
+            <ScreenShare className="w-4 h-4" />
           </Button>
 
-          <div className="w-px h-7 bg-[#35373c] mx-1" />
+          <div className="w-px h-6 bg-border mx-1" />
 
           {/* Disconnect Button */}
           <Button
             size="icon"
             variant="destructive"
             onClick={onDisconnect}
-            className="w-12 h-12 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/30 transition-transform active:scale-95"
-            title="Disconnect from Voice"
+            className="w-11 h-11 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-transform active:scale-95"
+            title="Leave Workspace"
           >
-            <PhoneOff className="w-5 h-5" />
+            <PhoneOff className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -650,35 +650,35 @@ const RemotePeerTile: React.FC<{ peer: PeerParticipant; isDeafened: boolean }> =
     }
   }, [peer.stream]);
 
-  const hasVideoTrack = peer.stream?.getVideoTracks().length && !peer.isVideoOff;
-  const name = peer.user?.user_name || peer.user?.name || 'Anonymous Dev';
-  const avatar = peer.user?.image || peer.user?.avatar || '';
+  const hasVideoTrack =
+    peer.stream &&
+    peer.stream.getVideoTracks().length > 0 &&
+    peer.stream.getVideoTracks().some((t) => t.enabled);
 
   return (
     <div
-      className={`relative aspect-video rounded-xl bg-[#2b2d31] overflow-hidden flex items-center justify-center border-2 transition-all duration-200 shadow-lg ${
+      className={`relative aspect-video rounded-xl bg-card overflow-hidden flex items-center justify-center border transition-all duration-200 shadow-md ${
         peer.isSpeaking
-          ? 'border-emerald-500 shadow-emerald-500/20'
-          : 'border-transparent hover:border-[#35373c]'
+          ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/10'
+          : 'border-border hover:border-neutral-700'
       }`}
     >
-      {/* Remote Audio Track (automatically plays incoming audio) */}
+      {/* Remote Video Stream */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
-        muted={isDeafened}
-        className={`w-full h-full object-cover ${hasVideoTrack ? 'block' : 'hidden'}`}
+        className={`w-full h-full object-cover ${!hasVideoTrack ? 'hidden' : 'block'}`}
       />
 
-      {/* Avatar Placeholder when peer has no video */}
+      {/* Avatar Placeholder when remote video is disabled */}
       {!hasVideoTrack && (
         <div className="flex flex-col items-center gap-3">
           <div className={`relative ${peer.isSpeaking ? 'scale-105' : ''} transition-transform duration-200`}>
-            <Avatar className="w-24 h-24 ring-4 ring-[#1e1f22]">
-              <AvatarImage src={avatar} />
-              <AvatarFallback className="bg-emerald-700 text-2xl font-bold">
-                {name.slice(0, 2).toUpperCase()}
+            <Avatar className="w-24 h-24 ring-2 ring-border">
+              <AvatarImage src={peer.user?.image || peer.user?.avatar || ''} />
+              <AvatarFallback className="bg-secondary text-foreground text-2xl font-bold">
+                {(peer.user?.user_name || peer.user?.name || 'Dev').slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             {peer.isSpeaking && (
@@ -690,10 +690,10 @@ const RemotePeerTile: React.FC<{ peer: PeerParticipant; isDeafened: boolean }> =
         </div>
       )}
 
-      {/* Remote Peer Overlay Badge */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-medium text-white">
-        <span>{name}</span>
-        {peer.isMuted && <MicOff className="w-3.5 h-3.5 text-rose-400" />}
+      {/* Peer Info Overlay Badge */}
+      <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-medium text-white border border-white/10">
+        <span>{peer.user?.user_name || peer.user?.name || 'Developer'}</span>
+        {peer.isSpeaking && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
       </div>
     </div>
   );

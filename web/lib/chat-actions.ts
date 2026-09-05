@@ -23,71 +23,15 @@ export async function getUserServers() {
   const userId = await getAuthUserId();
 
   try {
-    let servers = await Server.find({
+    const servers = await Server.find({
       "members.user": new mongoose.Types.ObjectId(userId),
     }).sort({ createdAt: -1 });
-
-    // Seed default public community if user has no servers
-    if (servers.length === 0) {
-      const defaultServer = await createDefaultServer(userId);
-      servers = [defaultServer];
-    }
 
     return JSON.parse(JSON.stringify(servers));
   } catch (error) {
     console.error("Error fetching user servers:", error);
     return [];
   }
-}
-
-/**
- * Helper to seed a starter server
- */
-async function createDefaultServer(ownerId: string) {
-  const inviteCode = "nerdshive-hub-" + crypto.randomBytes(3).toString("hex");
-  const server = new Server({
-    name: "NerdShive HQ",
-    description: "The global community for developers, hackers, and creators.",
-    iconUrl: "",
-    ownerId: new mongoose.Types.ObjectId(ownerId),
-    inviteCode,
-    members: [
-      {
-        user: new mongoose.Types.ObjectId(ownerId),
-        role: "owner",
-        joinedAt: new Date(),
-      },
-    ],
-    channels: [
-      {
-        name: "general",
-        type: "text",
-        topic: "Welcome to NerdShive HQ text lounge",
-        createdAt: new Date(),
-      },
-      {
-        name: "code-sos",
-        type: "text",
-        topic: "Live bug triage & peer debugging questions",
-        createdAt: new Date(),
-      },
-      {
-        name: "dev-lounge",
-        type: "voice",
-        topic: "Voice hangout for community developers",
-        createdAt: new Date(),
-      },
-      {
-        name: "pair-hacking",
-        type: "video",
-        topic: "Multi-party video & screen sharing workspace",
-        createdAt: new Date(),
-      },
-    ],
-  });
-
-  await server.save();
-  return server;
 }
 
 /**

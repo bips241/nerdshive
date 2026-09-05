@@ -81,10 +81,10 @@ const CodeSosUI: React.FC<CodeSosUIProps> = async ({ post }) => {
         {sos.snippet && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-              <span>// Reproducible Code Snippet</span>
+              <span>{`// Reproducible Code Snippet`}</span>
               <span className="capitalize">{sos.language}</span>
             </div>
-            <div className="relative rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 p-3.5">
+            <div className="relative rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 p-3.5 max-h-72 overflow-y-auto">
               <pre className="font-mono text-xs text-emerald-400 overflow-x-auto whitespace-pre leading-relaxed">
                 <code>{sos.snippet}</code>
               </pre>
@@ -98,7 +98,7 @@ const CodeSosUI: React.FC<CodeSosUIProps> = async ({ post }) => {
             <div className="flex items-center gap-1 text-[11px] text-red-400 font-mono font-semibold">
               <Terminal className="h-3 w-3" /> Error Output / Stack Trace
             </div>
-            <div className="rounded-xl overflow-hidden bg-red-950/20 border border-red-900/30 p-3">
+            <div className="rounded-xl overflow-hidden bg-red-950/20 border border-red-900/30 p-3 max-h-56 overflow-y-auto">
               <pre className="font-mono text-[11px] text-red-300 overflow-x-auto whitespace-pre leading-relaxed">
                 <code>{sos.errorLog}</code>
               </pre>
@@ -110,7 +110,7 @@ const CodeSosUI: React.FC<CodeSosUIProps> = async ({ post }) => {
         {sos.triedSteps && (
           <div className="text-xs text-muted-foreground space-y-1 bg-muted/40 p-2.5 rounded-lg border">
             <span className="font-semibold text-foreground flex items-center gap-1">
-              <HelpCircle className="h-3 w-3 text-primary" /> What I've Tried:
+              <HelpCircle className="h-3 w-3 text-primary" /> What I&apos;ve Tried:
             </span>
             <p className="italic">{sos.triedSteps}</p>
           </div>

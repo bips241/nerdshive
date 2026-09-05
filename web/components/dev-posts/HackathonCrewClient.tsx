@@ -2,10 +2,24 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Check, X, Loader2, Sparkles, Lock, MessageSquare, ArrowRight } from 'lucide-react';
+import {
+  Users,
+  UserPlus,
+  Check,
+  X,
+  Loader2,
+  Sparkles,
+  Lock,
+  MessageSquare,
+  Crown,
+  UserCheck,
+  CheckCircle2,
+  ArrowRight,
+} from 'lucide-react';
 import { applyToHackathonCrew, manageCrewApplicant } from '@/lib/actions';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import UserAvatar from '../UserAvatar';
 
 interface SquadMember {
   user: any;
@@ -23,6 +37,12 @@ interface SquadApplicant {
 interface HackathonCrewClientProps {
   postId: string;
   isLeader: boolean;
+  leaderUser: {
+    _id: string;
+    username: string;
+    image?: string;
+    name?: string;
+  };
   isMember: boolean;
   hasApplied: boolean;
   initialSquadStatus: 'recruiting' | 'full' | 'building';
@@ -30,18 +50,21 @@ interface HackathonCrewClientProps {
   initialMembers: SquadMember[];
   initialApplicants: SquadApplicant[];
   rolesNeed: string[];
+  rolesHave: string[];
 }
 
 export default function HackathonCrewClient({
   postId,
   isLeader,
+  leaderUser,
   isMember: initialIsMember,
   hasApplied: initialHasApplied,
   initialSquadStatus,
-  maxSquadSize,
-  initialMembers,
-  initialApplicants,
-  rolesNeed,
+  maxSquadSize = 4,
+  initialMembers = [],
+  initialApplicants = [],
+  rolesNeed = [],
+  rolesHave = [],
 }: HackathonCrewClientProps) {
   const [squadStatus, setSquadStatus] = useState(initialSquadStatus);
   const [members, setMembers] = useState<SquadMember[]>(initialMembers || []);
@@ -56,11 +79,12 @@ export default function HackathonCrewClient({
   const [processingApplicantId, setProcessingApplicantId] = useState<string | null>(null);
 
   const totalFilled = members.length + 1; // 1 leader + accepted members
+  const openSlotsCount = Math.max(0, maxSquadSize - totalFilled);
   const isSquadFull = squadStatus === 'full' || totalFilled >= maxSquadSize;
 
   const handleApply = async () => {
     if (!pitch.trim()) {
-      toast.error('Please include a brief pitch about your experience');
+      toast.error('Please write a brief pitch about your experience and availability');
       return;
     }
     setIsApplying(true);
@@ -73,12 +97,12 @@ export default function HackathonCrewClient({
       if (res.success) {
         setHasApplied(true);
         setShowApplyModal(false);
-        toast.success('Application sent to squad leader!');
+        toast.success('Application submitted! The squad leader has been notified.');
       } else {
         toast.error(res.failure || 'Failed to submit application');
       }
     } catch (e) {
-      toast.error('Network error');
+      toast.error('Network error submitting application');
     } finally {
       setIsApplying(false);
     }
@@ -99,12 +123,15 @@ export default function HackathonCrewClient({
         setApplicants(applicants.filter((a) => (a.user?._id || a.user)?.toString() !== applicantUserId));
 
         if (action === 'accept' && targetApplicant) {
-          const updatedMembers = [...members, { user: targetApplicant.user, role: targetApplicant.role, joinedAt: new Date() }];
+          const updatedMembers = [
+            ...members,
+            { user: targetApplicant.user, role: targetApplicant.role, joinedAt: new Date() },
+          ];
           setMembers(updatedMembers);
           if (updatedMembers.length + 1 >= maxSquadSize) {
             setSquadStatus('full');
           }
-          toast.success('Applicant accepted into hackathon squad!');
+          toast.success(`Accepted ${targetApplicant.user?.user_name || 'candidate'} into squad!`);
         } else {
           toast.info('Applicant declined.');
         }
@@ -119,112 +146,234 @@ export default function HackathonCrewClient({
   };
 
   return (
-    <div className="space-y-3.5 pt-2 border-t">
-      {/* Roster Slot Counter */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span
-            className={`font-semibold px-2.5 py-0.5 rounded-full border ${
-              isSquadFull
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-            }`}
-          >
+    <div className="space-y-4 pt-3 border-t">
+      {/* Squad Roster Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-amber-500" />
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Confirmed Squad Roster
+            </h3>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border text-center">
+              {totalFilled} / {maxSquadSize} Spots Filled
+            </span>
+          </div>
+
+          <div>
             {isSquadFull ? (
-              <span className="flex items-center gap-1">
-                <Lock className="h-3 w-3" /> Squad Full ({totalFilled}/{maxSquadSize})
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                <Lock className="h-3 w-3" /> Squad Full
               </span>
             ) : (
-              <span>⚡ Recruiting: {totalFilled}/{maxSquadSize} Spots Filled</span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <Sparkles className="h-3 w-3" /> Recruiting {openSlotsCount} more
+              </span>
             )}
-          </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* If user is part of the squad (leader or member) */}
+        {/* Visual Roster Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Squad Leader Slot */}
+          <div className="p-3 rounded-xl bg-secondary/30 border border-border/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link href={`/dashboard/user/${leaderUser.username}`} className="shrink-0">
+                <UserAvatar user={{ user_name: leaderUser.username, image: leaderUser.image, name: leaderUser.name }} className="h-8 w-8" />
+              </Link>
+              <div className="min-w-0">
+                <Link href={`/dashboard/user/${leaderUser.username}`} className="text-xs font-bold hover:underline truncate block text-foreground">
+                  @{leaderUser.username}
+                </Link>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {rolesHave[0] || 'Project Lead'}
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap shrink-0">
+              <Crown className="h-3 w-3 text-amber-500" /> Squad Lead
+            </span>
+          </div>
+
+          {/* Confirmed Members */}
+          {members.map((member, i) => {
+            const memberUsername = member.user?.user_name || 'developer';
+            return (
+              <div
+                key={i}
+                className="p-3 rounded-xl bg-secondary/30 border border-border/80 flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Link href={`/dashboard/user/${memberUsername}`} className="shrink-0">
+                    <UserAvatar user={member.user} className="h-8 w-8" />
+                  </Link>
+                  <div className="min-w-0">
+                    <Link href={`/dashboard/user/${memberUsername}`} className="text-xs font-bold hover:underline truncate block text-foreground">
+                      @{memberUsername}
+                    </Link>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {member.role || 'Teammate'}
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap shrink-0">
+                  <UserCheck className="h-3 w-3 text-emerald-500" /> Confirmed
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Open Slots */}
+          {Array.from({ length: openSlotsCount }).map((_, i) => {
+            const neededRoleSuggestion = rolesNeed[i] || 'Open Squad Role';
+            return (
+              <div
+                key={`open-${i}`}
+                className="p-3 rounded-xl border border-dashed border-border/70 bg-card/40 flex items-center justify-between gap-2 text-xs"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-full border border-dashed border-muted-foreground/40 flex items-center justify-center text-muted-foreground text-xs shrink-0">
+                    +
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-semibold text-foreground/80 block truncate">
+                      {neededRoleSuggestion}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">Open Slot</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground px-2 py-0.5 rounded bg-secondary/50 shrink-0">
+                  Vacant
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2">
+        <div className="text-xs text-muted-foreground">
+          {isLeader ? (
+            <span>You are managing this squad</span>
+          ) : isMember ? (
+            <span className="text-emerald-500 font-medium">You are an active teammate on this squad</span>
+          ) : (
+            <span>Connect with the team or apply to join</span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Squad Member / Leader Communication: Direct Link to Real-Time Chat System */}
           {(isLeader || isMember) && (
             <Link
-              href={`/dashboard/stranger-chat?mode=hackathon_squad&room=${postId}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-secondary text-secondary-foreground font-semibold text-xs border hover:bg-secondary/80 transition-colors"
+              href="/dashboard/messages"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 min-h-[36px] rounded-lg bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border whitespace-nowrap transition-colors"
             >
-              <MessageSquare className="h-3.5 w-3.5" /> Squad Chat Room &rarr;
+              <MessageSquare className="h-3.5 w-3.5 text-primary" /> Squad Chat Room &rarr;
             </Link>
           )}
 
-          {/* If user is a visitor */}
+          {/* Visitor Application / Contact */}
           {!isLeader && !isMember && (
-            <Button
-              size="sm"
-              onClick={() => setShowApplyModal(true)}
-              disabled={isSquadFull || hasApplied}
-              className={`text-xs h-8 gap-1.5 ${
-                hasApplied
-                  ? 'bg-muted text-muted-foreground'
-                  : 'bg-cyan-600 hover:bg-cyan-700 text-white'
-              }`}
-            >
+            <>
               {hasApplied ? (
-                <>
-                  <Check className="h-3.5 w-3.5" /> Application Submitted
-                </>
+                <Button
+                  size="sm"
+                  disabled
+                  className="min-h-[36px] px-3.5 text-xs gap-1.5 whitespace-nowrap bg-muted text-muted-foreground border"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Application Pending Review
+                </Button>
               ) : isSquadFull ? (
-                <>
+                <Button
+                  size="sm"
+                  disabled
+                  className="min-h-[36px] px-3.5 text-xs gap-1.5 whitespace-nowrap bg-muted text-muted-foreground"
+                >
                   <Lock className="h-3.5 w-3.5" /> Squad Full
-                </>
+                </Button>
               ) : (
-                <>
+                <Button
+                  size="sm"
+                  onClick={() => setShowApplyModal(true)}
+                  className="min-h-[36px] px-3.5 text-xs gap-1.5 whitespace-nowrap bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm transition-colors"
+                >
                   <UserPlus className="h-3.5 w-3.5" /> Apply for Role
-                </>
+                </Button>
               )}
-            </Button>
+
+              <Link
+                href={`/dashboard/user/${leaderUser.username}`}
+                className="inline-flex items-center justify-center gap-1.5 px-3 min-h-[36px] text-xs text-muted-foreground hover:text-foreground font-medium transition-colors whitespace-nowrap"
+              >
+                Contact Lead
+              </Link>
+            </>
           )}
         </div>
       </div>
 
-      {/* Leader Review Panel: Applicants */}
+      {/* Leader Applicant Review Panel */}
       {isLeader && applicants.length > 0 && (
-        <div className="rounded-xl p-3.5 bg-cyan-500/10 border border-cyan-500/30 space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-bold text-cyan-600 dark:text-cyan-400">
-            <span>Pending Crew Applicants ({applicants.length}):</span>
-            <span className="text-[10px] font-normal text-muted-foreground">Review and accept into squad</span>
+        <div className="rounded-xl p-4 bg-amber-500/5 border border-amber-500/30 space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-amber-500">
+            <span className="flex items-center gap-1.5">
+              <Users className="h-4 w-4" /> Pending Crew Applicants ({applicants.length})
+            </span>
+            <span className="text-[11px] font-normal text-muted-foreground">
+              Review proof of work & accept into squad
+            </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {applicants.map((app, idx) => {
               const applicantId = (app.user?._id || app.user)?.toString();
-              const applicantName = app.user?.user_name || 'Developer';
+              const applicantName = app.user?.user_name || 'developer';
+              const isProcessing = processingApplicantId === applicantId;
+
               return (
                 <div
                   key={idx}
-                  className="p-2.5 rounded-lg bg-card/70 border border-cyan-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs"
+                  className="p-3 rounded-lg bg-card border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
                 >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <strong className="text-foreground">@{applicantName}</strong>
-                      <span className="px-1.5 py-0.2 rounded bg-secondary text-secondary-foreground font-mono text-[10px]">
-                        {app.role}
-                      </span>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <Link href={`/dashboard/user/${applicantName}`} className="shrink-0 mt-0.5">
+                      <UserAvatar user={app.user} className="h-8 w-8" />
+                    </Link>
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/dashboard/user/${applicantName}`} className="font-bold text-foreground hover:underline">
+                          @{applicantName}
+                        </Link>
+                        <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/30 text-[10px] font-semibold">
+                          {app.role}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground text-[11px] italic bg-secondary/30 p-2 rounded border">
+                        &ldquo;{app.pitch}&rdquo;
+                      </p>
                     </div>
-                    <p className="text-muted-foreground text-[11px] italic">"{app.pitch}"</p>
                   </div>
 
-                  <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                     <Button
                       size="sm"
                       onClick={() => handleApplicantAction(applicantId, 'accept')}
-                      disabled={processingApplicantId === applicantId}
-                      className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                      disabled={isProcessing || isSquadFull}
+                      className="min-h-[32px] px-3 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1 whitespace-nowrap"
                     >
-                      <Check className="h-3 w-3" /> Accept
+                      {isProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                      Accept
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleApplicantAction(applicantId, 'decline')}
-                      disabled={processingApplicantId === applicantId}
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      disabled={isProcessing}
+                      className="min-h-[32px] px-2.5 text-xs text-muted-foreground hover:text-destructive whitespace-nowrap"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" /> Decline
                     </Button>
                   </div>
                 </div>
@@ -237,53 +386,60 @@ export default function HackathonCrewClient({
       {/* Apply Modal Dialog */}
       {showApplyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border rounded-2xl p-5 max-w-md w-full space-y-4 shadow-xl">
+          <div className="bg-card border rounded-2xl p-5 sm:p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="space-y-1">
-              <h3 className="font-bold text-base flex items-center gap-1.5 text-foreground">
-                <UserPlus className="h-4 w-4 text-cyan-500" />
+              <h3 className="font-bold text-base flex items-center gap-2 text-foreground">
+                <UserPlus className="h-4 w-4 text-amber-500" />
                 Apply to Join Hackathon Squad
               </h3>
               <p className="text-xs text-muted-foreground">
-                The squad leader will review your proof of work and pitch.
+                The squad leader (@{leaderUser.username}) will review your application.
               </p>
             </div>
 
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Role You Are Applying For:</label>
+            <div className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Role You Are Applying For:</label>
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-lg border bg-background text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  {rolesNeed.map((r, i) => (
-                    <option key={i} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                  <option value="Fullstack Generalist">Fullstack Generalist</option>
+                  {rolesNeed.length > 0 ? (
+                    rolesNeed.map((r, i) => (
+                      <option key={i} value={r}>
+                        {r}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="General Developer">General Developer</option>
+                  )}
+                  <option value="Frontend (React / Next.js)">Frontend (React / Next.js)</option>
+                  <option value="Backend / APIs">Backend / APIs</option>
+                  <option value="AI / ML Engineer">AI / ML Engineer</option>
+                  <option value="UI/UX Designer">UI/UX Designer</option>
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground">Pitch / Why You're a Fit:</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Pitch / Proof of Work:</label>
                 <textarea
                   rows={3}
-                  placeholder="e.g. Built 3 production Next.js apps, familiar with web sockets, ready to hack 36h."
+                  placeholder="Share your primary stack, GitHub/portfolio links, and your availability for the hackathon sprint..."
                   value={pitch}
                   onChange={(e) => setPitch(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-lg border bg-background text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full text-xs p-2.5 rounded-lg border bg-background text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowApplyModal(false)}
                 disabled={isApplying}
-                className="text-xs"
+                className="text-xs min-h-[36px]"
               >
                 Cancel
               </Button>
@@ -291,10 +447,10 @@ export default function HackathonCrewClient({
                 size="sm"
                 onClick={handleApply}
                 disabled={isApplying}
-                className="text-xs gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white"
+                className="text-xs min-h-[36px] px-4 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold whitespace-nowrap"
               >
                 {isApplying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                Send Application
+                Submit Application
               </Button>
             </div>
           </div>

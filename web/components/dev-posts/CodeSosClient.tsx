@@ -73,27 +73,27 @@ export default function CodeSosClient({
           )}
         </div>
       ) : (
-        <div className="rounded-xl p-3 bg-red-500/5 border border-red-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="rounded-xl p-3 bg-red-500/5 border border-red-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span>Active SOS Beacon • 48h Urgency Window</span>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {isAuthor ? (
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+            {isAuthor && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setShowModal(true)}
-                className="text-xs h-8 gap-1.5 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                className="text-xs min-h-[36px] px-3.5 gap-1.5 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400 whitespace-nowrap shrink-0"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" /> Mark Resolved
               </Button>
-            ) : null}
+            )}
 
             <Link
               href={pairDebugUrl}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 h-8 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm transition-colors flex-1 sm:flex-initial"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 min-h-[36px] rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm transition-colors whitespace-nowrap shrink-0"
             >
               <Video className="h-3.5 w-3.5" /> Pair-Debug Live &rarr;
             </Link>

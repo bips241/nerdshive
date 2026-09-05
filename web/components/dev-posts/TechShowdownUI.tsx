@@ -29,6 +29,18 @@ const TechShowdownUI: React.FC<TechShowdownUIProps> = async ({ post }) => {
     image: post.userId.image,
   };
 
+  const userVote = (showdown.voters || []).find(
+    (v: any) => (v.user?._id || v.user)?.toString() === userId
+  )?.option || null;
+
+  const votesA = showdown.voters && showdown.voters.length > 0
+    ? showdown.voters.filter((v: any) => v.option === 'optionA').length
+    : (showdown.optionA?.votes || 0);
+
+  const votesB = showdown.voters && showdown.voters.length > 0
+    ? showdown.voters.filter((v: any) => v.option === 'optionB').length
+    : (showdown.optionB?.votes || 0);
+
   return (
     <div className="flex flex-col space-y-2.5 max-w-2xl mx-auto w-full">
       {/* Header */}
@@ -46,7 +58,7 @@ const TechShowdownUI: React.FC<TechShowdownUIProps> = async ({ post }) => {
               <Timestamp createdAt={post.createdAt} />
             </p>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.2 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/30">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/30">
                 <Swords className="h-3 w-3" /> Tech Showdown & Debate
               </span>
             </div>
@@ -57,14 +69,14 @@ const TechShowdownUI: React.FC<TechShowdownUIProps> = async ({ post }) => {
       </div>
 
       {/* Main Content Card */}
-      <Card className="p-6 space-y-5 bg-card border rounded-2xl shadow-md">
+      <Card className="p-6 space-y-5 bg-card border rounded-2xl shadow-md border-blue-500/20">
         <div className="space-y-1">
           <h2 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
             <Swords className="h-5 w-5 text-blue-500" /> {showdown.topic}
           </h2>
           {showdown.benchmark && (
             <p className="text-xs text-muted-foreground flex items-center gap-1 pt-1">
-              <BarChart2 className="h-3.5 w-3.5 text-primary" /> Benchmark: <span className="font-mono text-foreground">{showdown.benchmark}</span>
+              <BarChart2 className="h-3.5 w-3.5 text-primary" /> Benchmark: <span className="font-mono text-foreground font-semibold">{showdown.benchmark}</span>
             </p>
           )}
         </div>
@@ -72,8 +84,17 @@ const TechShowdownUI: React.FC<TechShowdownUIProps> = async ({ post }) => {
         {/* Voting & Split Bar */}
         <TechShowdownVoteClient
           postId={post._id.toString()}
-          optionA={showdown.optionA || { name: 'Option A', votes: 0 }}
-          optionB={showdown.optionB || { name: 'Option B', votes: 0 }}
+          optionA={{
+            name: showdown.optionA?.name || 'Option A',
+            description: showdown.optionA?.description,
+            votes: votesA,
+          }}
+          optionB={{
+            name: showdown.optionB?.name || 'Option B',
+            description: showdown.optionB?.description,
+            votes: votesB,
+          }}
+          initialUserVote={userVote}
         />
       </Card>
 
