@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import EditProfileButton, { ProfileAvatarWithEditTrigger } from "@/components/editBtn";
 import FollowButton from "@/components/followBtn";
 import UserAvatar from "@/components/UserAvatar";
+import ProfilePostsView from "@/components/ProfilePostsView";
 import { fetchProfilePosts } from "@/lib/data";
 import connectDB from "@/lib/db";
 import { User, Follows, Post } from "@/models/User";
@@ -152,10 +153,15 @@ export default async function ProfilePage({ params: { name } }: Props) {
     }),
   ]);
 
-  const parsedPosts: { post: ProfilePost; type: "video" | "image" | "unknown" }[] = profilePostsRaw.map((postStr) => {
-    const post: ProfilePost = JSON.parse(postStr);
-    return { post, type: getMediaType(post.fileUrl) };
-  });
+  const parsedPosts: any[] = profilePostsRaw
+    .map((postStr) => {
+      try {
+        return JSON.parse(postStr);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
   const jsonLdProfile = {
     "@context": "https://schema.org",
@@ -433,51 +439,13 @@ export default async function ProfilePage({ params: { name } }: Props) {
         </div>
       )}
 
-      {/* Media Posts Grid */}
-      <div className="border-t pt-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-          Posts
-        </h2>
-
-        {parsedPosts.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            No media posts yet.
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {parsedPosts.map(({ post, type }, i) => {
-              const isVideo = type === "video";
-              const fileUrl = post.fileUrl;
-
-              return (
-                <div
-                  key={post._id || i}
-                  className="aspect-square bg-muted rounded-md overflow-hidden relative group"
-                >
-                  {isVideo ? (
-                    <video
-                      src={fileUrl}
-                      className="w-full h-full object-cover"
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : fileUrl ? (
-                    <img
-                      src={fileUrl}
-                      alt={post.caption || `Post ${i + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                      No Media
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Posts Section */}
+      <div className="border-t pt-5">
+        <ProfilePostsView
+          posts={parsedPosts}
+          username={name}
+          isOwnProfile={isOwnProfile}
+        />
       </div>
     </div>
   );
