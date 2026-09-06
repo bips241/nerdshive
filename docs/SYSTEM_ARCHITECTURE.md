@@ -117,3 +117,11 @@ The platform is fully containerized using Docker and Docker Compose:
 2. **Stateless WebRTC Signaling**: Room membership and candidate handshakes use the Redis adapter, allowing signaling servers to restart or autoscale without dropping live video calls.
 3. **Defense-in-Depth Authentication**: NextAuth session tokens at the BFF edge, verified JWTs internally, and cryptographically secure OTP tokens (`crypto.randomInt`).
 4. **Resilience & Rate Limiting**: Distributed token-bucket rate limits on write endpoints returning explicit `429 Too Many Requests`.
+
+---
+
+## 6. Single Source of Truth (SSOT) & Business Logic Governance
+
+For the complete, vast, and immutable business logic specification, authorization invariants, hackathon multi-round state machines, and extension blueprints, refer to:
+- [CORE_BUSINESS_LOGIC_SSOT.md](./CORE_BUSINESS_LOGIC_SSOT.md): The authoritative single source of truth for platform domain logic, invariants, and extension rules.
+

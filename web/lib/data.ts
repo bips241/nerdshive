@@ -14,7 +14,7 @@ export async function fetchPosts(limit = 20) {
 
   await connectDB();
   try {
-    const posts = await Post.find({})
+    const posts = await Post.find({ isDeleted: { $ne: true } })
       .select('-__v')
       .populate({
         path: 'comments',
@@ -84,7 +84,7 @@ export async function fetchPostById(id: any) {
   noStore();
 
   try {
-    const post = await Post.findById(id)
+    const post = await Post.findOne({ _id: id, isDeleted: { $ne: true } })
       .populate({
         path: 'comments',
         populate: {
@@ -141,7 +141,7 @@ export async function fetchProfilePosts(username: string) {
     console.log('user:', username);
     if (!user) throw new Error("User not found");
 
-    const posts = await Post.find({ userId: user._id.toString() }).select('-__v')
+    const posts = await Post.find({ userId: user._id.toString(), isDeleted: { $ne: true } }).select('-__v')
       .populate({
         path: 'comments',
         populate: {

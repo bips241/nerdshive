@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Trophy,
   Calendar,
@@ -21,6 +22,11 @@ import {
   Tag,
   AlertCircle,
   Loader2,
+  Radio,
+  Layers,
+  KeyRound,
+  UserCheck,
+  Gavel,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +41,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import UserAvatar from '@/components/UserAvatar';
-import { updateHackathonEventAction } from '@/lib/hackathon-actions';
+import TeamRoomModal from './TeamRoomModal';
+import {
+  createOrJoinHackathonTeamAction,
+  updateHackathonEventAction,
+} from '@/lib/hackathon-actions';
 import { toast } from 'sonner';
 
 interface HackathonHubClientProps {
@@ -47,7 +57,20 @@ export default function HackathonHubClient({
   hackathon,
   currentUserId,
 }: HackathonHubClientProps) {
+  const router = useRouter();
   const [selectedTrack, setSelectedTrack] = useState<string>('All');
+  const [teamRoomOpen, setTeamRoomOpen] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [regMode, setRegMode] = useState<'create' | 'join' | 'solo'>('create');
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Registration Form State
+  const [teamName, setTeamName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [selectedTrackName, setSelectedTrackName] = useState('');
+  const [lookingForSkillsStr, setLookingForSkillsStr] = useState('React, UI/UX');
+  const [lookingForDesc, setLookingForDesc] = useState('Looking for enthusiastic builders to collaborate with.');
+
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
     hours: number;
@@ -68,10 +91,9 @@ export default function HackathonHubClient({
       : ''
   );
 
-  const isOrganizer =
-    currentUserId &&
-    hackathon.organizerId &&
-    (hackathon.organizerId._id || hackathon.organizerId).toString() === currentUserId;
+  const isOrganizer = hackathon.isOrganizer;
+  const isJudge = hackathon.isJudge;
+  const myReg = hackathon.myRegistration;
 
   // Real-time ticking countdown to official submission deadline
   useEffect(() => {
@@ -101,6 +123,39 @@ export default function HackathonHubClient({
     return () => clearInterval(interval);
   }, [hackathon.submissionDeadline]);
 
+  const handleRegisterOrJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsRegistering(true);
+
+    try {
+      const skillsArray = lookingForSkillsStr
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const res = await createOrJoinHackathonTeamAction(hackathon.slug, {
+        teamName: regMode === 'create' ? teamName : undefined,
+        joinCode: regMode === 'join' ? joinCode : undefined,
+        isSolo: regMode === 'solo',
+        trackName: selectedTrackName || undefined,
+        lookingForSkills: regMode === 'create' ? skillsArray : undefined,
+        lookingForDescription: regMode === 'create' ? lookingForDesc : undefined,
+      });
+
+      if (res?.success) {
+        toast.success(`Successfully registered in team "${res.teamName}"! Code: ${res.code}`);
+        setRegisterModalOpen(false);
+        router.refresh();
+      } else {
+        toast.error(res?.failure || 'Registration failed.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error processing registration.');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleUpdateHackathon = async () => {
     setIsSaving(true);
     try {
@@ -111,11 +166,12 @@ export default function HackathonHubClient({
         submissionDeadline: deadlineStr ? new Date(deadlineStr).toISOString() : undefined,
       });
 
-      if (res.success) {
+      if (res?.success) {
         toast.success('Official hackathon details updated!');
         setEditModalOpen(false);
+        router.refresh();
       } else {
-        toast.error(res.failure || 'Failed to update hackathon');
+        toast.error(res?.failure || 'Failed to update hackathon');
       }
     } catch (err) {
       toast.error('Network error updating hackathon');
@@ -124,39 +180,53 @@ export default function HackathonHubClient({
     }
   };
 
-  const filteredSquads = (hackathon.squads || []).filter((squad: any) => {
-    if (selectedTrack === 'All') return true;
-    return (
-      squad.hackathonCrew?.targetTrack?.toLowerCase() === selectedTrack.toLowerCase()
-    );
-  });
-
   return (
     <div className="space-y-8 pb-16">
       {/* 1. Hero / Header Banner */}
-      <div className="relative rounded-2xl overflow-hidden border border-amber-500/20 bg-gradient-to-br from-card via-card/80 to-amber-950/10 p-6 sm:p-8 shadow-xl">
-        <div className="absolute top-0 right-0 p-4 sm:p-6 flex items-center gap-2">
+      <div className="relative rounded-2xl overflow-hidden border border-purple-500/20 bg-gradient-to-br from-card via-card/80 to-purple-950/20 p-6 sm:p-8 shadow-xl">
+        <div className="absolute top-0 right-0 p-4 sm:p-6 flex flex-wrap items-center gap-2">
           {hackathon.isVerified && (
-            <Badge className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 gap-1.5 py-1 px-3">
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
-              Verified Hackathon Partner
+            <Badge className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 gap-1.5 py-1 px-3">
+              <ShieldCheck className="w-4 h-4 text-purple-400" />
+              Verified Event
             </Badge>
           )}
 
-          {isOrganizer && (
+          <Link href={`/dashboard/hackathons/${hackathon.slug}/broadcast`}>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setEditModalOpen(true)}
-              className="gap-1.5 text-xs font-semibold border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+              className="gap-1.5 text-xs font-bold border-red-500/40 text-red-400 hover:bg-red-500/10"
             >
-              <Edit3 className="w-3.5 h-3.5" /> Organizer Controls
+              <Radio className="w-3.5 h-3.5 animate-pulse" /> Live Broadcast Arena
             </Button>
+          </Link>
+
+          {isOrganizer && (
+            <Link href={`/dashboard/hackathons/${hackathon.slug}/manage`}>
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Organizer Command Center
+              </Button>
+            </Link>
+          )}
+
+          {!isOrganizer && isJudge && (
+            <Link href={`/dashboard/hackathons/${hackathon.slug}/manage`}>
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <Gavel className="w-3.5 h-3.5" /> Official Judging Desk
+              </Button>
+            </Link>
           )}
         </div>
 
         <div className="max-w-2xl space-y-4 pt-2">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-500">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-400">
             <Trophy className="w-4 h-4" /> Official Event Hub
           </div>
 
@@ -176,7 +246,7 @@ export default function HackathonHubClient({
             </div>
 
             <div className="flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-amber-500" />
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
               <span className="font-bold text-foreground">{hackathon.prizePool}</span>
             </div>
 
@@ -209,7 +279,7 @@ export default function HackathonHubClient({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
               >
-                <ExternalLink className="w-3.5 h-3.5" /> Devpost / Submission Portal
+                <ExternalLink className="w-3.5 h-3.5" /> Devpost / Community Portal
               </a>
             )}
           </div>
@@ -219,8 +289,8 @@ export default function HackathonHubClient({
         <div className="mt-8 pt-6 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-              <Clock className="w-3.5 h-3.5 text-amber-500" />
-              <span>Project Submission Deadline</span>
+              <Clock className="w-3.5 h-3.5 text-purple-400" />
+              <span>Submission Deadline</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {hackathon.submissionDeadline
@@ -264,7 +334,7 @@ export default function HackathonHubClient({
                 </div>
                 <span className="font-bold text-muted-foreground">:</span>
                 <div className="px-2.5 py-1.5 rounded-lg bg-secondary/80 border border-border min-w-[52px]">
-                  <div className="text-lg font-bold text-amber-500">
+                  <div className="text-lg font-bold text-purple-400">
                     {String(timeLeft.seconds).padStart(2, '0')}
                   </div>
                   <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Sec</div>
@@ -275,60 +345,110 @@ export default function HackathonHubClient({
         </div>
       </div>
 
-      {/* 2. Action Hub Banner: Team Formation & Speed Matchmaking */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Assemble Squad */}
-        <div className="p-6 rounded-2xl border bg-card/60 flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                <Users className="w-5 h-5" />
+      {/* 2. Registration & Team Room CTA Box */}
+      <div className="p-6 rounded-2xl border bg-gradient-to-r from-neutral-900 to-neutral-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {myReg ? (
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+              <UserCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-base text-neutral-100">{myReg.teamName}</span>
+                <Badge variant="outline" className="text-xs bg-emerald-950/30 text-emerald-300 border-emerald-700/40">
+                  {myReg.status}
+                </Badge>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-foreground">Assemble Hackathon Squad</h3>
-                <p className="text-xs text-muted-foreground">
-                  Recruit builders with complementary skills and auto-provision a private squad server.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Team Code: <strong className="font-mono text-purple-300">{myReg.code}</strong> • Round {myReg.currentRound}
+              </p>
             </div>
           </div>
-          <Link
-            href={`/dashboard/create?type=hackathon_crew&hackathonSlug=${hackathon.slug}&hackathonName=${encodeURIComponent(
-              hackathon.name
-            )}`}
-          >
-            <Button className="w-full gap-2 font-semibold bg-amber-600 hover:bg-amber-700 text-white">
-              <PlusCircle className="w-4 h-4" /> Create Squad for {hackathon.name}
-            </Button>
-          </Link>
-        </div>
+        ) : (
+          <div>
+            <h3 className="text-base font-bold text-neutral-100">Ready to Compete?</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Form a team, join teammates with a 6-digit code, or register solo with 1 click.
+            </p>
+          </div>
+        )}
 
-        {/* Speed Radar Matchmaking */}
-        <div className="p-6 rounded-2xl border bg-card/60 flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                <Video className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-foreground">Instant Teammate Radar</h3>
-                <p className="text-xs text-muted-foreground">
-                  Jump into 1-on-1 video speed dating with other solo builders attending this hackathon.
-                </p>
-              </div>
-            </div>
-          </div>
-          <Link
-            href={`/dashboard/stranger-chat?mode=project_teammate&hackathon=${hackathon.slug}`}
-          >
-            <Button variant="outline" className="w-full gap-2 font-semibold border-primary/40 hover:bg-primary/10 text-primary">
-              <Zap className="w-4 h-4 text-primary" /> ⚡ Launch Hackathon Teammate Radar
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {myReg ? (
+            <Button
+              onClick={() => setTeamRoomOpen(true)}
+              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5"
+            >
+              <Users className="h-4 w-4" /> Open Team Room & Submissions
             </Button>
-          </Link>
+          ) : (
+            <Button
+              onClick={() => setRegisterModalOpen(true)}
+              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5"
+            >
+              <Sparkles className="h-4 w-4" /> Register / Form Team
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* 3. Official Prize Tracks */}
+      {/* 3. Multi-Round Pipeline Timeline */}
+      {hackathon.rounds && hackathon.rounds.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Layers className="w-5 h-5 text-purple-400" /> Multi-Round Stage Timeline
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Progress through customizable evaluation rounds configured by the organizer.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {hackathon.rounds.map((round: any, idx: number) => {
+              const isActive = round.status === 'active' || (hackathon.currentRoundNumber || 1) === round.roundNumber;
+
+              return (
+                <Card
+                  key={idx}
+                  className={`p-5 space-y-3 transition-all border ${
+                    isActive
+                      ? 'bg-purple-950/20 border-purple-500/50 ring-1 ring-purple-500/30'
+                      : 'bg-card/60 border-neutral-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
+                      Round {round.roundNumber}
+                    </span>
+                    <Badge variant={isActive ? 'default' : 'secondary'} className="text-[10px] capitalize">
+                      {round.status}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">{round.name}</h3>
+                    {round.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {round.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground flex justify-between">
+                    <span>Type: {round.submissionType}</span>
+                    <span>{round.rubric?.length || 2} Evaluation Criteria</span>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Official Prize Tracks */}
       {hackathon.tracks && hackathon.tracks.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -353,7 +473,7 @@ export default function HackathonHubClient({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-foreground">{track.name}</span>
                     {track.prizePool && (
-                      <span className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                         {track.prizePool}
                       </span>
                     )}
@@ -383,242 +503,119 @@ export default function HackathonHubClient({
         </div>
       )}
 
-      {/* 4. Active Recruiting Squads for this Hackathon */}
-      <div className="space-y-4 pt-4 border-t border-border/60">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Users className="w-5 h-5 text-amber-500" /> Active Recruiting Squads
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Browse squads targeting {hackathon.name} and apply with your skills.
-            </p>
-          </div>
+      {/* Registration & Team Modal */}
+      <Dialog open={registerModalOpen} onOpenChange={setRegisterModalOpen}>
+        <DialogContent className="max-w-md bg-neutral-950 border-neutral-800 text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-400" />
+              Join {hackathon.name}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Choose how you want to participate in this hackathon.
+            </DialogDescription>
+          </DialogHeader>
 
-          {/* Track Filter */}
-          {hackathon.tracks && hackathon.tracks.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Button
-                size="sm"
-                variant={selectedTrack === 'All' ? 'default' : 'outline'}
-                onClick={() => setSelectedTrack('All')}
-                className="text-xs h-7 px-2.5"
-              >
-                All Tracks
-              </Button>
-              {hackathon.tracks.map((track: any, idx: number) => (
-                <Button
-                  key={idx}
-                  size="sm"
-                  variant={selectedTrack === track.name ? 'default' : 'outline'}
-                  onClick={() => setSelectedTrack(track.name)}
-                  className="text-xs h-7 px-2.5"
-                >
-                  {track.name.split('&')[0].trim()}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {filteredSquads.length === 0 ? (
-          <div className="p-8 rounded-2xl border border-dashed text-center space-y-3 bg-card/30">
-            <Users className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">
-                No squads recruiting for this track yet
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Be the first leader to establish a squad for {hackathon.name}. Define your project vision and recruit top builders.
-              </p>
-            </div>
-            <Link
-              href={`/dashboard/create?type=hackathon_crew&hackathonSlug=${hackathon.slug}&hackathonName=${encodeURIComponent(
-                hackathon.name
-              )}`}
+          <div className="flex gap-2 border-b border-neutral-800 pb-3">
+            <Button
+              size="sm"
+              variant={regMode === 'create' ? 'secondary' : 'ghost'}
+              onClick={() => setRegMode('create')}
+              className="text-xs flex-1"
             >
-              <Button size="sm" className="gap-1.5 font-semibold bg-primary text-primary-foreground">
-                <PlusCircle className="w-3.5 h-3.5" /> Post First Squad Call
-              </Button>
-            </Link>
+              Create Team
+            </Button>
+            <Button
+              size="sm"
+              variant={regMode === 'join' ? 'secondary' : 'ghost'}
+              onClick={() => setRegMode('join')}
+              className="text-xs flex-1"
+            >
+              Join by Code
+            </Button>
+            <Button
+              size="sm"
+              variant={regMode === 'solo' ? 'secondary' : 'ghost'}
+              onClick={() => setRegMode('solo')}
+              className="text-xs flex-1"
+            >
+              Solo Hacker
+            </Button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredSquads.map((squad: any) => {
-              const crew = squad.hackathonCrew || {};
-              const filledCount = (crew.members?.length || 0) + 1;
-              const maxSquad = crew.maxSquadSize || 4;
-              const isFull = crew.squadStatus === 'full' || filledCount >= maxSquad;
 
-              return (
-                <Card
-                  key={squad._id}
-                  className="p-5 space-y-4 bg-card/80 border hover:border-amber-500/30 transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          {crew.targetTrack && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
-                              {crew.targetTrack}
-                            </span>
-                          )}
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border">
-                            {crew.commitmentLevel === 'hardcore'
-                              ? '🏆 Hardcore'
-                              : crew.commitmentLevel === 'casual'
-                              ? '☕ Casual'
-                              : '⚡ Moderate'}
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-bold text-foreground line-clamp-1 pt-1">
-                          {squad.caption}
-                        </h3>
-                      </div>
+          <form onSubmit={handleRegisterOrJoin} className="space-y-4 pt-2">
+            {regMode === 'create' && (
+              <>
+                <div>
+                  <Label className="text-xs font-semibold">Team Name</Label>
+                  <Input
+                    placeholder="e.g. NeuralMesh Architects"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    required
+                    className="bg-neutral-900 border-neutral-800 text-sm mt-1"
+                  />
+                </div>
 
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 border ${
-                          isFull
-                            ? 'bg-muted text-muted-foreground'
-                            : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                        }`}
-                      >
-                        {filledCount} / {maxSquad} spots
-                      </span>
-                    </div>
+                <div>
+                  <Label className="text-xs font-semibold">Looking For Teammates (Skills, comma separated)</Label>
+                  <Input
+                    placeholder="e.g. React, UI/UX, Python, Open to all"
+                    value={lookingForSkillsStr}
+                    onChange={(e) => setLookingForSkillsStr(e.target.value)}
+                    className="bg-neutral-900 border-neutral-800 text-sm mt-1"
+                  />
+                </div>
+              </>
+            )}
 
-                    {/* Roles Urgently Needed */}
-                    {crew.rolesNeed && crew.rolesNeed.length > 0 && (
-                      <div className="space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">
-                          Urgently Seeking:
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {crew.rolesNeed.map((role: string, rIdx: number) => (
-                            <span
-                              key={rIdx}
-                              className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium border border-amber-500/20"
-                            >
-                              {role}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Leader & View CTA */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border/60">
-                    <div className="flex items-center gap-2">
-                      <UserAvatar
-                        user={squad.userId}
-                        className="h-6 w-6"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        Lead: <strong className="text-foreground font-semibold">@{squad.userId?.user_name}</strong>
-                      </span>
-                    </div>
-
-                    <Link href={`/dashboard/p/${squad._id}`}>
-                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 font-semibold">
-                        View Squad &rarr;
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Official Rules & Code of Conduct */}
-      {hackathon.rules && hackathon.rules.length > 0 && (
-        <div className="space-y-3 pt-6 border-t border-border/60">
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Official Rules & Eligibility
-          </h2>
-          <ul className="space-y-1.5 text-xs text-muted-foreground pl-4 list-disc">
-            {hackathon.rules.map((rule: string, rIdx: number) => (
-              <li key={rIdx} className="leading-relaxed">
-                {rule}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Organizer Controls Dialog */}
-      {isOrganizer && (
-        <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-amber-500" />
-                Organizer Event Management
-              </DialogTitle>
-              <DialogDescription>
-                You are authorized as the official organizer of {hackathon.name}. Updates here immediately synchronize across the platform.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Event Tagline</Label>
+            {regMode === 'join' && (
+              <div>
+                <Label className="text-xs font-semibold">Enter 6-Digit Team Invite Code</Label>
                 <Input
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. The premier global student hackathon at MIT"
+                  placeholder="e.g. K9X2P1"
+                  maxLength={6}
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  required
+                  className="bg-neutral-900 border-neutral-800 text-center font-mono font-bold text-lg tracking-widest mt-1"
                 />
               </div>
+            )}
 
-              <div className="space-y-1.5">
-                <Label>Description</Label>
-                <textarea
-                  className="w-full min-h-[80px] p-2.5 text-xs rounded-md border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
+            {regMode === 'solo' && (
+              <p className="text-xs text-muted-foreground p-3 bg-neutral-900 rounded-lg">
+                You will be registered as a solo participant. You can always merge with another team or recruit teammates later.
+              </p>
+            )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Prize Pool</Label>
-                  <Input
-                    value={prizePool}
-                    onChange={(e) => setPrizePool(e.target.value)}
-                    placeholder="e.g. $50,000 in Prizes & Grants"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Submission Deadline</Label>
-                  <Input
-                    type="datetime-local"
-                    value={deadlineStr}
-                    onChange={(e) => setDeadlineStr(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t">
-                <Button variant="ghost" onClick={() => setEditModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpdateHackathon}
-                  disabled={isSaving}
-                  className="font-semibold bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
-                >
-                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                  Save Official Changes
-                </Button>
-              </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-800">
+              <Button type="button" variant="outline" onClick={() => setRegisterModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isRegistering} className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold">
+                {isRegistering ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                  </>
+                ) : (
+                  'Confirm & Enter Hackathon'
+                )}
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Team Room Modal */}
+      {myReg && (
+        <TeamRoomModal
+          isOpen={teamRoomOpen}
+          onClose={() => setTeamRoomOpen(false)}
+          hackathon={hackathon}
+          registration={myReg}
+          onUpdate={() => router.refresh()}
+        />
       )}
     </div>
   );

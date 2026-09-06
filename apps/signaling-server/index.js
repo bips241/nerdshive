@@ -115,17 +115,87 @@ function removeFromMemoryQueues(socketId, reason = 'unknown') {
   for (const [roomId, roomData] of directRooms.entries()) {
     if (roomData.socketId === socketId) {
       directRooms.delete(roomId);
+      if (isRedisReady && redisClient) {
+        redisClient.del(`direct_room:${roomId}`).catch(() => {});
+      }
       console.log(`[DIRECT_ROOM_CLEAN:${instanceId}] room=${roomId} socket=${socketId}`);
     }
   }
 }
 
-function leaveMemoryMatch(socket) {
-  const partnerSocketId = activeMatches.get(socket.id);
+// Distributed Direct Room Helpers (Redis + In-Memory Fallback)
+async function getDirectRoom(roomId) {
+  if (isRedisReady && redisClient) {
+    try {
+      const raw = await redisClient.get(`direct_room:${roomId}`);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error(`[REDIS_GET_ROOM_ERR:${instanceId}]`, e);
+    }
+  }
+  return directRooms.get(roomId);
+}
+
+async function setDirectRoom(roomId, data) {
+  directRooms.set(roomId, data);
+  if (isRedisReady && redisClient) {
+    try {
+      await redisClient.set(`direct_room:${roomId}`, JSON.stringify(data), 'EX', 3600);
+    } catch (e) {
+      console.error(`[REDIS_SET_ROOM_ERR:${instanceId}]`, e);
+    }
+  }
+}
+
+async function delDirectRoom(roomId) {
+  directRooms.delete(roomId);
+  if (isRedisReady && redisClient) {
+    try {
+      await redisClient.del(`direct_room:${roomId}`);
+    } catch (e) {
+      console.error(`[REDIS_DEL_ROOM_ERR:${instanceId}]`, e);
+    }
+  }
+}
+
+// Distributed Active Match Tracking (Redis + In-Memory Fallback)
+async function registerActiveMatch(socketIdA, socketIdB) {
+  activeMatches.set(socketIdA, socketIdB);
+  activeMatches.set(socketIdB, socketIdA);
+  if (isRedisReady && redisClient) {
+    try {
+      await Promise.all([
+        redisClient.set(`active_match:${socketIdA}`, socketIdB, 'EX', 86400),
+        redisClient.set(`active_match:${socketIdB}`, socketIdA, 'EX', 86400),
+      ]);
+    } catch (e) {
+      console.error(`[REDIS_SET_MATCH_ERR:${instanceId}]`, e);
+    }
+  }
+}
+
+async function handleLeaveMatch(socket) {
+  let partnerSocketId = activeMatches.get(socket.id);
+  if (!partnerSocketId && isRedisReady && redisClient) {
+    try {
+      partnerSocketId = await redisClient.get(`active_match:${socket.id}`);
+    } catch (e) {
+      console.error(`[REDIS_GET_MATCH_ERR:${instanceId}]`, e);
+    }
+  }
+
   if (!partnerSocketId) return;
 
   activeMatches.delete(socket.id);
   activeMatches.delete(partnerSocketId);
+  if (isRedisReady && redisClient) {
+    try {
+      await Promise.all([
+        redisClient.del(`active_match:${socket.id}`),
+        redisClient.del(`active_match:${partnerSocketId}`),
+      ]);
+    } catch (e) {}
+  }
 
   const roomId = roomFor(socket.id, partnerSocketId);
   socket.leave(roomId);
@@ -259,7 +329,7 @@ io.on('connection', (socket) => {
     // Purge socket from all queues before joining a new intent queue
     removeFromMemoryQueues(socket.id, `join_queue_${intent}`);
     queuedState.delete(socket.id);
-    leaveMemoryMatch(socket);
+    await handleLeaveMatch(socket);
 
     let partner = null;
     if (isRedisReady && redisClient) {
@@ -277,8 +347,7 @@ io.on('connection', (socket) => {
       socket.join(roomId);
       io.in(partner.socketId).socketsJoin(roomId);
 
-      activeMatches.set(socket.id, partner.socketId);
-      activeMatches.set(partner.socketId, socket.id);
+      await registerActiveMatch(socket.id, partner.socketId);
       queuedState.delete(socket.id);
       queuedState.delete(partner.socketId);
 
@@ -297,54 +366,53 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leave_queue', ({ intent } = {}) => {
+  socket.on('leave_queue', async ({ intent } = {}) => {
     console.log(`[LEAVE_QUEUE:${instanceId}] socket=${socket.id} intent=${intent}`);
     removeFromMemoryQueues(socket.id, 'leave_queue');
     queuedState.delete(socket.id);
-    leaveMemoryMatch(socket);
+    await handleLeaveMatch(socket);
   });
 
-  socket.on('skip', () => {
+  socket.on('skip', async () => {
     console.log(`[SKIP:${instanceId}] socket=${socket.id}`);
     removeFromMemoryQueues(socket.id, 'skip');
     queuedState.delete(socket.id);
-    leaveMemoryMatch(socket);
+    await handleLeaveMatch(socket);
   });
 
-  // Direct Peer-to-Peer Invite Link Support
-  socket.on('direct_room:join', ({ roomId, peerId, intent }) => {
+  // Direct Peer-to-Peer Invite Link Support (Redis Distributed)
+  socket.on('direct_room:join', async ({ roomId, peerId, intent }) => {
     if (!roomId || !peerId) return;
     console.log(`[DIRECT_ROOM_JOIN:${instanceId}] roomId=${roomId} socket=${socket.id} peerId=${peerId}`);
 
     removeFromMemoryQueues(socket.id, 'direct_room_join');
     queuedState.delete(socket.id);
-    leaveMemoryMatch(socket);
+    await handleLeaveMatch(socket);
 
-    const existing = directRooms.get(roomId);
+    const existing = await getDirectRoom(roomId);
     if (existing && existing.socketId !== socket.id) {
-      directRooms.delete(roomId);
+      await delDirectRoom(roomId);
       const compositeRoomId = `direct_${roomId}`;
       socket.join(compositeRoomId);
       io.in(existing.socketId).socketsJoin(compositeRoomId);
 
-      activeMatches.set(socket.id, existing.socketId);
-      activeMatches.set(existing.socketId, socket.id);
+      await registerActiveMatch(socket.id, existing.socketId);
 
       socket.emit('match_found', { peerId: existing.peerId, roomId: compositeRoomId, isInitiator: true, isDirect: true, intent });
       io.to(existing.socketId).emit('match_found', { peerId, roomId: compositeRoomId, isInitiator: false, isDirect: true, intent });
     } else {
-      directRooms.set(roomId, { socketId: socket.id, peerId });
+      await setDirectRoom(roomId, { socketId: socket.id, peerId });
       socket.emit('direct_room:waiting', { roomId, intent });
     }
   });
 
-  socket.on('direct_room:leave', ({ roomId }) => {
+  socket.on('direct_room:leave', async ({ roomId }) => {
     if (!roomId) return;
-    const existing = directRooms.get(roomId);
+    const existing = await getDirectRoom(roomId);
     if (existing && existing.socketId === socket.id) {
-      directRooms.delete(roomId);
+      await delDirectRoom(roomId);
     }
-    leaveMemoryMatch(socket);
+    await handleLeaveMatch(socket);
   });
 
   // ==========================================
@@ -446,11 +514,11 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log(`[DISCONNECT:${instanceId}] socket=${socket.id}`);
     removeFromMemoryQueues(socket.id, 'disconnect');
     queuedState.delete(socket.id);
-    leaveMemoryMatch(socket);
+    await handleLeaveMatch(socket);
 
     const peerData = socketVoiceRoom.get(socket.id);
     if (peerData) {

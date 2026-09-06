@@ -93,6 +93,10 @@ export interface IPost extends Document {
     benchmark?: string;
     voters?: Array<{ user: mongoose.Types.ObjectId; option: string; rationale?: string; votedAt: Date }>;
   };
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  deletedBy?: mongoose.Types.ObjectId;
+  retentionExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -252,6 +256,10 @@ export const PostSchema: Schema<IPost> = new Schema(
         },
       ],
     },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
+    deletedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    retentionExpiresAt: { type: Date, index: true },
   },
   { timestamps: true }
 );
@@ -259,6 +267,8 @@ export const PostSchema: Schema<IPost> = new Schema(
 PostSchema.index({ userId: 1 });
 PostSchema.index({ createdAt: -1 });
 PostSchema.index({ postType: 1, createdAt: -1 });
+PostSchema.index({ isDeleted: 1, createdAt: -1 });
+PostSchema.index({ retentionExpiresAt: 1 });
 
 export const SavedPostSchema = new Schema(
   {

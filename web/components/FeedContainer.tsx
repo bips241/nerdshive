@@ -22,12 +22,13 @@ interface FeedItemMeta {
 }
 
 interface FeedContainerProps {
-  children: React.ReactNode[];
+  children: React.ReactNode;
   postsMeta: FeedItemMeta[];
 }
 
 export default function FeedContainer({ children, postsMeta }: FeedContainerProps) {
   const [activeTab, setActiveTab] = useState<string>('all');
+  const childrenArray = React.Children.toArray(children);
 
   // Count posts per category
   const counts = {
@@ -198,7 +199,7 @@ export default function FeedContainer({ children, postsMeta }: FeedContainerProp
         </div>
       ) : (
         <div className="space-y-6">
-          {visibleIndices.map((idx) => children[idx])}
+          {visibleIndices.map((idx) => childrenArray[idx])}
         </div>
       )}
     </div>

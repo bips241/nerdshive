@@ -18,7 +18,7 @@ const links = [
   { name: "Explore & Events", href: "/dashboard/explore", icon: Compass },
   {
     name: "Pair Radar",
-    href: "/dashboard/stranger-chat",
+    href: "/dashboard/radar",
     icon: Video,
     liveBadge: true,
   },

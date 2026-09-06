@@ -19,6 +19,7 @@ import {
 
 import { User, Post, Like, SavedPost, Comment, Follows, ProjectRequest, Server } from "@/models/User";
 import connectDB from "@/lib/db";
+import { softDeleteEntity, restoreEntity } from "@/lib/retention";
 
 export async function createPost(values: z.infer<typeof CreatePost>) {
   console.log("Creating Post:", values);
@@ -54,15 +55,36 @@ export async function deletePost(formData: { get: (arg0: string) => any; }) {
   const post = await Post.findOne({ _id: id, userId });
 
   if (!post) {
-    throw new Error("Post not found");
+    throw new Error("Post not found or unauthorized");
   }
 
   try {
-    await Post.deleteOne({ _id: id });
+    // Zero-Loss Invariant: Soft-delete post with statutory 180-day retention
+    await softDeleteEntity(Post, id, userId, {
+      reason: "User requested post deletion",
+    });
     revalidatePath("/dashboard");
     return { message: "Deleted Post." };
   } catch (error) {
     return { message: "Database Error: Failed to Delete Post." };
+  }
+}
+
+export async function restorePostAction(postId: string) {
+  await connectDB();
+  const userId = await getUserId();
+
+  const post = await Post.findOne({ _id: postId, userId });
+  if (!post) {
+    throw new Error("Post not found or unauthorized");
+  }
+
+  try {
+    await restoreEntity(Post, postId, userId);
+    revalidatePath("/dashboard");
+    return { success: true, message: "Post restored successfully." };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Failed to restore post." };
   }
 }
 

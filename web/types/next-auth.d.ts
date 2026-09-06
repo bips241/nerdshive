@@ -6,15 +6,21 @@ declare module 'next-auth' {
       _id?: string;
       isVerified?: boolean;
       user_name?: string;
-      image:string;
-    } ;
+      role?: string;
+      name?: string;
+      email?: string;
+      image?: string;
+    };
   }
 
   interface User {
     _id?: string;
     isVerified?: boolean;
     user_name?: string;
-    image:string;
+    role?: string;
+    name?: string;
+    email?: string;
+    image?: string;
   }
 }
 
@@ -23,6 +29,9 @@ declare module 'next-auth/jwt' {
     _id?: string;
     isVerified?: boolean;
     user_name?: string;
-    image:string;
+    role?: string;
+    name?: string;
+    email?: string;
+    image?: string;
   }
 }

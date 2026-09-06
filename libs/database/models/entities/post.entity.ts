@@ -26,6 +26,9 @@ export interface IPost extends Document {
     goalTargetDate?: Date;
     interestedUsers: mongoose.Types.ObjectId[];
   };
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  retentionExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +68,9 @@ export const PostSchema: Schema<IPost> = new Schema(
       goalTargetDate: { type: Date },
       interestedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
+    retentionExpiresAt: { type: Date, index: true },
   },
   { timestamps: true }
 );

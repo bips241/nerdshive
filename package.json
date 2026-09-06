@@ -24,7 +24,12 @@
     "seo:boost": "node scripts/daily-seo-booster.js",
     "analytics:report": "node scripts/fetch-google-analytics.js",
     "seo:daily": "node scripts/daily-seo-booster.js && node scripts/seo-analytics-report.js && node scripts/fetch-google-analytics.js",
-    "db:seed": "node scripts/seed-db.js"
+    "db:seed": "node scripts/seed-db.js",
+    "db:backup": "node scripts/infra/backup-mongodb.js",
+    "db:dr-drill": "node scripts/infra/verify-restore-drill.js",
+    "db:retention": "node scripts/infra/retention-janitor.js",
+    "s3:retention": "node scripts/infra/setup-s3-retention-policy.js",
+    "test:retention": "node tests/integration/soft-delete-retention-test.js"
   },
   "workspaces": [
     "web",

@@ -12,10 +12,17 @@ import Media from "./Media";
 
 
 
-const isVideoUrl = (url?: string) => {
+async function checkIsVideo(url?: string): Promise<boolean> {
   if (!url) return false;
-  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url) || url.includes('video/');
-};
+  if (/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url) || url.includes('video/')) return true;
+  try {
+    const response = await fetch(url, { method: 'HEAD', next: { revalidate: 3600 } });
+    const contentType = response.headers.get('Content-Type') || '';
+    return contentType.startsWith('video/');
+  } catch {
+    return false;
+  }
+}
 
 const Post = async ({ post }: { post: PostWithExtras }) => {
   const session = await auth();
@@ -37,7 +44,8 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   };
    
   const posT = post;
-  const isImage = !isVideoUrl(fileUrl);
+  const isVideo = await checkIsVideo(fileUrl);
+  const isImage = !isVideo;
 
   return (
     <div className="flex flex-col space-y-2.5">

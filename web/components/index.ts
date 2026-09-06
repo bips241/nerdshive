@@ -46,7 +46,8 @@ export { default as ViewProjectReq } from './viewProjectReq';
 export { default as ProReqClient } from './ProReqClient';
 
 // Video & Realtime
-export { default as VideoMatch } from './VideoMatch';
+export { default as RadarMatchClient } from './radar/RadarMatchClient';
+export { default as LiveCodeSosRoomClient } from './dev-posts/LiveCodeSosRoomClient';
 export { default as SocketBootstrapper } from './SocketBootstrapper';
 
 // Chat

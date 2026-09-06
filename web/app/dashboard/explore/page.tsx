@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Compass, Sparkles, GitFork, Users, Search, Trophy, ShieldCheck, Clock, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getVerifiedHackathons } from '@/lib/hackathon-actions';
+import { canCreateHackathon } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export default async function ExplorePage({
 }) {
   const session = await auth();
   const currentUserId = session?.user?._id?.toString();
+  const canHost = canCreateHackathon(session?.user);
 
   await connectDB();
 
@@ -89,7 +91,7 @@ export default async function ExplorePage({
 
         <div className="flex items-center gap-2 shrink-0">
           <Link
-            href="/dashboard/stranger-chat?mode=project_teammate"
+            href="/dashboard/radar?mode=project_teammate"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs border border-primary/30 transition-colors"
           >
             <Zap className="w-3.5 h-3.5" /> ⚡ Teammate Radar
@@ -100,6 +102,14 @@ export default async function ExplorePage({
           >
             <Users className="w-3.5 h-3.5" /> + Assemble Squad
           </Link>
+          {canHost && (
+            <Link
+              href="/dashboard/hackathons/create"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-colors shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> + Host Hackathon
+            </Link>
+          )}
         </div>
       </div>
 
@@ -172,7 +182,7 @@ export default async function ExplorePage({
                       Event Hub &rarr;
                     </Link>
                     <Link
-                      href={`/dashboard/stranger-chat?mode=project_teammate&hackathon=${h.slug}`}
+                      href={`/dashboard/radar?mode=project_teammate&hackathon=${h.slug}`}
                       className="py-1.5 px-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-[11px] border border-primary/20 transition-colors shrink-0"
                       title="Instant Teammate Speed Radar"
                     >

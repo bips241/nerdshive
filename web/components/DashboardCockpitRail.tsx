@@ -342,7 +342,7 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
             <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
               Pair with another active engineer for real-time video, audio, and code debugging.
             </p>
-            <Link href="/dashboard/stranger-chat" className="block">
+            <Link href="/dashboard/radar" className="block">
               <Button
                 size="sm"
                 className="w-full h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5"

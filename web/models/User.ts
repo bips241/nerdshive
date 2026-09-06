@@ -37,6 +37,14 @@ import {
   HackathonEventSchema,
   IHackathonEvent,
 } from './entities/hackathon.entity';
+import {
+  HackathonRegistrationSchema,
+  IHackathonRegistration,
+} from './entities/hackathon-registration.entity';
+import {
+  HackathonEvaluationSchema,
+  IHackathonEvaluation,
+} from './entities/hackathon-evaluation.entity';
 
 // Re-export entity schemas & types
 export * from './entities/user.entity';
@@ -45,6 +53,8 @@ export * from './entities/collaboration.entity';
 export * from './entities/chat.entity';
 export * from './entities/server.entity';
 export * from './entities/hackathon.entity';
+export * from './entities/hackathon-registration.entity';
+export * from './entities/hackathon-evaluation.entity';
 
 // Initialized Mongoose Models (Singleton registry with explicit Model typing)
 export const User: Model<IUser> =
@@ -94,3 +104,11 @@ export const Server: Model<IServer> =
 export const HackathonEvent: Model<IHackathonEvent> =
   (mongoose.models?.HackathonEvent as Model<IHackathonEvent>) ||
   mongoose.model<IHackathonEvent>('HackathonEvent', HackathonEventSchema);
+
+export const HackathonRegistration: Model<IHackathonRegistration> =
+  (mongoose.models?.HackathonRegistration as Model<IHackathonRegistration>) ||
+  mongoose.model<IHackathonRegistration>('HackathonRegistration', HackathonRegistrationSchema);
+
+export const HackathonEvaluation: Model<IHackathonEvaluation> =
+  (mongoose.models?.HackathonEvaluation as Model<IHackathonEvaluation>) ||
+  mongoose.model<IHackathonEvaluation>('HackathonEvaluation', HackathonEvaluationSchema);

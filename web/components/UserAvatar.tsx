@@ -1,6 +1,3 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import type { AvatarProps } from '@radix-ui/react-avatar';
 import type { User } from 'next-auth';
@@ -11,13 +8,8 @@ type Props = Partial<AvatarProps> & {
   className?: string;
 };
 
-function UserAvatar({ user, className, ...avatarProps }: Props) {
-  const [imgSrc, setImgSrc] = useState<string>(user?.image || '/avatar.png');
-
-  useEffect(() => {
-    setImgSrc(user?.image || '/avatar.png');
-  }, [user?.image]);
-
+export default function UserAvatar({ user, className, ...avatarProps }: Props) {
+  const imgSrc = user?.image || '/avatar.png';
   const isUnoptimized =
     typeof imgSrc === 'string' &&
     (imgSrc.startsWith('data:') || imgSrc.startsWith('blob:') || imgSrc.endsWith('.svg'));
@@ -32,7 +24,6 @@ function UserAvatar({ user, className, ...avatarProps }: Props) {
           alt={`${user?.user_name || user?.name || 'User'}'s avatar`}
           className="rounded-full object-cover"
           sizes="64px"
-          onError={() => setImgSrc('/avatar.png')}
         />
       ) : (
         <div className="rounded-full bg-muted h-full w-full" />
@@ -40,5 +31,3 @@ function UserAvatar({ user, className, ...avatarProps }: Props) {
     </Avatar>
   );
 }
-
-export default UserAvatar;

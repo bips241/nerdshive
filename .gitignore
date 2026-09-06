@@ -59,3 +59,7 @@ agent-log/
 tests/reports/
 docs/seo-reports/
 
+# database backup archives
+backups/
+*.json.gz
+

@@ -12,7 +12,7 @@ export interface IUser extends Document {
   bio?: string;
   website?: string;
   repo?: string;
-  role?: string;
+  role?: 'admin' | 'organizer' | 'judge' | 'developer' | 'user';
   isVerified: boolean;
   verifyCode?: string;
   verifyCodeExpiry?: Date;
@@ -23,6 +23,11 @@ export interface IUser extends Document {
   techStack?: string[];
   debugKarma?: number;
   bugsSolvedCount?: number;
+  accountStatus?: 'active' | 'suspended' | 'deactivated' | 'deleted';
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  retentionExpiresAt?: Date;
+  legalHold?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,10 +52,24 @@ export const UserSchema: Schema<IUser> = new Schema(
     techStack: [{ type: String }],
     debugKarma: { type: Number, default: 0 },
     bugsSolvedCount: { type: Number, default: 0 },
-    role: { type: String, default: 'user' },
+    role: {
+      type: String,
+      enum: ['admin', 'organizer', 'judge', 'developer', 'user'],
+      default: 'developer',
+    },
     isVerified: { type: Boolean, default: false },
     verifyCode: { type: String },
     verifyCodeExpiry: { type: Date },
+    accountStatus: {
+      type: String,
+      enum: ['active', 'suspended', 'deactivated', 'deleted'],
+      default: 'active',
+      index: true,
+    },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
+    retentionExpiresAt: { type: Date, index: true },
+    legalHold: { type: Boolean, default: false, index: true },
     posts: [{ type: Schema.Types.ObjectId, ref: 'Post' }],
     savedPosts: [{ type: Schema.Types.ObjectId, ref: 'SavedPost' }],
     saved: [{ type: Schema.Types.ObjectId, ref: 'SavedPost' }],
@@ -59,6 +78,8 @@ export const UserSchema: Schema<IUser> = new Schema(
 );
 
 UserSchema.index({ user_name: 'text', bio: 'text', repo: 'text' });
+UserSchema.index({ isDeleted: 1, accountStatus: 1 });
+UserSchema.index({ retentionExpiresAt: 1 });
 
 export const VerificationTokenSchema = new Schema(
   {

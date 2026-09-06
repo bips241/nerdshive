@@ -134,21 +134,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.user_name = (user as any).user_name;
         token.email = user.email;
         token.image = user.image;
+        token.role = (user as any).role || 'developer';
       }
 
       if (trigger === 'update' && session?.user_name) {
         token.user_name = session.user_name;
       }
 
-      // Sync active username and user details from DB to keep session always in sync
+      // Sync active username, role and user details from DB to keep session always in sync
       if (token._id) {
         try {
           await connectDB();
-          const dbUser = await User.findById(token._id).select('user_name image isVerified email').lean();
+          const dbUser = await User.findById(token._id).select('user_name image isVerified email role name').lean();
           if (dbUser) {
             token.user_name = dbUser.user_name;
+            token.role = (dbUser as any).role || 'developer';
             if (dbUser.image) token.image = dbUser.image;
             if (dbUser.isVerified !== undefined) token.isVerified = dbUser.isVerified;
+            if ((dbUser as any).name) token.name = (dbUser as any).name;
           }
         } catch (e) {
           // Fail gracefully if DB query times out
@@ -163,6 +166,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.user_name = token.user_name as string;
         session.user.isVerified = token.isVerified as boolean;
         session.user.image = token.image as string;
+        session.user.role = (token.role as string) || 'developer';
+        if (token.name) session.user.name = token.name as string;
+        if (token.email) session.user.email = token.email as string;
       }
       return session;
     },

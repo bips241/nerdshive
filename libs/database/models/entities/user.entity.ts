@@ -19,6 +19,9 @@ export interface IUser extends Document {
   posts: mongoose.Types.ObjectId[];
   savedPosts: mongoose.Types.ObjectId[];
   saved?: any;
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  retentionExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +42,9 @@ export const UserSchema: Schema<IUser> = new Schema(
     isVerified: { type: Boolean, default: false },
     verifyCode: { type: String },
     verifyCodeExpiry: { type: Date },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
+    retentionExpiresAt: { type: Date, index: true },
     posts: [{ type: Schema.Types.ObjectId, ref: 'Post' }],
     savedPosts: [{ type: Schema.Types.ObjectId, ref: 'SavedPost' }],
     saved: [{ type: Schema.Types.ObjectId, ref: 'SavedPost' }],
