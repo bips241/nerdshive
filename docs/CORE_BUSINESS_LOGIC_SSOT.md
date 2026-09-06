@@ -264,3 +264,21 @@ Follow this exact blueprint when extending the platform to preserve core integri
 | **Deleting or Overwriting Unrelated Code/Docstrings** | Destroys context and causes subtle regressions | Additive modifications; preserve non-conflicting logic |
 | **Bypassing the Anti-Clone Shield** | Allows duplicate hackathon impersonation & user confusion | Always enforce unique index on `HackathonEvent.slug` |
 | **Immediate Hard Deletion (`deleteOne` on Core Records)** | Causes catastrophic irrecoverable data loss on accidental click or error | Always use soft-delete via `retention.ts` with 180-day statutory retention |
+
+---
+
+## 9. Entity Evolution, Backward Compatibility & Collision Prevention
+
+To guarantee zero runtime errors on legacy documents and prevent race condition data collisions:
+
+1. **The Additive-Only Law**: All newly introduced fields must be optional (`?`) or have an immutable `default` value. Never delete or rename existing persisted schema fields in-place.
+2. **Expand-and-Contract Migration**: For field refactorings, follow the 3-phase lifecycle: Expand (dual-write, fallback-read) -> Backfill (background worker) -> Contract (deprecate & purge after 180 days).
+3. **Append-Only Enums**: Never prune or rename enum values in Mongoose schemas; existing documents will throw `ValidationError`.
+4. **Atomic Updates Over Overwrites**: Always use `$set`, `$inc`, and `$addToSet` via `findByIdAndUpdate` to prevent lost update anomalies. Never use `doc.save()` for concurrent entity mutations.
+5. **Partial Unique Indexes**: Any unique index on an optional field must declare `sparse: true` or `partialFilterExpression` to prevent duplicate `null` collisions (E11000).
+6. **Dual-Tier Schema Sync**: Any change to `web/models/entities/` must be mirrored in `libs/database/models/entities/`.
+7. **Automated Verification**: All schema changes must pass `npm run test:schema`.
+
+For the complete technical specification, refer to:
+- [SCHEMA_EVOLUTION_AND_COMPATIBILITY_RULES.md](./SCHEMA_EVOLUTION_AND_COMPATIBILITY_RULES.md): The non-negotiable engineering standard for entity evolution, backward compatibility, and collision prevention.
+

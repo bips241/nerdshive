@@ -29,7 +29,8 @@
     "db:dr-drill": "node scripts/infra/verify-restore-drill.js",
     "db:retention": "node scripts/infra/retention-janitor.js",
     "s3:retention": "node scripts/infra/setup-s3-retention-policy.js",
-    "test:retention": "node tests/integration/soft-delete-retention-test.js"
+    "test:retention": "node tests/integration/soft-delete-retention-test.js",
+    "test:schema": "node tests/schema/schema-backward-compatibility-test.js"
   },
   "workspaces": [
     "web",
