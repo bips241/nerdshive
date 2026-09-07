@@ -21,7 +21,7 @@ function PostActions({ post, userId, className }: Props) {
   const router = useRouter();
 
   const handleCommentClick = () => {
-    if (feedContext?.focusPostDiscussion) {
+    if (feedContext && 'focusPostDiscussion' in feedContext && typeof feedContext.focusPostDiscussion === 'function') {
       feedContext.focusPostDiscussion(post);
     } else {
       router.push(`/dashboard/p/${post._id}`);

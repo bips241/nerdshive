@@ -126,13 +126,13 @@ export async function getDocumentSlugs(): Promise<string[]> {
     // Unique list of real slugs
     const slugs: string[] = [];
     const seen = new Set<string>();
-    for (const [key, fullPath] of map.entries()) {
+    map.forEach((fullPath) => {
       const baseName = path.basename(fullPath, '.md');
       if (!seen.has(baseName)) {
         seen.add(baseName);
         slugs.push(baseName);
       }
-    }
+    });
     return slugs;
   } catch (error) {
     console.error('Error reading documents directory:', error);

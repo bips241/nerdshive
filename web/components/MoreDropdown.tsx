@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import * as React from "react";
+const { useEffect, useRef, useState } = React;
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
