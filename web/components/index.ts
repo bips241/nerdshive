@@ -50,10 +50,6 @@ export { default as RadarMatchClient } from './radar/RadarMatchClient';
 export { default as LiveCodeSosRoomClient } from './dev-posts/LiveCodeSosRoomClient';
 export { default as SocketBootstrapper } from './SocketBootstrapper';
 
-// Chat
-export { default as ChatList } from './chatList';
-export { default as ChatListWrapper } from './chatListWrapper';
-export { default as FireChat } from './fireChat';
 
 // Comments
 export { default as Comments } from './Comments';

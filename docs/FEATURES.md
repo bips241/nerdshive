@@ -15,7 +15,7 @@
   - Custom 6-digit email OTP verification via Resend
 - **Database**: MongoDB with Mongoose (`mongoose` 8.4.4). All 11 schema definitions are centralized in [`models/User.ts`](file:///Users/biplabmal/Documents/projects/nerdshive/models/User.ts).
 - **File & Media Storage**: AWS S3 (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) with pre-signed client PUT uploads and client-side image cropping (`react-easy-crop`) / video preview (`react-player`).
-- **Direct Messaging (DMs)**: Firebase Firestore (`firebase` 11.7.1, Web SDK) for real-time room messaging, gated by MongoDB mutual-follow lookup.
+- **Direct Messaging (DMs) & Squad Channels**: Native Socket.IO + MongoDB Atlas (`ChatRoom` & `Message` models in `models/User.ts`) via Server Actions in `lib/chat-actions.ts` (Firebase Firestore has been completely retired and purged).
 - **Random-Match Video Chat ("Omegle for Devs")**:
   - Signaling & Matchmaking Server: Standalone Node/Express + Socket.IO server ([`nerdshive-socket-server`](file:///Users/biplabmal/Documents/projects/nerdshive/nerdshive-socket-server/index.js)).
   - WebRTC Peer Server: Standalone Express + PeerJS server ([`peer-server`](file:///Users/biplabmal/Documents/projects/nerdshive/peer-server/index.js)).
@@ -77,8 +77,8 @@
 
 | Feature Name | User-Facing Description | Key Files & Routes | Data Models Touched | External Services Used | Known Issues & Codebase Limitations |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Mutual-Follow Chat Discovery** | Fetches list of mutual connections (users who follow each other) to open private direct message rooms. | - `app/api/chats/route.ts`<br>- `components/chatList.tsx`<br>- `components/chatListWrapper.tsx`<br>- `app/dashboard/messages/page.tsx` | - `Follows`<br>- `User` | *None* | - MongoDB aggregation in `/api/chats` runs an unindexed `$lookup` and `$unwind` on every fetch.<br>- Polling on mount with no live socket/presence updates when mutual follow status changes. |
-| **Real-Time 1-on-1 DMs (Firestore)** | Real-time chat between mutual follows with auto-scrolling message history. | - `components/fireChat.tsx`<br>- `lib/firebase.ts`<br>- `lib/chat.ts` (`getRoomId`) | - `ChatRoom` (in schema, unused)<br>- `Message` (in schema, unused) | - Google Firebase Firestore | - **Architectural Mismatch**: Backend has `ChatRoom` and `Message` Mongoose models in `models/User.ts`, but the app bypasses them entirely and connects the browser directly to Firebase Firestore.<br>- Firebase security rules are client-dependent; messages are not archived in primary database.<br>- Firebase credentials exposed in client bundle (`NEXT_PUBLIC_FIREBASE_*`). |
+| **Mutual-Follow Chat Discovery** | Fetches list of mutual connections (users who follow each other) to open private direct message rooms. | - `app/api/chats/route.ts`<br>- `components/chat/DiscordLayout.tsx`<br>- `app/dashboard/messages/page.tsx` | - `Follows`<br>- `User` | *None* | - Cached with stale-while-revalidate headers. |
+| **Real-Time 1-on-1 DMs & Squad Channels** | Real-time chat with rich text, code snippets, multi-party voice lounges, and collaborative rooms. | - `components/chat/DiscordLayout.tsx`<br>- `components/chat/RealtimeChatView.tsx`<br>- `components/chat/VoiceVideoStage.tsx`<br>- `lib/chat-actions.ts` | - `Server`<br>- `ChatRoom`<br>- `Message` | - Self-hosted Socket.IO<br>- Metered.ca (WebRTC) | - Unified production stack: MongoDB Atlas persistence + Socket.IO realtime broadcasts with Redis adapter. (Firebase fully purged). |
 
 ---
 
@@ -139,7 +139,7 @@ All Mongoose models and indexes analyzed:
    - Compound unique index: `{ postId: 1, userId: 1 }`, index on `userId: 1`.
 10. **`Comment`** (`comments` collection)
     - Indexes: `{ postId: 1 }`, `{ userId: 1 }`.
-11. **`ChatRoom`** & **`Message`** (Dormant schemas, superseded by Firebase in active UI).
+11. **`ChatRoom`** & **`Message`** (Active Mongoose schemas powering direct messaging and squad channels via Server Actions).
 
 ---
 
@@ -158,7 +158,7 @@ All Mongoose models and indexes analyzed:
 | `NEXT_PUBLIC_SOCKET_SERVER_URL` | Client | Random-match socket signaling server | Configured |
 | `NEXT_PUBLIC_PEER_SERVER_HOST` / `PORT` | Client | PeerJS signaling server host & port | Configured |
 | `NEXT_PUBLIC_METERED_*` (7 vars) | Client | STUN/TURN server URLs and credentials | Configured |
-| `NEXT_PUBLIC_FIREBASE_*` (6 vars) | Client | Firebase app & Firestore credentials | Configured |
+| `NEXT_PUBLIC_FIREBASE_*` (6 vars) | Client | Firebase app & Firestore credentials | **REMOVED** (Fully retired & purged) |
 | `REDIS_URL` | Socket Server | Redis pub/sub adapter | Optional in socket server |
 
 ---
@@ -168,4 +168,4 @@ All Mongoose models and indexes analyzed:
 1. **Stateful Socket Matchmaking**: In-memory `intentQueues` and `activeMatches` must be externalized to Redis with atomic operations to allow multi-replica scaling.
 2. **Media Pipeline Lack of Backpressure & Asynchrony**: Replace direct synchronous client S3 PUT + immediate post creation with an asynchronous pipeline (S3 trigger &rarr; BullMQ job &rarr; transcode / optimize / thumbnail &rarr; update DB).
 3. **Database Indexing & Pagination**: Introduce cursor-based pagination and missing indexes on `Post`, `ProjectRequest`, `PollVote`, and `Follows`.
-4. **Unified Backend Architecture (Phase 5)**: Consolidate fragmented external dependencies (Firebase Firestore, standalone socket script, standalone peer server) into structured, scalable **NestJS microservices** behind a **Next.js BFF** with zero UI/UX drift.
+4. **Unified Backend Architecture (Phase 5)**: Consolidate remaining external real-time microservices behind a unified **Next.js BFF / NestJS gateway** with zero UI/UX drift (Firebase Firestore has already been fully purged and replaced with Socket.IO + MongoDB).

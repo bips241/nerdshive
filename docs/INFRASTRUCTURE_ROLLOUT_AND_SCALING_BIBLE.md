@@ -387,7 +387,7 @@ flowchart TD
         Google["4. Google Cloud Console\n(OAuth 2.0 Client)"]
         GitHub["5. GitHub Developer\n(OAuth App)"]
         Resend["6. Resend.com\n(Transactional Emails)"]
-        Firebase["7. Firebase Console\n(Direct Messaging)"]
+        NextAuth["7. Auth Secret\n(OpenSSL Generator)"]
     end
 ```
 
@@ -405,9 +405,9 @@ flowchart TD
 - **How to get it**:
   1. **Create Bucket**: Go to **S3** -> **Create bucket** -> Name: `nerdshive-v11` -> Region: **Asia Pacific (Mumbai) `ap-south-1`**. Uncheck "Block all public access" if using direct S3 URLs, or keep blocked if using CloudFront CDN.
   2. **Create IAM User (Least Privilege)**:
-     - Go to **IAM** -> **Users** -> **Create user** -> Name: `nerdshive-media-uploader`.
-     - Attach inline policy with `s3:PutObject`, `s3:GetObject`, `s3:PutObjectAcl` on `arn:aws:s3:::nerdshive-v11/*`.
-     - *Security Rule*: **Never** give `s3:DeleteObject` or `AdministratorAccess` to application IAM users. Object deletion is strictly managed by S3 Lifecycle policies.
+      - Go to **IAM** -> **Users** -> **Create user** -> Name: `nerdshive-media-uploader`.
+      - Attach inline policy with `s3:PutObject`, `s3:GetObject`, `s3:PutObjectAcl` on `arn:aws:s3:::nerdshive-v11/*`.
+      - *Security Rule*: **Never** give `s3:DeleteObject` or `AdministratorAccess` to application IAM users. Object deletion is strictly managed by S3 Lifecycle policies.
   3. Create **Access Key** -> Download CSV containing `AWS_ACCESS_KEY` and `AWS_SECRET_ACCESS_KEY`.
 
 #### 3. Metered.ca STUN / TURN (`NEXT_PUBLIC_METERED_*`)
@@ -453,17 +453,15 @@ flowchart TD
   2. Add & verify your domain (e.g. `nerdshive.online`) by adding DKIM & SPF records in Cloudflare DNS.
   3. Go to **API Keys** -> **Create API Key** -> Copy `re_...`.
 
-#### 7. Firebase Firestore (`NEXT_PUBLIC_FIREBASE_*`)
-- **Where to go**: [https://console.firebase.google.com/](https://console.firebase.google.com/)
-- **How to get it**:
-  1. Create project `nerdshive`.
-  2. Add Web App (`</>`) -> Copy the `firebaseConfig` object containing `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`.
-
-#### 8. NextAuth Encryption Key (`AUTH_SECRET` / `NEXTAUTH_SECRET`)
+#### 7. NextAuth Encryption Key (`AUTH_SECRET` / `NEXTAUTH_SECRET`)
 - Generate directly in terminal:
   ```bash
   openssl rand -base64 32
   ```
+
+> [!NOTE]
+> **Firebase (`NEXT_PUBLIC_FIREBASE_*`) Status: DEPRECATED & NOT IN USE**
+> Firebase was used in an early prototype for 1-on-1 direct messages. It has since been **fully retired and replaced** by our self-hosted **Socket.IO + MongoDB Atlas (`ChatRoom` and `Message` models) + Redis pub/sub** engine. **Zero Firebase credentials or accounts are required** to run, deploy, or scale NerdShive.
 
 ---
 
