@@ -7,7 +7,7 @@ import { MessageCircle } from "lucide-react";
 import LikeButton from "./Like";
 import ShareButton from "./ShareButton";
 import BookmarkButton from "./BookmarkButton";
-import { useFeed } from "./FeedProvider";
+import { useOptionalFeed } from "./FeedProvider";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -17,11 +17,7 @@ type Props = {
 };
 
 function PostActions({ post, userId, className }: Props) {
-  let feedContext: any = null;
-  try {
-    feedContext = useFeed();
-  } catch (_) {}
-
+  const feedContext = useOptionalFeed();
   const router = useRouter();
 
   const handleCommentClick = () => {

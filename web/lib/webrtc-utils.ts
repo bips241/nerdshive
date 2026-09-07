@@ -12,12 +12,17 @@ export function getIceServers(): RTCIceServer[] {
   const turn443Url = process.env.NEXT_PUBLIC_METERED_TURN_443_URL || 'turn:standard.relay.metered.ca:443';
   const turns443TcpUrl = process.env.NEXT_PUBLIC_METERED_TURNS_443_TCP_URL || 'turns:standard.relay.metered.ca:443?transport=tcp';
 
+  const googleStunServers = [
+    'stun:stun.l.google.com:19302',
+    'stun:stun1.l.google.com:19302',
+  ];
+
   if (!username || !credential) {
-    return [{ urls: stunUrl }];
+    return [{ urls: [stunUrl, ...googleStunServers] }];
   }
 
   return [
-    { urls: stunUrl },
+    { urls: [stunUrl, ...googleStunServers] },
     { urls: turnUrl, username, credential },
     { urls: turnTcpUrl, username, credential },
     { urls: turn443Url, username, credential },

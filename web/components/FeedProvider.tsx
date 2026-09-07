@@ -116,3 +116,7 @@ export const useFeed = () => {
   }
   return context;
 };
+
+export const useOptionalFeed = () => {
+  return useContext(FeedContext);
+};

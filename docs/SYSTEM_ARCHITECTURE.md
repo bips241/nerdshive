@@ -10,22 +10,22 @@ NerdShive / DevConnect employs a **hybrid Edge BFF + Asynchronous Event-Driven N
 
 ```mermaid
 flowchart TD
-    subgraph Client Tier [Client Tier]
+    subgraph ClientTier ["Client Tier"]
         WebBrowser["Web Browser (React 18 / Next.js)"]
         MobileClient["Mobile / PWA Client"]
         WebRTCStream["WebRTC P2P Audio / Video"]
     end
 
-    subgraph Edge Tier [Edge & Delivery Tier]
+    subgraph EdgeTier ["Edge & Delivery Tier"]
         CloudFront["CloudFront CDN (Edge Caching)"]
         ALB["Application Load Balancer (SSL Termination / HTTP/2)"]
     end
 
-    subgraph BFF Tier [Next.js BFF Tier]
+    subgraph BFFTier ["Next.js BFF Tier"]
         NextApp["Next.js 14 App Router (:3000)\n- SSR / Static Optimization\n- Session Cookie Inspection\n- Fast Edge UI Proxy"]
     end
 
-    subgraph Microservices Tier [NestJS Microservices Cluster]
+    subgraph MicroservicesTier ["NestJS Microservices Cluster"]
         Gateway["NestJS API Gateway (:4000)"]
         AuthSvc["auth-service (:4001)\n(OAuth, JWT, OTP, RBAC)"]
         MediaSvc["media-service (:4002)\n(S3 Presigning, Upload Policy)"]
@@ -36,19 +36,21 @@ flowchart TD
         NotifSvc["notification-service (:4006)\n(Email, Push, In-App Alerts)"]
     end
 
-    subgraph Queue Tier [Asynchronous Job Processing Tier]
+    subgraph QueueTier ["Asynchronous Job Processing Tier"]
         BullMQWorker["BullMQ Worker Process\n(Sharp Resizing, Video Transcode, Moderation)"]
     end
 
-    subgraph Persistence Tier [Data & State Tier]
+    subgraph PersistenceTier ["Data & State Tier"]
         RedisCluster[("Redis 7 Cluster\n- Ephemeral Match Queues\n- Pub/Sub Room State\n- Distributed Caching\n- BullMQ Job Store")]
         MongoDBAtlas[("MongoDB Atlas Cluster\n- Users & Profiles\n- Posts & Projects\n- Follows & Comments\n- Direct Message Archives")]
         S3Storage[("AWS S3 Media Bucket\n- Raw & Optimized Media")]
         ResendAPI["Resend Email Delivery API"]
     end
 
-    WebBrowser & MobileClient --> CloudFront
-    WebBrowser & MobileClient --> ALB
+    WebBrowser --> CloudFront
+    MobileClient --> CloudFront
+    WebBrowser --> ALB
+    MobileClient --> ALB
     ALB --> NextApp
     NextApp --> Gateway
 
@@ -58,16 +60,20 @@ flowchart TD
     Gateway --> ChatSvc
     Gateway --> DiscoverySvc
 
-    WebBrowser <--> SignalingSvc
-    SignalingSvc <--> WebRTCStream
+    WebBrowser --- SignalingSvc
+    SignalingSvc --- WebRTCStream
 
-    AuthSvc & DiscoverySvc & ChatSvc --> MongoDBAtlas
+    AuthSvc --> MongoDBAtlas
+    DiscoverySvc --> MongoDBAtlas
+    ChatSvc --> MongoDBAtlas
     MediaSvc --> S3Storage
     MediaSvc --> BullMQWorker
     BullMQWorker --> S3Storage
     BullMQWorker --> MongoDBAtlas
 
-    MatchSvc & SignalingSvc & ChatSvc --> RedisCluster
+    MatchSvc --> RedisCluster
+    SignalingSvc --> RedisCluster
+    ChatSvc --> RedisCluster
     NotifSvc --> RedisCluster
     NotifSvc --> ResendAPI
 ```
@@ -120,8 +126,12 @@ The platform is fully containerized using Docker and Docker Compose:
 
 ---
 
-## 6. Single Source of Truth (SSOT) & Business Logic Governance
+## 6. Single Source of Truth (SSOT) & Operational Documentation
 
-For the complete, vast, and immutable business logic specification, authorization invariants, hackathon multi-round state machines, and extension blueprints, refer to:
+For complete architectural specifications, rollout runbooks, and domain invariants, refer to:
 - [CORE_BUSINESS_LOGIC_SSOT.md](./CORE_BUSINESS_LOGIC_SSOT.md): The authoritative single source of truth for platform domain logic, invariants, and extension rules.
+- [INFRASTRUCTURE_ROLLOUT_AND_SCALING_BIBLE.md](./INFRASTRUCTURE_ROLLOUT_AND_SCALING_BIBLE.md): Production rollout guide, edge CDN configuration, Oracle Always Free setup, and 0-to-10M scaling blueprint.
+- [DATA_STORAGE_AND_BACKUP_POLICY.md](./DATA_STORAGE_AND_BACKUP_POLICY.md): Data storage classification, zero-loss backup architecture, 180-day statutory retention, and IT Act compliance.
+- [SCHEMA_EVOLUTION_AND_COMPATIBILITY_RULES.md](./SCHEMA_EVOLUTION_AND_COMPATIBILITY_RULES.md): Non-negotiable engineering standard for entity evolution, backward compatibility, and collision prevention.
+
 

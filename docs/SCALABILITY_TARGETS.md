@@ -54,11 +54,11 @@ flowchart TD
     Client["Client (Next.js Web / Mobile)"] --> CloudFront["CloudFront CDN"]
     Client --> ALB["Application Load Balancer"]
     
-    subgraph Edge Layer
+    subgraph EdgeLayer ["Edge Layer"]
         ALB --> NextBFF["Next.js Gateway & BFF (SSR / UI)"]
     end
     
-    subgraph Microservices Backend [NestJS Microservices Layer]
+    subgraph MicroservicesBackend ["NestJS Microservices Layer"]
         NextBFF --> AuthService["Auth Service (JWT / Sessions / OAuth)"]
         NextBFF --> ProfileService["Profile Service (User Graph & Skills)"]
         NextBFF --> DiscoveryService["Discovery Service (Feed & Search)"]
@@ -69,9 +69,13 @@ flowchart TD
         NextBFF --> NotifService["Notification Service (Alerts & Emails)"]
     end
     
-    subgraph Shared State & Storage
-        AuthService & ProfileService & DiscoveryService --> MongoDB[(MongoDB Atlas Primary/Replicas)]
-        MatchService & SignalingService & ChatService --> RedisCluster[(Redis Cluster - State & Pub/Sub)]
+    subgraph SharedStorage ["Shared State & Storage"]
+        AuthService --> MongoDB[(MongoDB Atlas Primary/Replicas)]
+        ProfileService --> MongoDB
+        DiscoveryService --> MongoDB
+        MatchService --> RedisCluster[(Redis Cluster - State & Pub/Sub)]
+        SignalingService --> RedisCluster
+        ChatService --> RedisCluster
         MediaService --> S3[(AWS S3 Media Bucket)]
         MediaService --> BullMQ[(BullMQ Worker Queue)]
         NotifService --> Resend[Resend Email Gateway]

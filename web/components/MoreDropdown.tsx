@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Activity,
   Bookmark,
+  BookOpen,
   ChevronLeft,
   LogOut,
   Menu,
@@ -110,6 +111,18 @@ function MoreDropdown() {
               <DropdownMenuItem className="menuItem cursor-pointer">
                 <Bookmark size={20} />
                 <p>Saved</p>
+              </DropdownMenuItem>
+            </Link>
+
+            <Link href="/devs/docs" onClick={() => setOpen(false)}>
+              <DropdownMenuItem className="menuItem cursor-pointer text-cyan-400 font-medium flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <BookOpen size={20} />
+                  <p>Developer Specs</p>
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                  Secured
+                </span>
               </DropdownMenuItem>
             </Link>
 

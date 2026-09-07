@@ -35,25 +35,25 @@ To guarantee that **not a single user or event is lost by error, accidental dele
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 [Layer 1: Code-Level Soft Delete]
+    subgraph Layer1 ["Layer 1: Code-Level Soft Delete"]
         AppAction["User / Organizer Action"] --> SoftDelete["softDeleteEntity()"]
         SoftDelete --> Tombstone["Set isDeleted=true\nretentionExpiresAt = +180 Days"]
         Tombstone --> InstantRestore["Instant 1-Click Restore Available"]
     end
 
-    subgraph Layer2 [Layer 2: Database Continuous Replication]
+    subgraph Layer2 ["Layer 2: Database Continuous Replication"]
         ActiveData["Primary MongoDB Node"] --> OplogStream["Continuous Oplog Archiving"]
         OplogStream --> PITR["Point-in-Time Recovery (PITR)\nRestore to any exact second"]
     end
 
-    subgraph Layer3 [Layer 3: Cryptographic Air-Gapped Backups]
+    subgraph Layer3 ["Layer 3: Cryptographic Air-Gapped Backups"]
         CronJob["Daily Automated Cron (backup-mongodb.js)"] --> StreamDump["Cursor-Paginated Streaming Dump"]
         StreamDump --> GzipCompress["GZIP Level-9 Stream Compression"]
         GzipCompress --> Checksum["SHA-256 Integrity Checksum Generation"]
         Checksum --> S3Backup["Encrypted S3 Upload (backups/mongodb/)"]
     end
 
-    subgraph Layer4 [Layer 4: Automated DR Verification]
+    subgraph Layer4 ["Layer 4: Automated DR Verification"]
         S3Backup --> DRDrill["DR Restore Drill (verify-restore-drill.js)"]
         DRDrill --> SandboxVerify["Restore to Sandbox DB & Assert 100% Record Fidelity"]
     end
@@ -98,12 +98,10 @@ flowchart TD
 When a hackathon event is cancelled or deleted by an organizer or platform admin, it undergoes a 3-stage lifecycle:
 
 ```mermaid
-timeline
-    title Deleted Hackathon Event Retention Timeline (IT Act & DPDP Compliant)
-    Day 0 : Event Soft-Deleted : Status set to 'deleted' : Hidden from explore/search : 30-day grace window begins
-    Day 30 : Grace Window Ends : Self-service restore closes : Enters statutory legal hold
-    Day 31 - 180 : Statutory IT Act Hold : Preserved securely in ap-south-1 : Audit & forensic compliance : Participant submissions preserved in portfolios
-    Day 181+ : Statutory Expiry & Janitor : Status transitions to 'archived_statutory_hold_expired' : Linked S3 temp assets purged : Non-essential PII scrubbed
+flowchart LR
+    Stage1["Day 0 - 30: Grace Window\n• Event soft-deleted (isDeleted=true)\n• Hidden from explore/search\n• 1-click self-service restore"]
+    --> Stage2["Day 31 - 180: Statutory Legal Hold\n• Inaccessible to users/organizers\n• IT Rules 2021 & CERT-In compliance\n• Preserved securely in ap-south-1"]
+    --> Stage3["Day 181+: Statutory Janitor\n• Transitions to hold-expired\n• S3 temp assets purged\n• Section 8 DPDP PII scrubbed"]
 ```
 
 ### 4.1 Stage 1: Tombstone & Grace Period (Day 0 to Day 30)

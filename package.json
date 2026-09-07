@@ -30,7 +30,13 @@
     "db:retention": "node scripts/infra/retention-janitor.js",
     "s3:retention": "node scripts/infra/setup-s3-retention-policy.js",
     "test:retention": "node tests/integration/soft-delete-retention-test.js",
-    "test:schema": "node tests/schema/schema-backward-compatibility-test.js"
+    "test:schema": "node tests/schema/schema-backward-compatibility-test.js",
+    "test:rbac": "node tests/security/rbac-bypass-proof-test.js",
+    "test:hackathon": "node tests/integration/hackathon-ecosystem-test.js",
+    "test:rooms": "node tests/chat/segregated-video-rooms-test.js",
+    "test:all": "npm run test:schema && npm run test:retention && npm run test:rbac && npm run test:hackathon && npm run test:rooms",
+    "env:check": "node scripts/infra/validate-env.js",
+    "ci:validate": "npm run lint && npm run env:check && npm run test:all && npm run build"
   },
   "workspaces": [
     "web",

@@ -283,3 +283,32 @@ don't force a boundary the real feature set doesn't support):
   team size, expected launch traffic) rather than silently picking a default.
 - Ship in the smallest safe increments possible, especially in Phase 5 —
   this is a live product, not a greenfield rewrite.
+
+---
+
+## 7. Current Platform State, Infrastructure Bible & Enterprise CI/CD Pipeline (2026-09-07)
+
+The platform is fully specified, hardened, and equipped with a complete infrastructure and CI/CD operations standard:
+
+1. **Infrastructure Rollout & Scaling Bible**:
+   - Living standard documented in [`docs/INFRASTRUCTURE_ROLLOUT_AND_SCALING_BIBLE.md`](docs/INFRASTRUCTURE_ROLLOUT_AND_SCALING_BIBLE.md).
+   - 10 comprehensive chapters covering: Hybrid Edge Topology (Cloudflare -> Oracle Ampere A1 -> Atlas M0 -> S3 Mumbai), solving Render free-tier cold starts, OCI turnkey setup, edge CDN caching rules, microservices scaling triggers, 4-phase scale-up roadmap (0 to 10M MAU), operational maintenance runbooks, `package.json` scripts manual, and master credentials guide.
+
+2. **Enterprise GitHub Actions CI/CD Pipeline**:
+   - Implemented in [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml).
+   - 10 minute pre-flight validation gates running against ephemeral Redis 7 and Mongo 7 containers:
+     - Gate 1: ESLint syntax & quality (`npm run lint`).
+     - Gate 2: Strict Monorepo TypeScript (`tsc --noEmit`).
+     - Gate 3: Secrets & Environment Integrity Audit (`npm run env:check`).
+     - Gate 4: Ephemeral Database Seeding (`npm run db:seed`).
+     - Gate 5: Entity Backward Compatibility & Collision Invariance (`npm run test:schema`).
+     - Gate 6: Statutory 180-Day Data Retention Drill (`npm run test:retention`).
+     - Gate 7: Backend-Enforced RBAC Bypass-Proof Suite (`npm run test:rbac`).
+     - Gate 8: Hackathon Anti-Clone Shield & Squad Isolation (`npm run test:hackathon`).
+     - Gate 9: Real-Time WebRTC Room Segregation (`npm run test:rooms`).
+     - Gate 10: Next.js Production Build Optimization (`npm run build`).
+   - Container Image Verification (Docker Buildx).
+   - Zero-Downtime Rolling Deployment via SSH (`appleboy/ssh-action`) to Oracle Always Free VM with atomic git sync, rolling container restart, graceful Nginx reload, automated HTTP smoke probing, and automated rollback if probes fail.
+
+3. **Composite Developer Verification**:
+   - Single command runs all 10 gates locally before pushing: `npm run ci:validate`.

@@ -78,13 +78,13 @@ All backend gates **must** invoke these canonical functions:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Upcoming: Organizer creates verified event
-    Upcoming --> Live: Registration & Squad formation opens
-    Live --> Round1: Stage 1 Deliverables submission
-    Round1 --> Judging1: Round 1 submissions close
-    Judging1 --> Round2: Organizer broadcasts qualifying teams
-    Round2 --> FinalJudging: Round 2 deliverables & Pitch Day
-    FinalJudging --> Ended: Official Winners & Prize Pool awarded
+    [*] --> Upcoming : Organizer creates verified event
+    Upcoming --> Live : Registration & Squad formation opens
+    Live --> Round1 : Stage 1 Deliverables submission
+    Round1 --> Judging1 : Round 1 submissions close
+    Judging1 --> Round2 : Organizer broadcasts qualifying teams
+    Round2 --> FinalJudging : Round 2 deliverables & Pitch Day
+    FinalJudging --> Ended : Official Winners & Prize Pool awarded
     Ended --> [*]
 ```
 
@@ -158,11 +158,11 @@ sequenceDiagram
 The platform operates **3 segregated, context-aware realtime communication experiences**:
 
 ```mermaid
-graph TD
-    subgraph Realtime Routing SSOT
-        A[Realtime Communication Request] -->|Code SOS Post| B["Contextual Debug Room<br/>(/dashboard/p/[id]/debug)"]
-        A -->|Hackathon Team Room| C["Squad Voice & Video Stage<br/>(/dashboard/messages)"]
-        A -->|Developer Discovery| D["Pair Radar Speed Match<br/>(/dashboard/radar)"]
+flowchart TD
+    subgraph RealtimeRouting ["Realtime Routing SSOT"]
+        A["Realtime Communication Request"] -->|Code SOS Post| B["Contextual Debug Room\n(/dashboard/p/[id]/debug)"]
+        A -->|Hackathon Team Room| C["Squad Voice & Video Stage\n(/dashboard/messages)"]
+        A -->|Developer Discovery| D["Pair Radar Speed Match\n(/dashboard/radar)"]
     end
 ```
 

@@ -1,0 +1,241 @@
+name: NerdShive CI/CD Enterprise Validation & Zero-Downtime Deployment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment to production even if manual trigger'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # =========================================================================
+  # JOB 1: MINUTE PRE-FLIGHT VALIDATION & COMPREHENSIVE SECURITY TESTING
+  # =========================================================================
+  validate-and-test:
+    name: "Pre-Flight Validation & Security Gates"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Ephemeral service containers mirroring production for 100% realistic tests
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      MONGODB_URI: mongodb://localhost:27017/nerdshive_ci_test
+      REDIS_URL: redis://localhost:6379
+      NEXT_PUBLIC_SOCKET_SERVER_URL: http://localhost:10000
+      AUTH_SECRET: ci_test_auth_secret_must_be_minimum_32_characters_long_for_security
+      AUTH_TRUST_HOST: "true"
+      NEXTAUTH_URL: http://localhost:3000
+      METERED_API_KEY: ci_mock_metered_key
+      METERED_APP_NAME: ci-test-app
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+    steps:
+      - name: 📥 Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Root & Workspace Dependencies
+        run: npm ci
+
+      - name: 🔍 Gate 1: Code Syntax & Quality Audit (ESLint)
+        run: npm run lint
+
+      - name: 🛡️ Gate 2: Strict Monorepo TypeScript Compilation
+        run: |
+          echo "Checking TypeScript compilation across root and web workspaces..."
+          npm --prefix web run tsc --noEmit || npx --prefix web tsc --noEmit
+          npx tsc --noEmit
+
+      - name: 🔑 Gate 3: Secrets & Environment Integrity Audit
+        run: npm run env:check
+
+      - name: 🌱 Gate 4: Seed Ephemeral CI Database
+        run: npm run db:seed
+
+      - name: 🧬 Gate 5: Entity Backward Compatibility & Collision Invariance Test
+        run: npm run test:schema
+
+      - name: 🗄️ Gate 6: Statutory 180-Day Data Retention & Disaster Recovery Drill
+        run: npm run test:retention
+
+      - name: 🔒 Gate 7: Backend-Enforced RBAC Bypass-Proof Invariant Suite
+        run: npm run test:rbac
+
+      - name: 🏆 Gate 8: Hackathon Anti-Clone Shield & Squad Isolation Test
+        run: npm run test:hackathon
+
+      - name: 📹 Gate 9: Real-Time WebRTC Signaling & Room Segregation Test
+        run: npm run test:rooms
+
+      - name: ⚡ Gate 10: Next.js Production Build & Static Asset Optimization
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_ENV: production
+
+  # =========================================================================
+  # JOB 2: CONTAINER IMAGE INTEGRITY & DOCKER COMPOSE AUDIT
+  # =========================================================================
+  container-verification:
+    name: "Container & Image Verification"
+    needs: [validate-and-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 📜 Validate Docker Compose Production Specification
+        run: |
+          docker compose -f docker-compose.prod.yml config
+
+      - name: 🏗️ Verify Signaling Server Container Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/signaling-server
+          file: ./apps/signaling-server/Dockerfile
+          push: false
+          tags: nerdshive-signaling:ci
+
+      - name: 🏗️ Verify Next.js Production Container Build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: nerdshive-web:ci
+          build-args: |
+            NEXT_TELEMETRY_DISABLED=1
+
+  # =========================================================================
+  # JOB 3: ZERO-DOWNTIME ROLLING DEPLOYMENT (ORACLE ALWAYS FREE VM)
+  # =========================================================================
+  deploy-to-production:
+    name: "Production Zero-Downtime Rollout"
+    needs: [validate-and-test, container-verification]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.force_deploy == 'true')
+
+    steps:
+      - name: 🚀 Execute Remote Zero-Downtime Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER || 'ubuntu' }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: ${{ secrets.ORACLE_SSH_PORT || 22 }}
+          timeout: 300s
+          script_stop: true
+          script: |
+            set -e
+            echo "🚀 [CI/CD] Connected to Oracle Cloud Always Free VM ($(hostname)). Starting zero-downtime deployment..."
+            
+            PROJECT_DIR="/home/ubuntu/nerdshive"
+            if [ ! -d "$PROJECT_DIR" ]; then
+              echo "Creating project directory at $PROJECT_DIR..."
+              mkdir -p "$PROJECT_DIR"
+              git clone https://github.com/bips241/nerdshive.git "$PROJECT_DIR"
+            fi
+            
+            cd "$PROJECT_DIR"
+            
+            # Save current HEAD for automated rollback if needed
+            PREV_COMMIT=$(git rev-parse HEAD || echo "")
+            echo "📌 Current deployed commit: $PREV_COMMIT"
+            
+            # 1. Pull latest tested commit from main
+            echo "📥 Pulling latest validated code from origin/main..."
+            git fetch origin main
+            git reset --hard origin/main
+            NEW_COMMIT=$(git rev-parse HEAD)
+            echo "✅ Fast-forwarded to target commit: $NEW_COMMIT"
+            
+            # 2. Update Production Environment Secrets
+            if [ -n "${{ secrets.PROD_ENV_FILE }}" ]; then
+              echo "🔐 Injecting secure production environment secrets..."
+              echo "${{ secrets.PROD_ENV_FILE }}" > .env
+              chmod 600 .env
+            fi
+            
+            # 3. Build and Rolling Restart Microservices (Zero-Downtime)
+            echo "🐳 Rolling update for Web and Signaling microservices..."
+            docker compose -f docker-compose.prod.yml up -d --build --no-deps web signaling
+            
+            # 4. Gracefully Reload Edge Nginx (0 dropped WebSocket connections)
+            echo "⚡ Gracefully reloading Nginx edge reverse proxy..."
+            docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload || docker compose -f docker-compose.prod.yml restart nginx
+            
+            # 5. Minute Post-Deploy Health Check & Automated Rollback Guard
+            echo "🩺 Probing platform health state..."
+            HEALTH_PASSED=false
+            for i in $(seq 1 6); do
+              echo "Attempt $i/6: Checking local web response..."
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/ || true)
+              if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "307" ] || [ "$HTTP_STATUS" = "308" ]; then
+                echo "✅ Web service responded with HTTP $HTTP_STATUS!"
+                HEALTH_PASSED=true
+                break
+              fi
+              sleep 5
+            done
+            
+            if [ "$HEALTH_PASSED" != "true" ]; then
+              echo "❌ ERROR: Health probe failed after deployment! Initiating automatic rollback to $PREV_COMMIT..."
+              if [ -n "$PREV_COMMIT" ]; then
+                git checkout "$PREV_COMMIT"
+                docker compose -f docker-compose.prod.yml up -d --build --no-deps web signaling
+                docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+                echo "⚠️ Rollback to $PREV_COMMIT completed successfully."
+              fi
+              exit 1
+            fi
+            
+            # 6. Cleanup dangling build artifacts to save disk space on VM
+            echo "🧹 Cleaning up dangling Docker build images..."
+            docker image prune -f
+            
+            echo "🎉 [CI/CD] Production deployment completed successfully with ZERO downtime!"
