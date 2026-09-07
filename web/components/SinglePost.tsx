@@ -21,11 +21,7 @@ import { CommentWithExtras } from "@/lib/definitions";
 import Media from "./Media";
 
 import ShipLogUI from "./dev-posts/ShipLogUI";
-import CodeSosUI from "./dev-posts/CodeSosUI";
-import ArchitectureRfcUI from "./dev-posts/ArchitectureRfcUI";
 import HackathonCrewUI from "./dev-posts/HackathonCrewUI";
-import TechShowdownUI from "./dev-posts/TechShowdownUI";
-import ProjectPostUI from "./ProjectPostUI";
 
 async function SinglePost({ id }: { id: string }) {
   const post = await fetchPostById(id);
@@ -37,13 +33,9 @@ async function SinglePost({ id }: { id: string }) {
   const postUsername = posT?.userId?.user_name;
   const userId = session?.user?._id?.toString();
 
-  // Route to dedicated developer archetype components if not standard media
+  // Route to dedicated developer archetype components
   if (posT.postType === 'ship_log') return <div className="max-w-2xl mx-auto"><ShipLogUI post={posT} /></div>;
-  if (posT.postType === 'code_sos') return <div className="max-w-2xl mx-auto"><CodeSosUI post={posT} /></div>;
-  if (posT.postType === 'architecture_rfc') return <div className="max-w-2xl mx-auto"><ArchitectureRfcUI post={posT} /></div>;
   if (posT.postType === 'hackathon_crew') return <div className="max-w-2xl mx-auto"><HackathonCrewUI post={posT} /></div>;
-  if (posT.postType === 'tech_showdown') return <div className="max-w-2xl mx-auto"><TechShowdownUI post={posT} /></div>;
-  if (posT.postType === 'project') return <div className="max-w-2xl mx-auto"><ProjectPostUI post={posT} /></div>;
 
   async function getFileType(url: string): Promise<string | null> {
     if (!url) return null;
@@ -122,8 +114,8 @@ async function SinglePost({ id }: { id: string }) {
           )}
 
           <div className="px-2 hidden md:block mt-auto border-y p-2.5">
-            {/* <PostActions post={posT} userId={userId} /> */}
-            <time className="text-[11px] uppercase text-zinc-500 font-medium">
+            <PostActions post={posT} userId={userId} />
+            <time className="text-[11px] uppercase text-zinc-500 font-medium block pt-1">
               {new Date(posT.createdAt).toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",

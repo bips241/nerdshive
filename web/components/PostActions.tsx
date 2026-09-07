@@ -21,11 +21,7 @@ function PostActions({ post, userId, className }: Props) {
   const router = useRouter();
 
   const handleCommentClick = () => {
-    if (feedContext && 'focusPostDiscussion' in feedContext && typeof feedContext.focusPostDiscussion === 'function') {
-      feedContext.focusPostDiscussion(post);
-    } else {
-      router.push(`/dashboard/p/${post._id}`);
-    }
+    router.push(`/dashboard/p/${post._id}`);
   };
 
   return (
@@ -35,7 +31,7 @@ function PostActions({ post, userId, className }: Props) {
         onClick={handleCommentClick}
         type="button"
         className="focus:outline-none cursor-pointer"
-        title="Open Discussion in Right Cockpit"
+        title="View Comments & Discussion"
       >
         <ActionIcon>
           <MessageCircle className="h-6 w-6" />

@@ -505,7 +505,7 @@ export default function HackathonHubClient({
 
       {/* Registration & Team Modal */}
       <Dialog open={registerModalOpen} onOpenChange={setRegisterModalOpen}>
-        <DialogContent className="max-w-md bg-neutral-950 border-neutral-800 text-foreground">
+        <DialogContent className="w-[95vw] sm:w-full max-w-md max-h-[88vh] overflow-y-auto bg-neutral-950 border-neutral-800 text-foreground rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Users className="h-5 w-5 text-purple-400" />

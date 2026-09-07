@@ -7,27 +7,22 @@ import {
   Trophy,
   Users,
   Rocket,
-  Bug,
   Sparkles,
   ArrowRight,
   MessageSquare,
   Hash,
   Send,
   Code2,
-  ExternalLink,
-  MessageCircle,
-  Clock,
-  ChevronDown,
-  Volume2,
-  Smile,
   ShieldCheck,
+  Zap,
+  ExternalLink,
+  Film,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useFeed, CockpitTab } from './FeedProvider';
 import UserAvatar from './UserAvatar';
 import { getUserServers, getChannelMessages, sendChannelMessageAction } from '@/lib/chat-actions';
-import { createComment } from '@/lib/actions';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -74,7 +69,7 @@ const UPCOMING_HACKATHONS: HackathonSnippet[] = [
 ];
 
 export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRailProps) {
-  const { cockpitTab, setCockpitTab, activeDiscussionPost, posts } = useFeed();
+  const { cockpitTab, setCockpitTab } = useFeed();
 
   // Chat State
   const [servers, setServers] = useState<any[]>([]);
@@ -87,24 +82,8 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
   const [codeSnippet, setCodeSnippet] = useState('');
   const [codeLanguage, setCodeLanguage] = useState('typescript');
 
-  // Discussion / Comment State
-  const focusedPost = activeDiscussionPost || (posts && posts.length > 0 ? posts[0] : null);
-  const [postComments, setPostComments] = useState<any[]>([]);
-  const [commentInput, setCommentInput] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-
   const chatEndRef = useRef<HTMLDivElement | null>(null);
-  const commentsEndRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
-
-  // Sync comments when focused post changes
-  useEffect(() => {
-    if (focusedPost?.comments) {
-      setPostComments(focusedPost.comments);
-    } else {
-      setPostComments([]);
-    }
-  }, [focusedPost]);
 
   // Load user servers for Discord Chat
   useEffect(() => {
@@ -238,47 +217,11 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
     }
   };
 
-  // Submit Comment for Active Post
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentInput.trim() || !focusedPost?._id) return;
-
-    const newCommentText = commentInput.trim();
-    setCommentInput('');
-    setIsSubmittingComment(true);
-
-    const optimisticComment = {
-      _id: 'opt-' + Date.now(),
-      body: newCommentText,
-      userId: {
-        _id: currentUser._id,
-        user_name: currentUser.user_name,
-        image: currentUser.image,
-      },
-      createdAt: new Date().toISOString(),
-    };
-
-    setPostComments((prev) => [optimisticComment, ...prev]);
-
-    try {
-      await createComment({
-        body: newCommentText,
-        postId: focusedPost._id.toString(),
-      });
-      toast.success('Comment posted');
-    } catch (err) {
-      toast.error('Failed to post comment');
-      setPostComments((prev) => prev.filter((c) => c._id !== optimisticComment._id));
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
   return (
     <aside className="w-full h-full flex flex-col rounded-2xl border border-border/70 bg-card/80 backdrop-blur-md overflow-hidden shadow-xs">
       {/* 1. Header Segmented Switcher */}
       <div className="p-2 border-b border-border/60 bg-secondary/30 shrink-0">
-        <div className="grid grid-cols-3 gap-1 bg-background/80 p-1 rounded-xl border border-border/50">
+        <div className="grid grid-cols-2 gap-1 bg-background/80 p-1 rounded-xl border border-border/50">
           <button
             onClick={() => setCockpitTab('pulse')}
             className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
@@ -300,19 +243,7 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Chat</span>
-          </button>
-
-          <button
-            onClick={() => setCockpitTab('comments')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-              cockpitTab === 'comments'
-                ? 'bg-secondary text-foreground shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Discussion</span>
+            <span>Squad Chat</span>
           </button>
         </div>
       </div>
@@ -395,41 +326,76 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
             </div>
           </div>
 
-          {/* Quick Shortcuts */}
+          {/* Developer Action Hub */}
           <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 space-y-2">
-            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              Quick Launch
-            </h4>
-            <div className="grid grid-cols-1 gap-1 text-xs">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Developer Action Hub
+              </h4>
+              <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live Hub
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5 text-xs">
               <Link
                 href="/dashboard/create?type=hackathon_crew"
-                className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/30 hover:bg-secondary/60 transition-colors group"
+                className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/60 border border-transparent hover:border-amber-500/30 transition-all group"
               >
-                <span className="flex items-center gap-2 text-foreground/90 font-medium text-xs">
-                  <Users className="w-3.5 h-3.5 text-amber-400" />
-                  Recruit Squad
-                </span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
+                <div className="flex items-start gap-2 min-w-0">
+                  <div className="p-1 rounded bg-amber-500/10 text-amber-400 shrink-0 mt-0.5">
+                    <Users className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-foreground/90 font-semibold text-xs block truncate">
+                      Recruit Squad Teammates
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block truncate">
+                      Fill skill gaps with auto-provisioned servers
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
               </Link>
+
               <Link
                 href="/dashboard/create?type=ship_log"
-                className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/30 hover:bg-secondary/60 transition-colors group"
+                className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/60 border border-transparent hover:border-purple-500/30 transition-all group"
               >
-                <span className="flex items-center gap-2 text-foreground/90 font-medium text-xs">
-                  <Rocket className="w-3.5 h-3.5 text-purple-400" />
-                  Ship Demo
-                </span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
+                <div className="flex items-start gap-2 min-w-0">
+                  <div className="p-1 rounded bg-purple-500/10 text-purple-400 shrink-0 mt-0.5">
+                    <Rocket className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-foreground/90 font-semibold text-xs block truncate">
+                      Launchpad & Ship Demo
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block truncate">
+                      Get alpha testers & feedback on your MVP
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
               </Link>
+
               <Link
-                href="/dashboard/create?type=code_sos"
-                className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-secondary/30 hover:bg-secondary/60 transition-colors group"
+                href="/dashboard/create?type=media"
+                className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/60 border border-transparent hover:border-neutral-500/30 transition-all group"
               >
-                <span className="flex items-center gap-2 text-foreground/90 font-medium text-xs">
-                  <Bug className="w-3.5 h-3.5 text-red-400" />
-                  Code SOS
-                </span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
+                <div className="flex items-start gap-2 min-w-0">
+                  <div className="p-1 rounded bg-neutral-500/10 text-neutral-400 shrink-0 mt-0.5">
+                    <Film className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-foreground/90 font-semibold text-xs block truncate">
+                      Demo Reel & Visual Media
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block truncate">
+                      Upload video reels, recordings & demos
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
               </Link>
             </div>
           </div>
@@ -586,113 +552,6 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
               <Send className="w-3.5 h-3.5" />
             </Button>
           </form>
-        </div>
-      )}
-
-      {/* TAB 3: ACTIVE DISCUSSION / COMMENTS */}
-      {cockpitTab === 'comments' && (
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
-          {focusedPost ? (
-            <>
-              {/* Focused Post Header */}
-              <div className="p-3 border-b border-border/60 bg-secondary/25 shrink-0 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <UserAvatar
-                      user={{
-                        user_name: focusedPost.userId?.user_name || 'author',
-                        image: focusedPost.userId?.image,
-                      }}
-                      className="h-5 w-5 shrink-0"
-                    />
-                    <span className="text-xs font-bold text-foreground truncate">
-                      @{focusedPost.userId?.user_name || 'author'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-secondary text-muted-foreground border border-border/50 shrink-0">
-                    {focusedPost.postType || 'Post'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground truncate">
-                  {focusedPost.hackathonCrew?.hackathonName ||
-                    focusedPost.codeSos?.title ||
-                    focusedPost.shipLog?.projectName ||
-                    focusedPost.caption ||
-                    'Thread Discussion'}
-                </p>
-              </div>
-
-              {/* Comments List */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs no-scrollbar">
-                {postComments.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-1 text-muted-foreground">
-                    <MessageCircle className="w-6 h-6 opacity-40 mb-1" />
-                    <p className="font-semibold text-foreground text-xs">No comments yet</p>
-                    <p className="text-[11px]">Be the first to share your thoughts or feedback.</p>
-                  </div>
-                ) : (
-                  postComments.map((c, i) => {
-                    const commentUser = c.userId?.user_name || c.user?.user_name || 'developer';
-                    return (
-                      <div key={c._id || i} className="flex items-start gap-2 group">
-                        <UserAvatar
-                          user={{
-                            user_name: commentUser,
-                            image: c.userId?.image || c.user?.image,
-                          }}
-                          className="h-6 w-6 shrink-0 mt-0.5"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="font-semibold text-[11px] text-foreground">
-                              {commentUser}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground/60">
-                              {c.createdAt ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                            </span>
-                          </div>
-                          <p className="text-xs text-foreground/90 break-words leading-relaxed">
-                            {c.body}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={commentsEndRef} />
-              </div>
-
-              {/* Add Comment Form */}
-              <form
-                onSubmit={handleAddComment}
-                className="p-2.5 border-t border-border/60 bg-secondary/30 shrink-0 flex items-center gap-1.5"
-              >
-                <Input
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-                  placeholder="Reply to this discussion..."
-                  className="h-8 text-xs bg-background/80 flex-1 border-border/60"
-                  disabled={isSubmittingComment}
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!commentInput.trim() || isSubmittingComment}
-                  className="h-8 w-8 p-0 shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </Button>
-              </form>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-muted-foreground space-y-2">
-              <MessageCircle className="w-8 h-8 opacity-40" />
-              <h4 className="text-xs font-bold text-foreground">No Post Selected</h4>
-              <p className="text-[11px] leading-relaxed">
-                Click the comment bubble on any post in the feed to open its live discussion right here.
-              </p>
-            </div>
-          )}
         </div>
       )}
     </aside>

@@ -5,29 +5,38 @@ export interface IPost extends Document {
   userId: mongoose.Types.ObjectId;
   caption?: string;
   fileUrl?: string;
-  postType: 'media' | 'poll' | 'goal' | 'project';
+  postType: 'media' | 'hackathon_crew' | 'ship_log';
   likes: mongoose.Types.ObjectId[];
   comments: mongoose.Types.ObjectId[];
   savedBy: mongoose.Types.ObjectId[];
-  poll?: {
-    question: string;
-    options: Array<{ option: string; votes: number }>;
-  };
-  project?: {
+  shipLog?: {
     title: string;
-    description: string;
-    techStack: string[];
+    pitch: string;
+    version?: string;
+    demoUrl?: string;
     repoUrl?: string;
-    members: mongoose.Types.ObjectId[];
-    requests: mongoose.Types.ObjectId[];
+    techStack: string[];
+    feedbackWanted: string[];
+    alphaTesters?: mongoose.Types.ObjectId[];
+    changelog?: Array<{ version: string; note: string; date: Date }>;
   };
-  goal?: {
-    goalText: string;
-    goalTargetDate?: Date;
-    interestedUsers: mongoose.Types.ObjectId[];
+  hackathonCrew?: {
+    hackathonId?: mongoose.Types.ObjectId;
+    hackathonName: string;
+    squadServerId?: mongoose.Types.ObjectId;
+    targetTrack?: string;
+    urgencyDate?: Date;
+    rolesHave: string[];
+    rolesNeed: string[];
+    commitmentLevel: 'hardcore' | 'moderate' | 'casual';
+    squadStatus?: 'recruiting' | 'full' | 'building';
+    maxSquadSize?: number;
+    members?: Array<{ user: mongoose.Types.ObjectId; role: string; joinedAt: Date }>;
+    applicants?: Array<{ user: mongoose.Types.ObjectId; role: string; pitch: string; appliedAt: Date }>;
   };
   isDeleted?: boolean;
   deletedAt?: Date;
+  deletedBy?: mongoose.Types.ObjectId;
   retentionExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -40,36 +49,68 @@ export const PostSchema: Schema<IPost> = new Schema(
     fileUrl: { type: String },
     postType: {
       type: String,
-      enum: ['media', 'poll', 'goal', 'project'],
+      enum: ['media', 'hackathon_crew', 'ship_log'],
+      default: 'media',
       required: true,
     },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     comments: [{ type: Schema.Types.ObjectId, ref: 'Comment' }],
     savedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-    poll: {
-      question: { type: String },
-      options: [
+    shipLog: {
+      title: { type: String },
+      pitch: { type: String },
+      version: { type: String, default: 'v0.1.0' },
+      demoUrl: { type: String },
+      repoUrl: { type: String },
+      techStack: [{ type: String }],
+      feedbackWanted: [{ type: String }],
+      alphaTesters: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      changelog: [
         {
-          option: { type: String, required: true },
-          votes: { type: Number, default: 0 },
+          version: { type: String },
+          note: { type: String },
+          date: { type: Date, default: Date.now },
         },
       ],
     },
-    project: {
-      title: { type: String },
-      description: { type: String },
-      techStack: [{ type: String }],
-      repoUrl: { type: String },
-      members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-      requests: [{ type: Schema.Types.ObjectId, ref: 'ProjectRequest' }],
-    },
-    goal: {
-      goalText: { type: String },
-      goalTargetDate: { type: Date },
-      interestedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    hackathonCrew: {
+      hackathonId: { type: Schema.Types.ObjectId, ref: 'HackathonEvent' },
+      hackathonName: { type: String },
+      squadServerId: { type: Schema.Types.ObjectId, ref: 'Server' },
+      targetTrack: { type: String },
+      urgencyDate: { type: Date },
+      rolesHave: [{ type: String }],
+      rolesNeed: [{ type: String }],
+      commitmentLevel: {
+        type: String,
+        enum: ['hardcore', 'moderate', 'casual'],
+        default: 'moderate',
+      },
+      squadStatus: {
+        type: String,
+        enum: ['recruiting', 'full', 'building'],
+        default: 'recruiting',
+      },
+      maxSquadSize: { type: Number, default: 4 },
+      members: [
+        {
+          user: { type: Schema.Types.ObjectId, ref: 'User' },
+          role: { type: String },
+          joinedAt: { type: Date, default: Date.now },
+        },
+      ],
+      applicants: [
+        {
+          user: { type: Schema.Types.ObjectId, ref: 'User' },
+          role: { type: String },
+          pitch: { type: String },
+          appliedAt: { type: Date, default: Date.now },
+        },
+      ],
     },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
+    deletedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     retentionExpiresAt: { type: Date, index: true },
   },
   { timestamps: true }
@@ -78,6 +119,8 @@ export const PostSchema: Schema<IPost> = new Schema(
 PostSchema.index({ userId: 1 });
 PostSchema.index({ createdAt: -1 });
 PostSchema.index({ postType: 1, createdAt: -1 });
+PostSchema.index({ isDeleted: 1, createdAt: -1 });
+PostSchema.index({ retentionExpiresAt: 1 });
 
 export const SavedPostSchema = new Schema(
   {
@@ -109,13 +152,3 @@ export const CommentSchema = new Schema(
 );
 CommentSchema.index({ postId: 1 });
 CommentSchema.index({ userId: 1 });
-
-export const PollVoteSchema = new Schema(
-  {
-    pollId: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    selectedOptionIndex: { type: Number, required: true },
-  },
-  { timestamps: true }
-);
-PollVoteSchema.index({ pollId: 1, userId: 1 }, { unique: true });

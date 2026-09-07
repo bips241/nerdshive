@@ -108,7 +108,7 @@ export default function JudgingPortalModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6 bg-neutral-950 border-neutral-800 text-foreground">
+      <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[88vh] overflow-y-auto p-4 sm:p-6 bg-neutral-950 border-neutral-800 text-foreground rounded-2xl">
         <DialogHeader className="border-b border-neutral-800 pb-4">
           <div className="flex items-center justify-between">
             <div>

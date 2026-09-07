@@ -13,9 +13,16 @@ type Props = {
 };
 
 function BookmarkButton({ post, userId }: Props) {
-  const [bookmarks, setBookmarks] = useState<string[]>(post.savedBy || []);
-  const [isBookmarked, setIsBookmarked] = useState<boolean>(bookmarks.some((bookmark) => bookmark === userId));
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(() => {
+    if (!userId || !post.savedBy) return false;
+    return (post.savedBy as any[]).some((bookmark: any) => {
+      const bId =
+        typeof bookmark === "object" && bookmark !== null
+          ? bookmark._id?.toString() || bookmark.toString()
+          : bookmark?.toString();
+      return bId === userId.toString();
+    });
+  });
 
   const handleBookmark = async () => {
     if (!userId) return;
@@ -24,39 +31,25 @@ function BookmarkButton({ post, userId }: Props) {
     const wasBookmarked = isBookmarked;
 
     // Optimistically update the UI
-    setIsBookmarked(!isBookmarked);
-    setBookmarks((prevBookmarks) => {
-      if (isBookmarked) {
-        return prevBookmarks.filter((bookmark) => bookmark !== userId);
-      } else {
-        return [...prevBookmarks, userId];
-      }
-    });
+    setIsBookmarked(!wasBookmarked);
 
-    setIsLoading(true);
-    
     try {
       await bookmarkPost(postId);
     } catch (error) {
       console.error("Failed to bookmark post:", error);
       // Revert optimistic UI update on error
       setIsBookmarked(wasBookmarked);
-      setBookmarks((prevBookmarks) => {
-        if (wasBookmarked) {
-          return [...prevBookmarks, userId];
-        } else {
-          return prevBookmarks.filter((bookmark) => bookmark !== userId);
-        }
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <ActionIcon onClick={handleBookmark} className="ml-auto">
+    <ActionIcon
+      onClick={handleBookmark}
+      className="ml-auto cursor-pointer"
+      title={isBookmarked ? "Remove bookmark" : "Save post"}
+    >
       <BookmarkIcon
-        className={cn("h-6 w-6", {
+        className={cn("h-6 w-6 transition-colors", {
           "dark:fill-white fill-black": isBookmarked,
         })}
       />

@@ -24,10 +24,7 @@ import { CreatePost } from "@/schemas/Post";
 import {
   createPost,
   submitShipLogPost,
-  submitCodeSosPost,
-  submitArchitectureRfcPost,
   submitHackathonCrewPost,
-  submitTechShowdownPost,
 } from "@/lib/actions";
 import { getVerifiedHackathons } from "@/lib/hackathon-actions";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,14 +33,8 @@ import {
   Film,
   Loader2,
   Rocket,
-  Bug,
-  Network,
   Zap,
-  Swords,
   ChevronLeft,
-  Code2,
-  Sparkles,
-  ArrowRight,
   ShieldCheck,
   Trophy,
 } from "lucide-react";
@@ -69,13 +60,22 @@ interface CropArea {
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 
+const typeMap: Record<string, string> = {
+  ship_log: "shipLog",
+  hackathon_crew: "hackathonCrew",
+  media: "media",
+};
+
 function CreatePage() {
   const pathname = usePathname();
   const isCreatePage = pathname === "/dashboard/create";
   const router = useRouter();
   const mount = useMount();
+  const searchParams = useSearchParams();
 
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const paramType = searchParams?.get("type");
+  const initialOption = paramType ? (typeMap[paramType] || null) : null;
+  const [selectedOption, setSelectedOption] = useState<string | null>(initialOption);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
@@ -87,28 +87,7 @@ function CreatePage() {
   const [shipTechStack, setShipTechStack] = useState("");
   const [feedbackWanted, setFeedbackWanted] = useState<string[]>([]);
 
-  // 2. Code SOS State
-  const [sosTitle, setSosTitle] = useState("");
-  const [sosLanguage, setSosLanguage] = useState("typescript");
-  const [sosSnippet, setSosSnippet] = useState("");
-  const [sosErrorLog, setSosErrorLog] = useState("");
-  const [sosEnvironment, setSosEnvironment] = useState("");
-  const [sosTriedSteps, setSosTriedSteps] = useState("");
-
-  // 3. Architecture RFC State
-  const [rfcTitle, setRfcTitle] = useState("");
-  const [rfcChallenge, setRfcChallenge] = useState("");
-  const [rfcDiagram, setRfcDiagram] = useState("");
-  const [rfcAudience, setRfcAudience] = useState("Senior / Staff Engineers");
-  const [showRfcTradeOffs, setShowRfcTradeOffs] = useState(false);
-  const [rfcOptionAName, setRfcOptionAName] = useState("");
-  const [rfcOptionAPros, setRfcOptionAPros] = useState("");
-  const [rfcOptionACons, setRfcOptionACons] = useState("");
-  const [rfcOptionBName, setRfcOptionBName] = useState("");
-  const [rfcOptionBPros, setRfcOptionBPros] = useState("");
-  const [rfcOptionBCons, setRfcOptionBCons] = useState("");
-
-  // 4. Hackathon Crew State
+  // 2. Hackathon Crew State
   const [hackName, setHackName] = useState("");
   const [hackUrgencyDate, setHackUrgencyDate] = useState("");
   const [hackRolesHave, setHackRolesHave] = useState("");
@@ -120,54 +99,7 @@ function CreatePage() {
   const [hackTargetTrack, setHackTargetTrack] = useState<string>("");
   const [hackTracks, setHackTracks] = useState<any[]>([]);
 
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    async function loadHackathons() {
-      try {
-        const list = await getVerifiedHackathons();
-        setHackathonList(list);
-
-        const typeParam = searchParams.get("type");
-        const slugParam = searchParams.get("hackathonSlug");
-        const nameParam = searchParams.get("hackathonName");
-
-        if (typeParam === "hackathon_crew") {
-          setSelectedOption("hackathonCrew");
-        }
-
-        if (slugParam && list.length > 0) {
-          const match = list.find((h: any) => h.slug === slugParam);
-          if (match) {
-            setSelectedHackathonId(match._id);
-            setHackName(match.name);
-            if (match.submissionDeadline) {
-              setHackUrgencyDate(new Date(match.submissionDeadline).toISOString().split("T")[0]);
-            }
-            if (match.tracks && match.tracks.length > 0) {
-              setHackTracks(match.tracks);
-              setHackTargetTrack(match.tracks[0].name);
-            }
-          } else if (nameParam) {
-            setHackName(nameParam);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading hackathons:", err);
-      }
-    }
-    loadHackathons();
-  }, [searchParams]);
-
-  // 5. Tech Showdown State
-  const [showdownTopic, setShowdownTopic] = useState("");
-  const [showdownOptionA, setShowdownOptionA] = useState("");
-  const [showdownOptionADesc, setShowdownOptionADesc] = useState("");
-  const [showdownOptionB, setShowdownOptionB] = useState("");
-  const [showdownOptionBDesc, setShowdownOptionBDesc] = useState("");
-  const [showdownBenchmark, setShowdownBenchmark] = useState("");
-
-  // 6. Media State
+  // 3. Media State
   const form = useForm<z.infer<typeof CreatePost>>({
     resolver: zodResolver(CreatePost),
     defaultValues: {
@@ -230,6 +162,51 @@ function CreatePage() {
     setSelectedFile(null);
   };
 
+  // Sync selectedOption whenever query param changes
+  useEffect(() => {
+    const type = searchParams?.get("type");
+    if (type && typeMap[type]) {
+      setSelectedOption(typeMap[type]);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    async function loadHackathons() {
+      try {
+        const list = await getVerifiedHackathons();
+        setHackathonList(list);
+
+        const typeParam = searchParams?.get("type");
+        const slugParam = searchParams?.get("hackathonSlug");
+        const nameParam = searchParams?.get("hackathonName");
+
+        if (typeParam === "hackathon_crew") {
+          setSelectedOption("hackathonCrew");
+        }
+
+        if (slugParam && list.length > 0) {
+          const match = list.find((h: any) => h.slug === slugParam);
+          if (match) {
+            setSelectedHackathonId(match._id);
+            setHackName(match.name);
+            if (match.submissionDeadline) {
+              setHackUrgencyDate(new Date(match.submissionDeadline).toISOString().split("T")[0]);
+            }
+            if (match.tracks && match.tracks.length > 0) {
+              setHackTracks(match.tracks);
+              setHackTargetTrack(match.tracks[0].name);
+            }
+          } else if (nameParam) {
+            setHackName(nameParam);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading hackathons:", err);
+      }
+    }
+    loadHackathons();
+  }, [searchParams]);
+
   // Submit Handlers
   const handleShipLogSubmit = async () => {
     if (!shipTitle.trim() || !shipPitch.trim() || !shipTechStack.trim()) {
@@ -247,73 +224,10 @@ function CreatePage() {
         techStack: techStackArr,
         feedbackWanted,
       });
-      toast.success("Ship Log published!");
+      toast.success("Project Showcase published!");
       router.push("/dashboard");
     } catch (err: any) {
-      toast.error(err.message || "Failed to publish Ship Log");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCodeSosSubmit = async () => {
-    if (!sosTitle.trim() || !sosSnippet.trim()) {
-      toast.error("Issue title and code snippet are required");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await submitCodeSosPost({
-        title: sosTitle.trim(),
-        snippet: sosSnippet.trim(),
-        language: sosLanguage,
-        errorLog: sosErrorLog.trim() || undefined,
-        environment: sosEnvironment.trim() || undefined,
-        triedSteps: sosTriedSteps.trim() || undefined,
-      });
-      toast.success("Code SOS posted! Developers are notified.");
-      router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to post Code SOS");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleArchitectureRfcSubmit = async () => {
-    if (!rfcTitle.trim() || !rfcChallenge.trim()) {
-      toast.error("RFC title and system challenge are required");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const tradeOffs = [];
-      if (rfcOptionAName.trim()) {
-        tradeOffs.push({
-          option: rfcOptionAName.trim(),
-          pros: rfcOptionAPros.trim(),
-          cons: rfcOptionACons.trim(),
-        });
-      }
-      if (rfcOptionBName.trim()) {
-        tradeOffs.push({
-          option: rfcOptionBName.trim(),
-          pros: rfcOptionBPros.trim(),
-          cons: rfcOptionBCons.trim(),
-        });
-      }
-
-      await submitArchitectureRfcPost({
-        title: rfcTitle.trim(),
-        challenge: rfcChallenge.trim(),
-        diagramMarkdown: rfcDiagram.trim() || undefined,
-        tradeOffs,
-        targetAudience: rfcAudience,
-      });
-      toast.success("Architecture RFC posted for senior review!");
-      router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to post Architecture RFC");
+      toast.error(err.message || "Failed to publish project showcase");
     } finally {
       setIsSubmitting(false);
     }
@@ -331,41 +245,17 @@ function CreatePage() {
       await submitHackathonCrewPost({
         hackathonId: selectedHackathonId !== "custom" ? selectedHackathonId : undefined,
         hackathonName: hackName.trim(),
-        targetTrack: hackTargetTrack || undefined,
+        targetTrack: hackTargetTrack.trim() || undefined,
         urgencyDate: hackUrgencyDate || undefined,
         rolesHave: rolesHaveArr,
         rolesNeed: rolesNeedArr,
         commitmentLevel: hackCommitment,
-        maxSquadSize: hackMaxSquadSize || 4,
+        maxSquadSize: hackMaxSquadSize,
       });
-      toast.success("Hackathon Crew call published!");
+      toast.success("Hackathon Squad Call published! Private workspace provisioned.");
       router.push("/dashboard");
     } catch (err: any) {
-      toast.error(err.message || "Failed to post Hackathon Crew call");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleTechShowdownSubmit = async () => {
-    if (!showdownTopic.trim() || !showdownOptionA.trim() || !showdownOptionB.trim()) {
-      toast.error("Topic and both options are required");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await submitTechShowdownPost({
-        topic: showdownTopic.trim(),
-        optionAName: showdownOptionA.trim(),
-        optionADescription: showdownOptionADesc.trim() || undefined,
-        optionBName: showdownOptionB.trim(),
-        optionBDescription: showdownOptionBDesc.trim() || undefined,
-        benchmark: showdownBenchmark.trim() || undefined,
-      });
-      toast.success("Tech Showdown debate posted!");
-      router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to post Tech Showdown");
+      toast.error(err.message || "Failed to publish squad recruitment call");
     } finally {
       setIsSubmitting(false);
     }
@@ -425,145 +315,122 @@ function CreatePage() {
 
   return (
     <div>
-      <Dialog open={isCreatePage} onOpenChange={(open) => !open && router.back()}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-6">
-          <DialogHeader className="border-b pb-3">
+      <Dialog
+        open={isCreatePage}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedOption(null);
+            router.back();
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] sm:w-full max-w-xl max-h-[88vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {selectedOption && (
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
+                    size="sm"
+                    className="p-1 h-7 w-7 rounded-full"
                     onClick={() => setSelectedOption(null)}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                 )}
-                <DialogTitle className="text-lg font-bold">
-                  {!selectedOption
-                    ? "Create on Nerdshive"
-                    : selectedOption === "shipLog"
-                    ? "🚀 Launchpad & Ship Log"
-                    : selectedOption === "codeSos"
-                    ? "🐛 Code SOS & Debug Request"
-                    : selectedOption === "architectureRfc"
-                    ? "📐 Architecture RFC & System Design"
-                    : selectedOption === "hackathonCrew"
-                    ? "⚡ Hackathon Crew Call"
-                    : selectedOption === "techShowdown"
-                    ? "⚔️ Tech Showdown & Debate"
-                    : "🎬 Demo Reel & Media"}
-                </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-bold">
+                    {!selectedOption
+                      ? "What developer workflow do you need?"
+                      : selectedOption === "hackathonCrew"
+                      ? "⚡ Squad Recruitment — Hackathon & Team Builder"
+                      : selectedOption === "shipLog"
+                      ? "🚀 Project Showcase & Ship Log"
+                      : "🎬 Demo Reel & Visual Media"}
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {!selectedOption
+                      ? "Select the workflow for what you are building or recruiting for:"
+                      : selectedOption === "hackathonCrew"
+                      ? "Fill missing skill gaps (Frontend, AI, Smart Contracts) with an auto-provisioned private Squad Server."
+                      : selectedOption === "shipLog"
+                      ? "Showcase an MVP, open-source repo, or tool to collect feedback, demo traction, and stars."
+                      : "Upload screen recordings, visual demo reels, or architecture snapshots."}
+                  </p>
+                </div>
               </div>
             </div>
           </DialogHeader>
 
-          {/* MAIN MENU: 6 Developer Post Archetypes */}
+          {/* MAIN MENU: Accepted Post Archetypes */}
           {!selectedOption && (
-            <div className="flex flex-col space-y-2.5 py-3">
+            <div className="flex flex-col space-y-3 py-3">
               <button
                 type="button"
-                className="flex items-start gap-3.5 p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors text-left group"
-                onClick={() => setSelectedOption("shipLog")}
-              >
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 group-hover:scale-105 transition-transform">
-                  <Rocket className="h-5 w-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    Ship Log & Launchpad
-                    <Badge variant="outline" className="text-[10px] py-0 border-emerald-500/40 text-emerald-500">Popular</Badge>
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Showcase a live tool, MVP, or repo to get alpha testers, feedback, and stars.
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="flex items-start gap-3.5 p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors text-left group"
-                onClick={() => setSelectedOption("codeSos")}
-              >
-                <div className="p-2.5 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 group-hover:scale-105 transition-transform">
-                  <Bug className="h-5 w-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-foreground">Code SOS / Debug with Me</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Share failing code with stack traces and invite 1-click pair-debugging video sessions.
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="flex items-start gap-3.5 p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors text-left group"
-                onClick={() => setSelectedOption("architectureRfc")}
-              >
-                <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20 group-hover:scale-105 transition-transform">
-                  <Network className="h-5 w-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-foreground">Architecture RFC & System Design</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Share system diagrams and design trade-offs for review by senior and staff engineers.
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="flex items-start gap-3.5 p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors text-left group"
+                className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-secondary/40 transition-all text-left group hover:border-amber-500/40"
                 onClick={() => setSelectedOption("hackathonCrew")}
               >
-                <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 group-hover:scale-105 transition-transform">
-                  <Zap className="h-5 w-5" />
+                <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 group-hover:scale-105 transition-transform shrink-0">
+                  <Zap className="h-6 w-6" />
                 </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-foreground">Hackathon Crew Call</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Form a winning team by broadcasting exact missing skill gaps with countdown urgency.
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      Recruit Squad Teammates
+                      <Badge variant="outline" className="text-[10px] py-0 border-amber-500/40 text-amber-500">Hackathons & OSS</Badge>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Need teammates for an upcoming hackathon or side project? Broadcast the exact roles needed (Frontend, Backend, AI) and automatically create a private Squad Server with voice/text lounges.
                   </p>
                 </div>
               </button>
 
               <button
                 type="button"
-                className="flex items-start gap-3.5 p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors text-left group"
-                onClick={() => setSelectedOption("techShowdown")}
+                className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-secondary/40 transition-all text-left group hover:border-emerald-500/40"
+                onClick={() => setSelectedOption("shipLog")}
               >
-                <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 group-hover:scale-105 transition-transform">
-                  <Swords className="h-5 w-5" />
+                <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+                  <Rocket className="h-6 w-6" />
                 </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-foreground">Tech Showdown & Debate</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Compare frameworks, databases, and architectures with benchmark data and structured voting.
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      Showcase Project & Product Demo
+                      <Badge variant="outline" className="text-[10px] py-0 border-emerald-500/40 text-emerald-500">Showcase</Badge>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Have you built an MVP, open-source tool, or library? Post your live demo URL, GitHub repository, tech stack tags, and request feedback from early adopters.
                   </p>
                 </div>
               </button>
 
               <button
                 type="button"
-                className="flex items-start gap-3.5 p-3.5 rounded-xl border bg-card hover:bg-secondary/40 transition-colors text-left group"
+                className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-secondary/40 transition-all text-left group hover:border-neutral-500/40"
                 onClick={() => setSelectedOption("media")}
               >
-                <div className="p-2.5 rounded-lg bg-neutral-500/10 text-neutral-400 border border-neutral-500/20 group-hover:scale-105 transition-transform">
-                  <Film className="h-5 w-5" />
+                <div className="p-3 rounded-xl bg-neutral-500/10 text-neutral-400 border border-neutral-500/20 group-hover:scale-105 transition-transform shrink-0">
+                  <Film className="h-6 w-6" />
                 </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold text-foreground">Demo Reel & Visual Media</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Upload screen recordings, visual demo reels, or architecture snapshots.
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      Demo Reel & Visual Media
+                      <Badge variant="outline" className="text-[10px] py-0 border-neutral-500/40 text-neutral-400">Media</Badge>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Upload screen recordings, visual demo reels, or architecture snapshots with rich cropping and video previews.
                   </p>
                 </div>
               </button>
             </div>
           )}
 
-          {/* 1. SHIP LOG FORM */}
+          {/* 1. SHIP LOG / PROJECT SHOWCASE FORM */}
           {selectedOption === "shipLog" && (
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
@@ -577,29 +444,28 @@ function CreatePage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>The Pitch & What You Built</Label>
-                <textarea
-                  placeholder="Explain why you built this, the architecture, and what makes it unique..."
-                  rows={3}
+                <Label>Pitch / Elevator Summary</Label>
+                <Input
+                  placeholder="What does it do and why did you build it?"
                   value={shipPitch}
                   onChange={(e) => setShipPitch(e.target.value)}
-                  className="w-full border rounded-md p-2.5 text-xs bg-background focus:ring-1 focus:ring-primary"
+                  required
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Live Demo URL</Label>
+                  <Label>Live Demo / Website URL</Label>
                   <Input
-                    placeholder="https://app.yourproject.com"
+                    placeholder="https://mytool.dev"
                     value={shipDemoUrl}
                     onChange={(e) => setShipDemoUrl(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>GitHub Repo URL</Label>
+                  <Label>GitHub / Repository URL</Label>
                   <Input
-                    placeholder="https://github.com/user/project"
+                    placeholder="https://github.com/username/repo"
                     value={shipRepoUrl}
                     onChange={(e) => setShipRepoUrl(e.target.value)}
                   />
@@ -609,266 +475,75 @@ function CreatePage() {
               <div className="space-y-1.5">
                 <Label>Tech Stack (Comma-separated)</Label>
                 <Input
-                  placeholder="Rust, WebSockets, Next.js, Docker"
+                  placeholder="e.g. Next.js, Rust, WebAssembly, Tailwind"
                   value={shipTechStack}
                   onChange={(e) => setShipTechStack(e.target.value)}
+                  required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Feedback Desired</Label>
-                <div className="flex flex-wrap gap-2">
-                  {["UI/UX Feedback", "Architecture Critique", "Looking for Alpha Testers", "Seeking Contributors"].map((tag) => {
-                    const isChecked = feedbackWanted.includes(tag);
-                    return (
-                      <Badge
+                <Label>Feedback You Are Seeking (Optional)</Label>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {["UI/UX Design", "Code Review", "Benchmark Testing", "Alpha Testers", "Security Audit"].map(
+                    (tag) => (
+                      <button
+                        type="button"
                         key={tag}
-                        variant={isChecked ? "default" : "outline"}
-                        className="cursor-pointer text-xs py-1"
                         onClick={() =>
                           setFeedbackWanted((prev) =>
                             prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
                           )
                         }
+                        className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                          feedbackWanted.includes(tag)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-secondary/40 text-muted-foreground border-border hover:border-foreground/30"
+                        }`}
                       >
                         {tag}
-                      </Badge>
-                    );
-                  })}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
 
-              <div className="flex justify-between items-center pt-3 border-t">
-                <Button variant="ghost" onClick={() => setSelectedOption(null)}>Back</Button>
-                <Button onClick={handleShipLogSubmit} disabled={isSubmitting} className="font-semibold gap-1.5">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                  Publish Ship Log
+              <div className="pt-2 flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedOption(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleShipLogSubmit}
+                  disabled={isSubmitting || !shipTitle.trim() || !shipPitch.trim() || !shipTechStack.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
+                >
+                  {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Publish Project
                 </Button>
               </div>
             </div>
           )}
 
-          {/* 2. CODE SOS FORM */}
-          {selectedOption === "codeSos" && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Issue / Bug Title</Label>
-                <Input
-                  placeholder="e.g. NextAuth cookie drops under HTTPS reverse proxy in Docker"
-                  value={sosTitle}
-                  onChange={(e) => setSosTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Language / Tech</Label>
-                  <Select value={sosLanguage} onValueChange={setSosLanguage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="typescript">TypeScript / Next.js</SelectItem>
-                      <SelectItem value="javascript">JavaScript / Node.js</SelectItem>
-                      <SelectItem value="python">Python / PyTorch</SelectItem>
-                      <SelectItem value="rust">Rust</SelectItem>
-                      <SelectItem value="go">Go</SelectItem>
-                      <SelectItem value="docker">Docker / DevOps</SelectItem>
-                      <SelectItem value="sql">PostgreSQL / MongoDB</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Environment Context</Label>
-                  <Input
-                    placeholder="e.g. Node 20, Docker, macOS arm64"
-                    value={sosEnvironment}
-                    onChange={(e) => setSosEnvironment(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5">
-                  <Code2 className="h-3.5 w-3.5 text-primary" />
-                  Code Snippet
-                </Label>
-                <textarea
-                  placeholder="// Paste the minimal reproducible code snippet here..."
-                  rows={5}
-                  value={sosSnippet}
-                  onChange={(e) => setSosSnippet(e.target.value)}
-                  className="w-full font-mono text-xs border rounded-md p-2.5 bg-neutral-950 text-emerald-400 focus:ring-1 focus:ring-primary"
-                  spellCheck={false}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Error Log / Stack Trace</Label>
-                <textarea
-                  placeholder="Paste error logs, exception messages, or terminal output..."
-                  rows={3}
-                  value={sosErrorLog}
-                  onChange={(e) => setSosErrorLog(e.target.value)}
-                  className="w-full font-mono text-xs border rounded-md p-2 bg-neutral-900 text-red-400 focus:ring-1 focus:ring-primary"
-                  spellCheck={false}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>What Have You Tried?</Label>
-                <Input
-                  placeholder="e.g. Cleared cookies, checked CORS origin, verified trustProxy flag"
-                  value={sosTriedSteps}
-                  onChange={(e) => setSosTriedSteps(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t">
-                <Button variant="ghost" onClick={() => setSelectedOption(null)}>Back</Button>
-                <Button onClick={handleCodeSosSubmit} disabled={isSubmitting} variant="destructive" className="font-semibold gap-1.5">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bug className="h-4 w-4" />}
-                  Broadcast Code SOS
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* 3. ARCHITECTURE RFC FORM */}
-          {selectedOption === "architectureRfc" && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>RFC Title & System Challenge</Label>
-                <Input
-                  placeholder="e.g. Migrating WebSockets Signaling to Redis Streams for 100k Concurrent Users"
-                  value={rfcTitle}
-                  onChange={(e) => setRfcTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Challenge, Constraints & Scale Requirements</Label>
-                <textarea
-                  placeholder="Detail the problem: current bottlenecks, target QPS, latency SLOs, and memory caps..."
-                  rows={3}
-                  value={rfcChallenge}
-                  onChange={(e) => setRfcChallenge(e.target.value)}
-                  className="w-full text-xs border rounded-md p-2.5 bg-background focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Architecture Diagram Flow (Mermaid or ASCII)</Label>
-                <textarea
-                  placeholder="flowchart TD&#10;  Client --> Gateway&#10;  Gateway --> RedisStream&#10;  RedisStream --> WorkerService"
-                  rows={4}
-                  value={rfcDiagram}
-                  onChange={(e) => setRfcDiagram(e.target.value)}
-                  className="w-full font-mono text-xs border rounded-md p-2.5 bg-neutral-950 text-purple-300 focus:ring-1 focus:ring-primary"
-                  spellCheck={false}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Target Reviewers</Label>
-                <Input
-                  value={rfcAudience}
-                  onChange={(e) => setRfcAudience(e.target.value)}
-                  placeholder="e.g. Distributed systems engineers, backend architects"
-                />
-              </div>
-
-              {/* Optional Trade-offs Comparison */}
-              <div className="pt-2 border-t space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-xs font-bold text-foreground">Design Trade-offs Under Consideration (Optional)</Label>
-                    <p className="text-[11px] text-muted-foreground">Compare two competing architectural approaches (e.g. Option A vs Option B)</p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowRfcTradeOffs(!showRfcTradeOffs)}
-                    className="text-xs h-7"
-                  >
-                    {showRfcTradeOffs ? "Remove Trade-offs" : "+ Compare Options"}
-                  </Button>
-                </div>
-
-                {showRfcTradeOffs && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-secondary/20 border">
-                    {/* Option A */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-indigo-400">Option A</Label>
-                      <Input
-                        placeholder="Option A Name (e.g. PostgreSQL with Citus)"
-                        value={rfcOptionAName}
-                        onChange={(e) => setRfcOptionAName(e.target.value)}
-                        className="text-xs"
-                      />
-                      <Input
-                        placeholder="Pros (e.g. Strong consistency, SQL joins)"
-                        value={rfcOptionAPros}
-                        onChange={(e) => setRfcOptionAPros(e.target.value)}
-                        className="text-xs text-emerald-500"
-                      />
-                      <Input
-                        placeholder="Cons (e.g. Connection pooling complexity)"
-                        value={rfcOptionACons}
-                        onChange={(e) => setRfcOptionACons(e.target.value)}
-                        className="text-xs text-rose-400"
-                      />
-                    </div>
-
-                    {/* Option B */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-violet-400">Option B</Label>
-                      <Input
-                        placeholder="Option B Name (e.g. ScyllaDB / Cassandra)"
-                        value={rfcOptionBName}
-                        onChange={(e) => setRfcOptionBName(e.target.value)}
-                        className="text-xs"
-                      />
-                      <Input
-                        placeholder="Pros (e.g. Linear write scalability)"
-                        value={rfcOptionBPros}
-                        onChange={(e) => setRfcOptionBPros(e.target.value)}
-                        className="text-xs text-emerald-500"
-                      />
-                      <Input
-                        placeholder="Cons (e.g. Eventual consistency model)"
-                        value={rfcOptionBCons}
-                        onChange={(e) => setRfcOptionBCons(e.target.value)}
-                        className="text-xs text-rose-400"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t">
-                <Button variant="ghost" onClick={() => setSelectedOption(null)}>Back</Button>
-                <Button onClick={handleArchitectureRfcSubmit} disabled={isSubmitting} className="font-semibold gap-1.5">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Network className="h-4 w-4" />}
-                  Submit RFC for Review
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* 4. HACKATHON CREW FORM */}
+          {/* 2. HACKATHON CREW CALL FORM */}
           {selectedOption === "hackathonCrew" && (
             <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>Target Hackathon</Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Verified Hackathons feature official tracks & private squad servers
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5">
+                <Zap className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="space-y-0.5 text-xs text-amber-600 dark:text-amber-400">
+                  <span className="font-bold block">Auto-Provisioned Squad Workspace</span>
+                  <span>
+                    Broadcasting this crew call will automatically spin up a private Squad Server with #general, #resources, and a WebRTC pair-programming voice lounge.
                   </span>
                 </div>
+              </div>
+
+              {/* Hackathon Selector */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                  Select Target Hackathon
+                </Label>
                 <Select
                   value={selectedHackathonId}
                   onValueChange={(val) => {
@@ -877,6 +552,7 @@ function CreatePage() {
                       setHackName("");
                       setHackTracks([]);
                       setHackTargetTrack("");
+                      setHackUrgencyDate("");
                     } else {
                       const match = hackathonList.find((h: any) => h._id === val);
                       if (match) {
@@ -895,64 +571,49 @@ function CreatePage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a Verified Hackathon" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a verified hackathon or custom" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="custom">-- Custom / Other Hackathon --</SelectItem>
                     {hackathonList.map((h: any) => (
                       <SelectItem key={h._id} value={h._id}>
-                        ⚡ {h.name} — {h.prizePool}
+                        {h.name} {h.isVerified && "✓"}
                       </SelectItem>
                     ))}
-                    <SelectItem value="custom">✍️ Other / Custom Event</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {selectedHackathonId === "custom" ? (
-                <div className="space-y-1.5">
-                  <Label>Custom Hackathon Name</Label>
+              <div className="space-y-1.5">
+                <Label>Hackathon / Competition Name</Label>
+                <div className="relative">
                   <Input
-                    placeholder="e.g. Local University Hackathon, Global AI Sprint"
+                    placeholder="e.g. ETHGlobal Bangkok, Solana Radar Hackathon"
                     value={hackName}
                     onChange={(e) => setHackName(e.target.value)}
                     required
                   />
+                  {selectedHackathonId !== "custom" && (
+                    <span className="absolute right-3 top-2.5 flex items-center gap-1 text-[11px] font-bold text-amber-500">
+                      <ShieldCheck className="h-3.5 w-3.5" /> Verified
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-amber-500" />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-foreground">{hackName}</span>
-                        <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
-                          Verified Partner
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Submissions will be displayed in the official {hackName} Event Hub
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
 
-              {/* Official Tracks Dropdown */}
+              {/* Track Selector */}
               {hackTracks.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label>Official Track / Bounty Focus</Label>
-                  <Select
-                    value={hackTargetTrack}
-                    onValueChange={(val) => setHackTargetTrack(val)}
-                  >
+                  <Label>Target Track / Category</Label>
+                  <Select value={hackTargetTrack} onValueChange={(val) => setHackTargetTrack(val)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Competition Track" />
+                      <SelectValue placeholder="Select targeted track" />
                     </SelectTrigger>
                     <SelectContent>
-                      {hackTracks.map((track: any, idx: number) => (
-                        <SelectItem key={idx} value={track.name}>
-                          🎯 {track.name} {track.prizePool ? `(${track.prizePool})` : ""}
+                      {hackTracks.map((tr: any) => (
+                        <SelectItem key={tr.name} value={tr.name}>
+                          {tr.name} {tr.prizePool ? `(${tr.prizePool})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -962,7 +623,7 @@ function CreatePage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Registration Deadline</Label>
+                  <Label>Submission Deadline</Label>
                   <Input
                     type="date"
                     value={hackUrgencyDate}
@@ -1024,81 +685,24 @@ function CreatePage() {
                 />
               </div>
 
-              <div className="flex justify-between items-center pt-3 border-t">
-                <Button variant="ghost" onClick={() => setSelectedOption(null)}>Back</Button>
-                <Button onClick={handleHackathonCrewSubmit} disabled={isSubmitting} className="font-semibold gap-1.5">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                  Broadcast Crew Call
+              <div className="pt-2 flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedOption(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleHackathonCrewSubmit}
+                  disabled={isSubmitting || !hackName.trim() || !hackRolesNeed.trim()}
+                  className="bg-amber-500 hover:bg-amber-600 text-black font-semibold gap-1.5"
+                >
+                  {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Broadcast Squad Call
                 </Button>
               </div>
             </div>
           )}
 
-          {/* 5. TECH SHOWDOWN FORM */}
-          {selectedOption === "techShowdown" && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Debate Topic / Showdown Title</Label>
-                <Input
-                  placeholder="e.g. Bun vs Node 22 for High-Throughput Microservices"
-                  value={showdownTopic}
-                  onChange={(e) => setShowdownTopic(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 border rounded-xl space-y-2 bg-secondary/20">
-                  <Label className="text-xs font-bold text-primary">Option A</Label>
-                  <Input
-                    placeholder="e.g. Bun"
-                    value={showdownOptionA}
-                    onChange={(e) => setShowdownOptionA(e.target.value)}
-                    required
-                  />
-                  <Input
-                    placeholder="Tagline / Key advantage"
-                    value={showdownOptionADesc}
-                    onChange={(e) => setShowdownOptionADesc(e.target.value)}
-                  />
-                </div>
-
-                <div className="p-3 border rounded-xl space-y-2 bg-secondary/20">
-                  <Label className="text-xs font-bold text-primary">Option B</Label>
-                  <Input
-                    placeholder="e.g. Node.js 22"
-                    value={showdownOptionB}
-                    onChange={(e) => setShowdownOptionB(e.target.value)}
-                    required
-                  />
-                  <Input
-                    placeholder="Tagline / Key advantage"
-                    value={showdownOptionBDesc}
-                    onChange={(e) => setShowdownOptionBDesc(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Benchmark Data / Notes (Optional)</Label>
-                <Input
-                  placeholder="e.g. Req/sec: Bun 65k vs Node 38k; Memory: Bun 35MB vs Node 55MB"
-                  value={showdownBenchmark}
-                  onChange={(e) => setShowdownBenchmark(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t">
-                <Button variant="ghost" onClick={() => setSelectedOption(null)}>Back</Button>
-                <Button onClick={handleTechShowdownSubmit} disabled={isSubmitting} className="font-semibold gap-1.5">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Swords className="h-4 w-4" />}
-                  Launch Tech Showdown
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* 6. MEDIA UPLOAD FORM */}
+          {/* 3. MEDIA UPLOAD FORM */}
           {selectedOption === "media" && (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleMediaSubmit)} className="space-y-4 py-2">

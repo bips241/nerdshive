@@ -20,25 +20,33 @@ function CommentOptions({ comment }: Props) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <MoreHorizontal className="h-5 w-5 hidden group-hover:inline cursor-pointer dark:text-neutral-400" />
-      </DialogTrigger>
-      <DialogContent className="dialogContent">
-        <form
-          action={async (formData) => {
-            const { message } = await deleteComment(formData);
-            toast(message);
-          }}
-          className="postOption"
+        <button
+          type="button"
+          aria-label="Comment options"
+          className="p-0.5 rounded-full hover:bg-secondary/60 text-muted-foreground hover:text-foreground cursor-pointer"
         >
-          <input type="hidden" name="id" value={comment._id} />
-          <SubmitButton className="text-red-500 font-bold disabled:cursor-not-allowed w-full p-3">
-            Delete
-          </SubmitButton>
-        </form>
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="w-[88vw] max-w-xs sm:max-w-sm rounded-2xl overflow-hidden p-0 border border-border bg-card shadow-2xl gap-0">
+        <div className="flex flex-col divide-y divide-border/60 text-sm font-medium">
+          <form
+            action={async (formData) => {
+              const { message } = await deleteComment(formData);
+              toast(message);
+            }}
+            className="w-full"
+          >
+            <input type="hidden" name="id" value={comment._id} />
+            <SubmitButton className="w-full py-3.5 px-4 text-red-600 dark:text-red-400 font-bold hover:bg-destructive/10 transition-colors flex items-center justify-center gap-2">
+              Delete comment
+            </SubmitButton>
+          </form>
 
-        <DialogClose className="postOption border-0 w-full p-3">
-          Cancel
-        </DialogClose>
+          <DialogClose className="w-full py-3.5 px-4 text-center text-muted-foreground hover:bg-secondary/60 transition-colors cursor-pointer">
+            Cancel
+          </DialogClose>
+        </div>
       </DialogContent>
     </Dialog>
   );

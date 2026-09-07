@@ -2,13 +2,22 @@ import { z } from "zod";
 
 export const PostSchema = z.object({
   id: z.string(),
-  fileUrl: z.string().url(),
+  fileUrl: z.string().optional(),
   caption: z.string().optional(),
 });
 
-export const CreatePost = PostSchema.omit({ id: true });
-export const UpdatePost = PostSchema;
-export const DeletePost = PostSchema.pick({ id: true });
+export const CreatePost = z.object({
+  fileUrl: z.string().url("Must provide a valid file URL"),
+  caption: z.string().optional(),
+});
+export const UpdatePost = z.object({
+  id: z.string(),
+  fileUrl: z.string().optional(),
+  caption: z.string().optional(),
+});
+export const DeletePost = z.object({
+  id: z.string(),
+});
 
 export const CreateShipLogSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),

@@ -95,10 +95,7 @@ export async function fetchPostById(id: any) {
       })
       .populate({
         path: 'likes',
-        populate: {
-          path: 'userId',
-          select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
-        }
+        select: 'user_name image name _id',
       })
       .populate({
         path: 'hackathonCrew.members.user',
@@ -116,7 +113,10 @@ export async function fetchPostById(id: any) {
       .populate('userId');
 
     // Determine if the post is liked by the current user
-    const isLikedByMe = (post.likes as any[])?.some((like: any) => (like.userId?._id || like.userId || like).toString() === userId) || false;
+    const isLikedByMe = (post.likes as any[])?.some((like: any) => {
+      const id = (like.userId?._id || like.userId || like._id || like)?.toString();
+      return id === userId;
+    }) || false;
 
     // Add isLikedByCurrentUser to the post object
     const postWithLikeStatus = {
@@ -152,10 +152,7 @@ export async function fetchProfilePosts(username: string) {
       })
       .populate({
         path: 'likes',
-        populate: {
-          path: 'userId',
-          select: '-updatedAt -role -comments -followedBy -following -createdAt -isVerified -email -posts -saved -password -verifyCode -sessions -accounts -verifyCodeExpiry -__v',
-        },
+        select: 'user_name image name _id',
       })
       .populate({
         path: 'userId',
@@ -211,7 +208,7 @@ noStore();
         },
         {
           path: 'likes',
-          populate: { path: 'userId' }
+          select: 'user_name image name _id',
         },
         'savedBy',
         'userId'
@@ -266,10 +263,7 @@ export async function fetchSavedPostsByUsername(username: any) {
           },
           {
             path: 'likes',
-            populate: {
-                path: 'userId',
-                select: '-password -verifyCode -sessions -accounts -verifyCodeExpiry'
-              }
+            select: 'user_name image name _id',
           },
           'savedBy',
           'userId'

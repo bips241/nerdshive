@@ -16,7 +16,6 @@ import {
   SavedPostSchema,
   LikeSchema,
   CommentSchema,
-  PollVoteSchema,
   IPost,
 } from './entities/post.entity';
 import {
@@ -86,8 +85,6 @@ export const ProjectRequest: Model<IProjectRequest> =
   (mongoose.models?.ProjectRequest as Model<IProjectRequest>) ||
   mongoose.model<IProjectRequest>('ProjectRequest', ProjectRequestSchema);
 
-export const PollVote: Model<any> =
-  (mongoose.models?.PollVote as Model<any>) || mongoose.model('PollVote', PollVoteSchema);
 
 export const ChatRoom: Model<IChatRoom> =
   (mongoose.models?.ChatRoom as Model<IChatRoom>) ||

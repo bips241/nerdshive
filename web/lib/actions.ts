@@ -38,7 +38,7 @@ export async function createPost(values: z.infer<typeof CreatePost>) {
   const { fileUrl, caption } = validatedFields.data;
 
   try {
-    const newPost = await Post.create({ caption, fileUrl, userId });
+    const newPost = await Post.create({ caption, fileUrl, userId, postType: "media" });
     await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
     revalidatePath("/dashboard");
     return { message: "Created Post.", post: newPost };
@@ -240,13 +240,21 @@ export async function updatePost(values: unknown) {
   const post = await Post.findOne({ _id: id, userId });
 
   if (!post) {
-    throw new Error("Post not found");
+    return { message: "Post not found or unauthorized." };
   }
 
   try {
-    await Post.updateOne({ _id: id }, { fileUrl, caption });
+    const updatePayload: Record<string, any> = {};
+    if (caption !== undefined) updatePayload.caption = caption;
+    if (fileUrl !== undefined && fileUrl !== "") updatePayload.fileUrl = fileUrl;
+    if (post.postType === "ship_log" && post.shipLog && caption) {
+      updatePayload["shipLog.pitch"] = caption;
+    }
+
+    await Post.updateOne({ _id: id, userId }, { $set: updatePayload });
     revalidatePath("/dashboard");
-    redirect("/dashboard");
+    revalidatePath(`/dashboard/p/${id}`);
+    return { success: true, message: "Post updated successfully." };
   } catch (error) {
     return { message: "Database Error: Failed to Update Post." };
   }
@@ -346,80 +354,6 @@ export async function followUser(formData: { get: (arg0: string) => any; }) {
   }
 }
 
-
-
-export const submitPollPost = async (data: { question: string; options: string[] }) => {
-  await connectDB();
-  const userId = await getUserId();
-
-  try {
-    const newPost = await Post.create({
-      poll: {
-        question: data.question,
-        options: data.options.map((opt) => ({ text: opt, votes: [] })),
-      },
-      postType: "poll",
-      userId,
-    });
-    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
-    revalidatePath("/dashboard");
-    return { success: true, post: newPost };
-  } catch (error) {
-    console.error(error);
-    throw new Error("Database Error: Failed to create Poll Post.");
-  }
-};
-
-export const submitGoalPost = async (data: { goal: string; goalTargetDate: Date }) => {
-  console.log("Submitting Goal:", data);
-  await connectDB();
-  const userId = await getUserId();
-
-  try {
-    console.log("Creating Goal Post with data:", data);
-    const newPost = await Post.create({
-      goal: {
-        description: data.goal,
-        goalTargetDate: data.goalTargetDate,
-        interestedUsers: [],
-      },
-      postType: "goal",
-      userId,
-    });
-    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
-    revalidatePath("/dashboard");
-    return { success: true, post: newPost };
-  } catch (error) {
-    console.error(error);
-    throw new Error("Database Error: Failed to create Goal Post.");
-  }
-};
-
-export const submitProjectPost = async (data: { title: string; description: string; techStack: string; repoUrl?: string | null }) => {
-  console.log("Submitting Project:", data);
-  await connectDB();
-  const userId = await getUserId();
-
-  try {
-    const newPost = await Post.create({
-      postType: "project",
-      userId,
-      project: {
-        title: data.title,
-        description: data.description,
-        techStack: data.techStack.split(",").map((tech) => tech.trim()),
-        repoUrl: data.repoUrl || null,
-      },
-    });
-    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
-    revalidatePath("/dashboard");
-    return { success: true, post: newPost };
-  } catch (error) {
-    console.error(error);
-    throw new Error("Database Error: Failed to create Project Post.");
-  }
-};
-
 export const submitShipLogPost = async (data: {
   title: string;
   pitch: string;
@@ -457,76 +391,12 @@ export const submitShipLogPost = async (data: {
   }
 };
 
-export const submitCodeSosPost = async (data: {
-  title: string;
-  snippet: string;
-  language?: string;
-  errorLog?: string;
-  environment?: string;
-  triedSteps?: string;
-}) => {
-  await connectDB();
-  const userId = await getUserId();
-  try {
-    const newPost = await Post.create({
-      userId,
-      postType: "code_sos",
-      caption: `[Code SOS] ${data.title}`,
-      codeSos: {
-        title: data.title,
-        snippet: data.snippet,
-        language: data.language || "typescript",
-        errorLog: data.errorLog || undefined,
-        environment: data.environment || undefined,
-        triedSteps: data.triedSteps || undefined,
-        isResolved: false,
-      },
-    });
-    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
-    revalidatePath("/dashboard");
-    return { success: true, post: newPost };
-  } catch (error) {
-    console.error("Code SOS submission error:", error);
-    throw new Error("Database Error: Failed to create Code SOS post.");
-  }
-};
-
-export const submitArchitectureRfcPost = async (data: {
-  title: string;
-  challenge: string;
-  diagramMarkdown?: string;
-  tradeOffs?: Array<{ option: string; pros: string; cons: string }>;
-  targetAudience?: string;
-}) => {
-  await connectDB();
-  const userId = await getUserId();
-  try {
-    const newPost = await Post.create({
-      userId,
-      postType: "architecture_rfc",
-      caption: `[RFC] ${data.title}`,
-      architectureRfc: {
-        title: data.title,
-        challenge: data.challenge,
-        diagramMarkdown: data.diagramMarkdown || undefined,
-        tradeOffs: data.tradeOffs || [],
-        targetAudience: data.targetAudience || undefined,
-      },
-    });
-    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
-    revalidatePath("/dashboard");
-    return { success: true, post: newPost };
-  } catch (error) {
-    console.error("Architecture RFC submission error:", error);
-    throw new Error("Database Error: Failed to create Architecture RFC post.");
-  }
-};
 
 export const submitHackathonCrewPost = async (data: {
   hackathonId?: string;
   hackathonName: string;
   targetTrack?: string;
-  urgencyDate?: string;
+  urgencyDate?: string | Date;
   rolesHave: string[];
   rolesNeed: string[];
   commitmentLevel?: "hardcore" | "moderate" | "casual";
@@ -580,134 +450,6 @@ export const submitHackathonCrewPost = async (data: {
   }
 };
 
-export const submitTechShowdownPost = async (data: {
-  topic: string;
-  optionAName: string;
-  optionADescription?: string;
-  optionBName: string;
-  optionBDescription?: string;
-  benchmark?: string;
-}) => {
-  await connectDB();
-  const userId = await getUserId();
-  try {
-    const newPost = await Post.create({
-      userId,
-      postType: "tech_showdown",
-      caption: `[Tech Showdown] ${data.topic}: ${data.optionAName} vs ${data.optionBName}`,
-      techShowdown: {
-        topic: data.topic,
-        optionA: {
-          name: data.optionAName,
-          description: data.optionADescription || undefined,
-          votes: 0,
-        },
-        optionB: {
-          name: data.optionBName,
-          description: data.optionBDescription || undefined,
-          votes: 0,
-        },
-        benchmark: data.benchmark || undefined,
-      },
-    });
-    await User.findByIdAndUpdate(userId, { $push: { posts: newPost._id } });
-    revalidatePath("/dashboard");
-    return { success: true, post: newPost };
-  } catch (error) {
-    console.error("Tech showdown submission error:", error);
-    throw new Error("Database Error: Failed to create Tech Showdown post.");
-  }
-};
-
-export const voteTechShowdown = async (postId: string, choice: "optionA" | "optionB") => {
-  const session = await auth();
-  if (!session?.user?._id) return { failure: "Unauthorized. Please log in to vote." };
-  const userId = session.user._id.toString();
-  await connectDB();
-
-  try {
-    const post = await Post.findById(postId);
-    if (!post || post.postType !== "tech_showdown") {
-      return { failure: "Tech showdown not found" };
-    }
-
-    post.techShowdown = post.techShowdown || ({} as any);
-    const voters = (post.techShowdown.voters || []) as any[];
-
-    // Check if user has already voted
-    const existingIndex = voters.findIndex(
-      (v: any) => (v.user?._id || v.user)?.toString() === userId
-    );
-
-    if (existingIndex !== -1) {
-      const prevChoice = voters[existingIndex].option;
-      if (prevChoice === choice) {
-        return { failure: `You have already voted for ${choice === "optionA" ? post.techShowdown.optionA.name : post.techShowdown.optionB.name}` };
-      }
-      // Switch vote
-      voters[existingIndex].option = choice;
-      voters[existingIndex].votedAt = new Date();
-    } else {
-      // First-time vote
-      voters.push({
-        user: userId as any,
-        option: choice,
-        votedAt: new Date(),
-      });
-    }
-
-    // Set true counts strictly from unique registered voters
-    const countA = voters.filter((v: any) => v.option === "optionA").length;
-    const countB = voters.filter((v: any) => v.option === "optionB").length;
-
-    post.techShowdown.voters = voters;
-    post.techShowdown.optionA.votes = countA;
-    post.techShowdown.optionB.votes = countB;
-
-    await post.save();
-    revalidatePath(`/dashboard/p/${postId}`);
-    revalidatePath("/dashboard");
-    return {
-      success: true,
-      votesA: countA,
-      votesB: countB,
-      userVote: choice,
-    };
-  } catch (error) {
-    console.error("Error voting on tech showdown:", error);
-    return { failure: "Failed to cast vote" };
-  }
-};
-
-export const handleInterest = async (postId: string, userId: string) => {
-  await connectDB();
-  try {
-    const post = await Post.findById(postId);
-    if (!post || !post.goal) {
-      return { failure: "Post or goal not found" };
-    }
-    const alreadyInterested = (post.goal.interestedUsers as any[]).some(
-      (id: any) => id.toString() === userId.toString()
-    );
-
-    if (alreadyInterested) {
-      // If already interested, remove user
-      (post.goal.interestedUsers as any).pull(userId);
-    } else {
-      // Else, add user
-      const res = (post.goal.interestedUsers as any).push(userId);
-      console.log("Added user to interested users:", res);
-    }
-
-    await post.save();
-
-    return { success: true };
-  }
-  catch (error) {
-    console.error("Error finding post:", error);
-    return { failure: "Post not found" };
-  }
-};
 
 export const checkExistingRequest = async (postId: string, userId: string) => {
   await connectDB();
@@ -753,55 +495,7 @@ export const createCollabRequest = async (postId: string, userId: string) => {
  * -------------------------------------------------------------
  */
 
-// 1. Resolve Code SOS and Award Debug Karma
-export const resolveCodeSosPost = async ({
-  postId,
-  commentId,
-  solutionSummary,
-  helperUserId,
-}: {
-  postId: string;
-  commentId?: string;
-  solutionSummary?: string;
-  helperUserId?: string;
-}) => {
-  const session = await auth();
-  if (!session?.user?._id) return { failure: "Unauthorized" };
-  await connectDB();
-
-  try {
-    const post = await Post.findById(postId);
-    if (!post || post.postType !== "code_sos") return { failure: "Post not found or not a Code SOS" };
-
-    if (post.userId.toString() !== session.user._id.toString()) {
-      return { failure: "Only the author of the SOS can mark it as resolved" };
-    }
-
-    post.codeSos = post.codeSos || ({} as any);
-    post.codeSos.isResolved = true;
-    if (commentId) post.codeSos.resolvedCommentId = commentId as any;
-    if (helperUserId) post.codeSos.resolvedBy = helperUserId as any;
-    if (solutionSummary) post.codeSos.solutionSummary = solutionSummary;
-
-    await post.save();
-
-    // Award helper 50 Debug Karma and increment bugs solved
-    if (helperUserId && helperUserId !== session.user._id.toString()) {
-      await User.findByIdAndUpdate(helperUserId, {
-        $inc: { debugKarma: 50, bugsSolvedCount: 1 },
-      });
-    }
-
-    revalidatePath(`/dashboard/p/${postId}`);
-    revalidatePath("/dashboard");
-    return { success: true };
-  } catch (error) {
-    console.error("Error resolving Code SOS:", error);
-    return { failure: "Database error resolving Code SOS" };
-  }
-};
-
-// 2. Join / Leave Ship Log Alpha Testers
+// 1. Join / Leave Ship Log Alpha Testers
 export const toggleShipLogAlphaTester = async (postId: string) => {
   const session = await auth();
   if (!session?.user?._id) return { failure: "Unauthorized" };
@@ -832,7 +526,7 @@ export const toggleShipLogAlphaTester = async (postId: string) => {
   }
 };
 
-// 3. Append Ship Log Changelog Milestone
+// 2. Append Ship Log Changelog Milestone
 export const appendShipLogChangelog = async ({
   postId,
   version,
@@ -873,91 +567,7 @@ export const appendShipLogChangelog = async ({
   }
 };
 
-// 4. Vote on Architecture RFC Consensus
-export const voteRfcConsensus = async ({
-  postId,
-  choice,
-}: {
-  postId: string;
-  choice: "adoptA" | "adoptB" | "revise";
-}) => {
-  const session = await auth();
-  if (!session?.user?._id) return { failure: "Unauthorized" };
-  const userId = session.user._id;
-  await connectDB();
-
-  try {
-    const post = await Post.findById(postId);
-    if (!post || post.postType !== "architecture_rfc") return { failure: "RFC not found" };
-
-    post.architectureRfc = post.architectureRfc || ({} as any);
-    post.architectureRfc.votesAdoptA = (post.architectureRfc.votesAdoptA || []) as any;
-    post.architectureRfc.votesAdoptB = (post.architectureRfc.votesAdoptB || []) as any;
-    post.architectureRfc.votesRevise = (post.architectureRfc.votesRevise || []) as any;
-
-    // Pull user from all lists first
-    (post.architectureRfc.votesAdoptA as any).pull(userId);
-    (post.architectureRfc.votesAdoptB as any).pull(userId);
-    (post.architectureRfc.votesRevise as any).pull(userId);
-
-    // Add to chosen list
-    if (choice === "adoptA") (post.architectureRfc.votesAdoptA as any).push(userId);
-    else if (choice === "adoptB") (post.architectureRfc.votesAdoptB as any).push(userId);
-    else if (choice === "revise") (post.architectureRfc.votesRevise as any).push(userId);
-
-    await post.save();
-    revalidatePath(`/dashboard/p/${postId}`);
-    revalidatePath("/dashboard");
-    return {
-      success: true,
-      votesAdoptA: post.architectureRfc.votesAdoptA.length,
-      votesAdoptB: post.architectureRfc.votesAdoptB.length,
-      votesRevise: post.architectureRfc.votesRevise.length,
-    };
-  } catch (error) {
-    console.error("Error voting on RFC:", error);
-    return { failure: "Database error voting on RFC" };
-  }
-};
-
-// 5. Finalize Architecture RFC Decision
-export const finalizeRfcDecision = async ({
-  postId,
-  adoptedOption,
-  decisionSummary,
-}: {
-  postId: string;
-  adoptedOption: string;
-  decisionSummary: string;
-}) => {
-  const session = await auth();
-  if (!session?.user?._id) return { failure: "Unauthorized" };
-  await connectDB();
-
-  try {
-    const post = await Post.findById(postId);
-    if (!post || post.postType !== "architecture_rfc") return { failure: "RFC not found" };
-
-    if (post.userId.toString() !== session.user._id.toString()) {
-      return { failure: "Only the author can finalize an RFC decision" };
-    }
-
-    post.architectureRfc = post.architectureRfc || ({} as any);
-    post.architectureRfc.status = "adopted";
-    post.architectureRfc.adoptedOption = adoptedOption;
-    post.architectureRfc.decisionSummary = decisionSummary;
-
-    await post.save();
-    revalidatePath(`/dashboard/p/${postId}`);
-    revalidatePath("/dashboard");
-    return { success: true };
-  } catch (error) {
-    console.error("Error finalizing RFC:", error);
-    return { failure: "Failed to finalize RFC" };
-  }
-};
-
-// 6. Apply to Hackathon Crew
+// 3. Apply to Hackathon Crew
 export const applyToHackathonCrew = async ({
   postId,
   role,

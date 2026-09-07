@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-export type CockpitTab = 'pulse' | 'chat' | 'comments';
+export type CockpitTab = 'pulse' | 'chat';
 
 interface FeedContextType {
   posts: any[];
@@ -38,7 +38,6 @@ export const FeedProvider: React.FC<{
 
   const focusPostDiscussion = useCallback((post: any) => {
     setActiveDiscussionPost(post);
-    setCockpitTab('comments');
   }, []);
 
   // Sync module cache whenever posts state updates

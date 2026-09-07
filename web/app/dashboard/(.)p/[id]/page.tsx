@@ -1,5 +1,7 @@
 import PostView from "@/components/PostView";
 import DevPostModal from "@/components/DevPostModal";
+import ShipLogUI from "@/components/dev-posts/ShipLogUI";
+import HackathonCrewUI from "@/components/dev-posts/HackathonCrewUI";
 import { fetchPostById } from "@/lib/data";
 import { notFound } from "next/navigation";
 
@@ -21,8 +23,20 @@ async function PostModal({ params: { id } }: Props) {
   }
 
   // Handle developer archetype posts in interactive modal
-  if (posT.postType && posT.postType !== "media") {
-    return <DevPostModal post={posT} />;
+  if (posT.postType === "ship_log") {
+    return (
+      <DevPostModal>
+        <ShipLogUI post={posT} />
+      </DevPostModal>
+    );
+  }
+
+  if (posT.postType === "hackathon_crew") {
+    return (
+      <DevPostModal>
+        <HackathonCrewUI post={posT} />
+      </DevPostModal>
+    );
   }
 
   const fetchContentType = async (url?: string) => {

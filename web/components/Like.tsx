@@ -18,7 +18,14 @@ type LikeButtonProps = {
 
 function LikeButton({ post, userId }: LikeButtonProps) {
   const [likes, setLikes] = useState(post.likes || []);
-  const [isLiked, setIsLiked] = useState(post.isLikedByMe);
+  const [isLiked, setIsLiked] = useState<boolean>(() => {
+    if (typeof post.isLikedByMe === "boolean") return post.isLikedByMe;
+    if (!userId || !post.likes) return false;
+    return (post.likes as any[]).some((like: any) => {
+      const id = (like.userId?._id || like.userId || like)?.toString();
+      return id === userId.toString();
+    });
+  });
 
   const handleLike = async () => {
     if (!userId) return;

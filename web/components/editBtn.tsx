@@ -258,7 +258,7 @@ const EditProfileButton: React.FC<EditProfileButtonProps> = ({ initialData }) =>
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-card border-border text-foreground">
+        <DialogContent className="w-[95vw] sm:w-full max-w-md max-h-[88vh] overflow-y-auto bg-card border-border text-foreground rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">Edit Profile</DialogTitle>
             <DialogDescription className="text-muted-foreground">

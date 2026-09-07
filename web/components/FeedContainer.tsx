@@ -5,14 +5,10 @@ import Link from 'next/link';
 import {
   Users,
   Rocket,
-  Bug,
-  Network,
-  Swords,
-  Sparkles,
+  PenSquare,
+  Film,
   Filter,
   PlusCircle,
-  PenSquare,
-  ArrowRight,
 } from 'lucide-react';
 import { Button } from './ui/button';
 
@@ -34,25 +30,23 @@ export default function FeedContainer({ children, postsMeta }: FeedContainerProp
   const counts = {
     all: postsMeta.length,
     hackathon_crew: postsMeta.filter((p) => p.type === 'hackathon_crew').length,
-    ship_log: postsMeta.filter((p) => p.type === 'ship_log').length,
-    code_sos: postsMeta.filter((p) => p.type === 'code_sos').length,
-    architecture_rfc: postsMeta.filter((p) => p.type === 'architecture_rfc').length,
-    tech_showdown: postsMeta.filter((p) => p.type === 'tech_showdown').length,
+    projects: postsMeta.filter((p) => ['ship_log', 'media'].includes(p.type)).length,
   };
 
   const tabs = [
-    { id: 'all', label: 'All', count: counts.all },
-    { id: 'hackathon_crew', label: '⚡ Squads', count: counts.hackathon_crew },
-    { id: 'ship_log', label: '🚀 Ship Logs', count: counts.ship_log },
-    { id: 'code_sos', label: '🐛 Code SOS', count: counts.code_sos },
-    { id: 'architecture_rfc', label: '📐 RFCs', count: counts.architecture_rfc },
-    { id: 'tech_showdown', label: '⚔️ Debates', count: counts.tech_showdown },
+    { id: 'all', label: 'All Updates', count: counts.all },
+    { id: 'hackathon_crew', label: '⚡ Squad Calls', count: counts.hackathon_crew },
+    { id: 'projects', label: '🚀 Projects & Demos', count: counts.projects },
   ];
 
   // Filter children based on active tab
   const visibleIndices: number[] = [];
   postsMeta.forEach((meta, idx) => {
-    if (activeTab === 'all' || meta.type === activeTab) {
+    if (
+      activeTab === 'all' ||
+      (activeTab === 'hackathon_crew' && meta.type === 'hackathon_crew') ||
+      (activeTab === 'projects' && ['ship_log', 'media'].includes(meta.type))
+    ) {
       visibleIndices.push(idx);
     }
   });
@@ -68,7 +62,7 @@ export default function FeedContainer({ children, postsMeta }: FeedContainerProp
           >
             <span className="flex items-center gap-2">
               <PenSquare className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <span>What are you building, debugging, or shipping?</span>
+              <span>Recruit for a hackathon squad or showcase an open-source project...</span>
             </span>
             <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-secondary/60 border text-muted-foreground">
               New Post
@@ -77,45 +71,32 @@ export default function FeedContainer({ children, postsMeta }: FeedContainerProp
         </div>
 
         {/* Quick Action Chips */}
-        <div className="flex items-center gap-1.5 pt-2.5 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 pt-2.5 overflow-x-auto no-scrollbar">
           <Link
             href="/dashboard/create?type=hackathon_crew"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 transition-all shrink-0"
+            title="Recruit teammates with complementary skills for hackathons with auto-provisioned squad channels"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 transition-all shrink-0"
           >
-            <Users className="w-3 h-3" />
-            <span>Recruit Squad</span>
+            <Users className="w-3.5 h-3.5" />
+            <span>⚡ Recruit Squad</span>
           </Link>
 
           <Link
             href="/dashboard/create?type=ship_log"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 transition-all shrink-0"
+            title="Showcase your live MVP, tool, or repo to get alpha testers, stars & feedback"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-all shrink-0"
           >
-            <Rocket className="w-3 h-3" />
-            <span>Ship Demo</span>
+            <Rocket className="w-3.5 h-3.5" />
+            <span>🚀 Showcase Project</span>
           </Link>
 
           <Link
-            href="/dashboard/create?type=code_sos"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all shrink-0"
+            href="/dashboard/create?type=media"
+            title="Upload video reels, screen recordings & architecture snapshots"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-500/10 hover:bg-neutral-500/20 text-neutral-400 border border-neutral-500/20 transition-all shrink-0"
           >
-            <Bug className="w-3 h-3" />
-            <span>Code SOS</span>
-          </Link>
-
-          <Link
-            href="/dashboard/create?type=architecture_rfc"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 transition-all shrink-0"
-          >
-            <Network className="w-3 h-3" />
-            <span>System RFC</span>
-          </Link>
-
-          <Link
-            href="/dashboard/stranger-chat"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-all shrink-0 ml-auto"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Pair Radar</span>
+            <Film className="w-3.5 h-3.5" />
+            <span>🎬 Demo Reel</span>
           </Link>
         </div>
       </div>
@@ -163,16 +144,10 @@ export default function FeedContainer({ children, postsMeta }: FeedContainerProp
             </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
               {activeTab === 'hackathon_crew' &&
-                'Be the first to recruit a team for upcoming hackathons.'}
-              {activeTab === 'code_sos' &&
-                'No open debug requests right now. Stuck on a bug? Broadcast a pair debug SOS.'}
-              {activeTab === 'ship_log' &&
-                'No ship logs yet. Shipped something awesome? Share your release demo.'}
-              {activeTab === 'architecture_rfc' &&
-                'No system RFCs. Planning an architecture design? Ask for peer feedback.'}
-              {activeTab === 'tech_showdown' &&
-                'No active tech showdowns. Compare tools or discuss tradeoffs.'}
-              {activeTab === 'all' && 'No activity found in feed.'}
+                'Be the first to recruit a squad for upcoming hackathons.'}
+              {activeTab === 'projects' &&
+                'No project showcases yet. Shipped an MVP or open-source tool? Share your demo.'}
+              {activeTab === 'all' && 'No activity found in the feed. Be the first to share an update!'}
             </p>
           </div>
           <div className="pt-1">
@@ -180,15 +155,7 @@ export default function FeedContainer({ children, postsMeta }: FeedContainerProp
               href={
                 activeTab === 'hackathon_crew'
                   ? '/dashboard/create?type=hackathon_crew'
-                  : activeTab === 'code_sos'
-                  ? '/dashboard/create?type=code_sos'
-                  : activeTab === 'ship_log'
-                  ? '/dashboard/create?type=ship_log'
-                  : activeTab === 'architecture_rfc'
-                  ? '/dashboard/create?type=architecture_rfc'
-                  : activeTab === 'tech_showdown'
-                  ? '/dashboard/create?type=tech_showdown'
-                  : '/dashboard/create'
+                  : '/dashboard/create?type=ship_log'
               }
             >
               <Button size="sm" className="text-xs gap-1.5 font-medium h-8">

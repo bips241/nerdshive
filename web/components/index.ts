@@ -29,11 +29,6 @@ export { default as ShareButton } from './ShareButton';
 export { default as Timestamp } from './Timestamp';
 export { default as UserAvatar } from './UserAvatar';
 
-// Interactive Post UI Types
-export { default as PollPostUI } from './PollPostUI';
-export { default as GoalPostUI } from './GoalPostUI';
-export { default as ProjectPostUI } from './ProjectPostUI';
-export { default as PollStats } from './pollStats';
 
 // Actions & Buttons
 export { default as FollowButton } from './followBtn';
@@ -41,13 +36,11 @@ export { default as CollabReqButton } from './collabReq';
 export { default as EditBtn } from './editBtn';
 export { default as SubmitButton } from './SubmitButton';
 export { default as ActionIcon } from './ActionIcon';
-export { InterestedButton } from './interestedButton';
 export { default as ViewProjectReq } from './viewProjectReq';
 export { default as ProReqClient } from './ProReqClient';
 
 // Video & Realtime
 export { default as RadarMatchClient } from './radar/RadarMatchClient';
-export { default as LiveCodeSosRoomClient } from './dev-posts/LiveCodeSosRoomClient';
 export { default as SocketBootstrapper } from './SocketBootstrapper';
 
 

@@ -53,7 +53,7 @@ export default function RequestsDialog({ isOpen, onClose, postId }: RequestsDial
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full max-w-md rounded bg-white dark:bg-neutral-900 p-6 space-y-4">
+      <DialogContent className="w-[95vw] sm:w-full max-w-md max-h-[88vh] overflow-y-auto rounded-2xl bg-card border border-border text-foreground p-6 space-y-4">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-center">Project Requests</DialogTitle>
         </DialogHeader>

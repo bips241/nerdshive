@@ -28,16 +28,17 @@ export default async function ExplorePage({
   const selectedTag = searchParams?.tag;
   const searchQuery = searchParams?.q;
 
-  const query: any = { postType: 'project' };
+  const query: any = { postType: 'ship_log' };
 
-  if (selectedTag) {
-    query['project.techStack'] = { $regex: new RegExp(selectedTag, 'i') };
+  if (selectedTag && selectedTag !== 'All') {
+    query['shipLog.techStack'] = { $regex: new RegExp(selectedTag, 'i') };
   }
 
   if (searchQuery) {
     query.$or = [
-      { 'project.title': { $regex: searchQuery, $options: 'i' } },
-      { 'project.description': { $regex: searchQuery, $options: 'i' } },
+      { 'shipLog.title': { $regex: searchQuery, $options: 'i' } },
+      { 'shipLog.pitch': { $regex: searchQuery, $options: 'i' } },
+      { caption: { $regex: searchQuery, $options: 'i' } },
     ];
   }
 
@@ -315,7 +316,7 @@ export default async function ExplorePage({
             Be the first to post a project in this category!
           </p>
           <Link
-            href="/dashboard/create"
+            href="/dashboard/create?type=ship_log"
             className="inline-block mt-4 text-xs font-semibold text-primary underline"
           >
             Create a Project Post
@@ -325,8 +326,10 @@ export default async function ExplorePage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((post: any) => {
             const author = post.userId;
-            const project = post.project || {};
+            const project = post.shipLog || {};
             const isAuthor = currentUserId === author?._id?.toString();
+            const title = project.title || post.caption || 'Project Showcase';
+            const description = project.pitch || post.caption || 'Open-source project and demo showcase.';
 
             return (
               <Card
@@ -357,9 +360,16 @@ export default async function ExplorePage({
 
                 {/* Content */}
                 <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-foreground">{project.title}</h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-lg font-bold text-foreground truncate">{title}</h3>
+                    {project.version && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-secondary text-muted-foreground border shrink-0">
+                        {project.version}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                    {project.description}
+                    {description}
                   </p>
                 </div>
 
@@ -379,11 +389,17 @@ export default async function ExplorePage({
 
                 {/* Footer Metadata & CTA */}
                 <div className="flex items-center justify-between pt-3 border-t text-xs text-muted-foreground">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1 font-medium">
-                      <Users className="h-3.5 w-3.5" />
-                      {project.members?.length || 1} members
-                    </span>
+                  <div className="flex items-center gap-3">
+                    {project.demoUrl && (
+                      <Link
+                        href={project.demoUrl.startsWith('http') ? project.demoUrl : `https://${project.demoUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:underline text-emerald-500 font-semibold"
+                      >
+                        <Zap className="h-3.5 w-3.5" /> Demo
+                      </Link>
+                    )}
 
                     {project.repoUrl && (
                       <Link
@@ -395,6 +411,13 @@ export default async function ExplorePage({
                         <GitFork className="h-3.5 w-3.5" /> Repo
                       </Link>
                     )}
+
+                    <Link
+                      href={`/dashboard/p/${post._id}`}
+                      className="hover:underline text-muted-foreground"
+                    >
+                      View Details &rarr;
+                    </Link>
                   </div>
 
                   {currentUserId && !isAuthor && (

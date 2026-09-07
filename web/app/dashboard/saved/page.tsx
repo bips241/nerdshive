@@ -52,7 +52,7 @@ export default async function SavedPostsPage({
   const filterTabs = [
     { id: 'all', label: 'All Saved', icon: Bookmark },
     { id: 'project', label: 'Projects', icon: GitFork },
-    { id: 'media', label: 'Media & Reels', icon: Film },
+    { id: 'media', label: 'Media & Demos', icon: Film },
     { id: 'poll', label: 'Polls', icon: BarChart3 },
     { id: 'goal', label: 'Goals', icon: Target },
   ];
