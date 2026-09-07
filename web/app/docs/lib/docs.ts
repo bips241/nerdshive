@@ -92,13 +92,48 @@ function formatTitleFromSlug(slug: string): string {
     .replace(/\bRbac\b/g, 'RBAC');
 }
 
+async function getDocsFilesMap(docsDir: string): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+
+  async function scan(dir: string) {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'agent-log') {
+          continue;
+        }
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await scan(full);
+        } else if (entry.isFile() && entry.name.endsWith('.md')) {
+          const base = entry.name.replace(/\.md$/, '');
+          map.set(base.toLowerCase(), full);
+          // Also set the exact-cased slug
+          map.set(base, full);
+        }
+      }
+    } catch (_) {}
+  }
+
+  await scan(docsDir);
+  return map;
+}
+
 export async function getDocumentSlugs(): Promise<string[]> {
   try {
     const docsDir = await findActiveDocsDirectory();
-    const files = await fs.readdir(docsDir);
-    return files
-      .filter((file) => file.endsWith('.md') && !file.startsWith('.'))
-      .map((file) => file.replace(/\.md$/, ''));
+    const map = await getDocsFilesMap(docsDir);
+    // Unique list of real slugs
+    const slugs: string[] = [];
+    const seen = new Set<string>();
+    for (const [key, fullPath] of map.entries()) {
+      const baseName = path.basename(fullPath, '.md');
+      if (!seen.has(baseName)) {
+        seen.add(baseName);
+        slugs.push(baseName);
+      }
+    }
+    return slugs;
   } catch (error) {
     console.error('Error reading documents directory:', error);
     return [];
@@ -108,26 +143,17 @@ export async function getDocumentSlugs(): Promise<string[]> {
 export async function getDocumentBySlug(slug: string): Promise<DocumentItem | null> {
   try {
     const docsDir = await findActiveDocsDirectory();
+    const map = await getDocsFilesMap(docsDir);
     const realSlug = slug.replace(/\.md$/, '');
-    const fullPath = path.join(docsDir, `${realSlug}.md`);
     
-    let fileContents: string;
-    let stat: any;
-    try {
-      fileContents = await fs.readFile(fullPath, 'utf8');
-      stat = await fs.stat(fullPath);
-    } catch (_) {
-      // Try lowercase or uppercase variant if case-mismatched
-      const files = await fs.readdir(docsDir);
-      const match = files.find((f) => f.replace(/\.md$/, '').toLowerCase() === realSlug.toLowerCase());
-      if (match) {
-        const matchedPath = path.join(docsDir, match);
-        fileContents = await fs.readFile(matchedPath, 'utf8');
-        stat = await fs.stat(matchedPath);
-      } else {
-        return null;
-      }
+    // Find path by direct key or lowercase key
+    const fullPath = map.get(realSlug) || map.get(realSlug.toLowerCase());
+    if (!fullPath) {
+      return null;
     }
+
+    const fileContents = await fs.readFile(fullPath, 'utf8');
+    const stat = await fs.stat(fullPath);
 
     const { data, content } = matter(fileContents);
 

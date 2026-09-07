@@ -1,3 +1,7 @@
+# Database Entity Relationship (ER) & UML Model Specification
+
+> **Document Status**: Production Data Model & Schema Entity Relationship Diagram.
+
 ```mermaid
 erDiagram
     User {

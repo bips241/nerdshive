@@ -61,15 +61,16 @@ if (typeof window !== 'undefined') {
   } catch (_) {}
 }
 
-// Clean up any stray error elements Mermaid might append to document body
+// Clean up any stray error elements Mermaid might append to document body upon syntax failure
 function removeMermaidErrorDOM() {
   if (typeof document === 'undefined') return;
   try {
-    document.querySelectorAll('svg[id^="dmermaid"], div[id^="dmermaid"], [id*="mermaid-error"]').forEach((el) => {
-      el.remove();
-    });
     document.querySelectorAll('body > div, body > svg').forEach((el) => {
-      if (el.textContent?.includes('Syntax error in text') || el.id?.startsWith('dmermaid') || el.querySelector?.('[class*="error-icon"]')) {
+      if (
+        el.textContent?.includes('Syntax error in text') || 
+        el.querySelector?.('[class*="error-icon"]') ||
+        el.id?.includes('mermaid-error')
+      ) {
         el.remove();
       }
     });
@@ -112,17 +113,8 @@ const Mermaid = ({ chart }: { chart: string }) => {
 
   useEffect(() => {
     let isMounted = true;
-    const uniqueId = `mermaid-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`;
+    const uniqueId = `mermaid_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
     const sanitized = sanitizeMermaidChart(chart);
-
-    // Watch for any stray elements injected by Mermaid and remove them immediately
-    let observer: MutationObserver | null = null;
-    if (typeof document !== 'undefined') {
-      observer = new MutationObserver(() => {
-        removeMermaidErrorDOM();
-      });
-      observer.observe(document.body, { childList: true });
-    }
 
     mermaid
       .render(uniqueId, sanitized)
@@ -131,17 +123,16 @@ const Mermaid = ({ chart }: { chart: string }) => {
           setSvg(result.svg);
           setRenderError(null);
         }
-        removeMermaidErrorDOM();
       })
       .catch((e) => {
         if (!isMounted) return;
+        console.warn('[Mermaid Render Warning]', e?.message);
         setRenderError(e?.message || 'Diagram syntax error');
         removeMermaidErrorDOM();
       });
 
     return () => {
       isMounted = false;
-      if (observer) observer.disconnect();
       removeMermaidErrorDOM();
     };
   }, [chart]);
