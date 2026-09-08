@@ -23,6 +23,21 @@ export interface IUser extends Document {
   techStack?: string[];
   debugKarma?: number;
   bugsSolvedCount?: number;
+  college?: string;
+  organization?: string;
+  organizationType?: 'company' | 'university' | 'dao' | 'independent' | 'other';
+  experienceLevel?: 'student' | 'entry' | 'mid' | 'senior' | 'lead' | 'founder';
+  yearsOfExperience?: number;
+  hackathonsAttendedCount?: number;
+  hackathonsWonCount?: number;
+  hackathonPodiumsCount?: number;
+  reputationScore?: number;
+  location?: string;
+  timezone?: string;
+  occupancyStatus?: 'open' | 'occupied';
+  occupiedTeamId?: mongoose.Types.ObjectId;
+  acceptingRequests?: boolean;
+  preferredRole?: string;
   accountStatus?: 'active' | 'suspended' | 'deactivated' | 'deleted';
   isDeleted?: boolean;
   deletedAt?: Date;
@@ -44,6 +59,36 @@ export const UserSchema: Schema<IUser> = new Schema(
     bio: { type: String },
     website: { type: String },
     repo: { type: String },
+    college: { type: String, trim: true, index: true },
+    organization: { type: String, trim: true, index: true },
+    organizationType: {
+      type: String,
+      enum: ['company', 'university', 'dao', 'independent', 'other'],
+      default: 'independent',
+      index: true,
+    },
+    experienceLevel: {
+      type: String,
+      enum: ['student', 'entry', 'mid', 'senior', 'lead', 'founder'],
+      default: 'entry',
+      index: true,
+    },
+    yearsOfExperience: { type: Number, default: 0 },
+    hackathonsAttendedCount: { type: Number, default: 0 },
+    hackathonsWonCount: { type: Number, default: 0, index: true },
+    hackathonPodiumsCount: { type: Number, default: 0 },
+    reputationScore: { type: Number, default: 0, index: true },
+    location: { type: String, trim: true },
+    timezone: { type: String, trim: true },
+    occupancyStatus: {
+      type: String,
+      enum: ['open', 'occupied'],
+      default: 'open',
+      index: true,
+    },
+    occupiedTeamId: { type: Schema.Types.ObjectId, ref: 'HackathonRegistration' },
+    acceptingRequests: { type: Boolean, default: true, index: true },
+    preferredRole: { type: String, trim: true },
     radarStatus: {
       type: String,
       enum: ['open_for_hackathons', 'seeking_cofounder', 'open_for_collab', 'open_for_work', 'none'],

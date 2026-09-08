@@ -44,6 +44,14 @@ export default async function SettingsPage() {
           repo: user.repo,
           radarStatus: user.radarStatus,
           techStack: user.techStack,
+          organization: user.organization || user.college || '',
+          organizationType: user.organizationType || (user.college ? 'university' : 'independent'),
+          experienceLevel: user.experienceLevel || 'entry',
+          yearsOfExperience: user.yearsOfExperience || 0,
+          location: user.location || '',
+          timezone: user.timezone || '',
+          preferredRole: user.preferredRole || 'Fullstack Developer',
+          college: user.college || '',
           createdAt: user.createdAt?.toISOString(),
         }}
       />

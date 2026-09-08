@@ -6,13 +6,13 @@
 [![Redis 7](https://img.shields.io/badge/Redis-7%20Streams%20%26%20Queues-DC382D?logo=redis)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker)](https://www.docker.com/)
 
-An enterprise-grade developer platform featuring **Intent-Based Random Video Chat**, **Pair Programming Roulette**, **Skill-Complement Teammate Matching**, **Project Collaboration Feeds**, and **Direct-to-S3 Resilient Media Streaming**.
+An enterprise-grade developer platform featuring **Real-Time Developer Radar (`/dashboard/radar`)**, **Verified Hackathon Management**, **Private Discord-Style Squad Servers (`voice:pair-hacking`)**, **Stationary Cockpit Rail with Pulse & Chat**, **Simplified Developer Post Archetypes (`media`, `hackathon_crew`, `ship_log`)**, and **Direct-to-S3 Resilient Media Streaming**.
 
 ---
 
 ## 🏛️ System Architecture
 
-NerdShive is architected with a strict separation between the **Frontend & Edge BFF (`web/`)** and the **NestJS Backend Microservices Cluster (`apps/`)**:
+NerdShive is architected with a clean separation between the **Frontend Edge BFF (`web/`)** and the **Microservices & Real-Time Signaling Cluster (`apps/`)**:
 
 ```
                               ┌───────────────────────────────────┐
@@ -22,26 +22,30 @@ NerdShive is architected with a strict separation between the **Frontend & Edge 
                                               ▼
                               ┌───────────────────────────────────┐
                               │  Next.js 14 App Router (web/)     │
+                              │  - 38+ App Router Pages & Actions │
+                              │  - Central RBAC Gate (rbac.ts)    │
+                              │  - Stationary Cockpit Rail        │
                               └───────────────┬───────────────────┘
-                                              │ REST / Internal gRPC
-                                              ▼
-                              ┌───────────────────────────────────┐
-                              │ NestJS API Gateway (apps/gateway) │
-                              └───────────────┬───────────────────┘
-                                              │ Binary gRPC (Protobuf)
-        ┌───────────────────┬─────────────────┼───────────────────┬───────────────────┐
-        ▼                   ▼                 ▼                   ▼                   ▼
-┌──────────────┐    ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│ auth-service │    │media-service │   │match-service │   │ chat-service │   │discovery-svc │
-│   (:50051)   │    │   (:50052)   │   │   (:50053)   │   │   (:50054)   │   │   (:50055)   │
-└───────┬──────┘    └───────┬──────┘   └───────┬──────┘   └───────┬──────┘   └───────┬──────┘
-        │                   │                  │                  │                  │
-        └───────────────────┴────────┬─────────┴──────────────────┴──────────────────┘
-                                     │
-                                     ▼
-                      ┌───────────────────────────────┐
-                      │  Redis 7 Cluster & Event Bus  │
-                      └───────────────────────────────┘
+                                              │
+                      ┌───────────────────────┴───────────────────────┐
+                      │ Internal REST / gRPC                          │ WebSockets
+                      ▼                                               ▼
+      ┌───────────────────────────────┐               ┌───────────────────────────────┐
+      │ NestJS Gateway (apps/gateway) │               │ Signaling (apps/signaling)    │
+      └───────────────┬───────────────┘               │ Peer Relay (apps/peer-server) │
+                      │                               └───────────────┬───────────────┘
+      ┌───────────────┼───────────────┐                               │
+      ▼               ▼               ▼                               │
+┌──────────────┐┌──────────────┐┌──────────────┐                      │
+│ auth-service ││media-service ││discovery-svc │                      │
+└───────┬──────┘└───────┬──────┘└───────┬──────┘                      │
+        │               │               │                             │
+        └───────────────┼───────────────┴─────────────────────────────┘
+                        │
+                        ▼
+         ┌───────────────────────────────┐
+         │  Redis 7 Cluster & Event Bus  │
+         └───────────────────────────────┘
 ```
 
 ---
@@ -53,6 +57,9 @@ nerdshive/
 ├── nest-cli.json                    # NestJS Monorepo CLI Config (tracks apps/*)
 ├── package.json                     # Monorepo Workspace Config ("web", "apps/*", "libs/*")
 ├── tsconfig.json                    # Root Monorepo TypeScript Base Config
+├── .agents/rules/workspace-rules.md # Non-Negotiable Agent & Workspace Rules
+├── AGENTS.md                        # Agent Guidelines Mirror
+├── GEMINI.md                        # Antigravity Rules Mirror
 ├── .env                             # Root Environment Variables
 ├── .env.example                     # Environment Blueprint
 ├── Dockerfile                       # Web Frontend Container (web/)
@@ -60,84 +67,89 @@ nerdshive/
 ├── docker-compose.yml               # Development Orchestration Stack
 ├── docker-compose.prod.yml          # Production Orchestration Stack
 ├── README.md                        # Monorepo Documentation
-├── CONTEXT.md                       # Project Constraints & Directive
+├── CONTEXT.md                       # Platform Constraints & Architecture Blueprint
 │
 ├── web/                             # 🌐 Next.js 14 Frontend & Edge BFF
-│   ├── app/                         # 19 App Router Pages & API Routes
+│   ├── app/                         # 38+ App Router Pages & API Routes
+│   │   ├── dashboard/               # Main Dashboard, Feed, Radar, Messages, Hackathons
+│   │   ├── devs/docs/               # Interactive Developer Documentation
+│   │   ├── register/, login/        # Authentication & OTP Verification
+│   │   └── api/                     # Backend Server Handlers
 │   ├── components/                  # UI Components & Design System Barrel
-│   ├── lib/                         # Client Utilities (db, uploader, crop)
-│   ├── public/                      # Static Media Assets
-│   ├── hooks/                       # React Hooks
-│   ├── context/                     # Context Providers
-│   ├── emails/                      # React Email Templates
-│   ├── helpers/                     # Helper Functions
-│   ├── models/                      # Local Entity Facade
-│   ├── schemas/                     # Zod Schemas
-│   ├── types/                       # TypeScript Types
-│   ├── auth.ts                      # NextAuth Configuration
-│   ├── middleware.ts                # Route Protection Middleware
-│   ├── next.config.mjs              # Next.js Config
-│   ├── tailwind.config.ts           # Tailwind CSS Config
-│   ├── postcss.config.mjs           # PostCSS Config
-│   ├── package.json                 # Web App Package Config (@nerdshive/web)
-│   └── tsconfig.json                # Web App TypeScript Config
+│   │   ├── radar/                   # RadarMatchClient, GranularFinder, ControlPanel, VettingRoom, Modals
+│   │   ├── hackathons/              # HubClient, JudgingPortalModal, TeamRoomModal
+│   │   ├── chat/                    # DiscordLayout, VoiceVideoStage, RealtimeChatView
+│   │   └── FeedContainer.tsx        # 0ms Instant Navigation with FeedTabContext
+│   ├── lib/                         # Server Actions, RBAC, WebRTC & S3 Utilities
+│   ├── models/entities/             # Mongoose Domain Entities
+│   └── schemas/                     # Zod Validation Schemas
 │
-├── apps/                            # 🚀 NestJS Backend Microservices & Gateways
+├── apps/                            # 🚀 Backend Microservices & Gateways
+│   ├── signaling-server/            # 📡 Socket.IO & Redis Matchmaker Server (:10000)
+│   ├── peer-server/                 # 📹 PeerJS WebRTC Relay Server (:9000)
 │   ├── api-gateway/                 # 🚪 NestJS API Gateway (:4000)
-│   ├── auth-service/                # 🔐 Auth Microservice (:50051)
-│   ├── media-service/               # 📦 Media & BullMQ Worker (:50052)
-│   ├── match-service/               # 🎲 Matchmaking Queue Microservice (:50053)
-│   ├── chat-service/                # 💬 Real-Time Messaging Gateway (:50054)
-│   ├── discovery-service/           # 🔍 Skill Complement Engine (:50055)
-│   ├── notification-service/        # 🔔 Event-Driven Alert Processor
-│   ├── signaling-server/            # 📡 Socket.IO & Redis Matchmaker Server
-│   └── peer-server/                 # 📹 PeerJS WebRTC Relay Server
+│   ├── auth-service/                # 🔐 Auth Microservice (:4001)
+│   ├── media-service/               # 📦 Media & Pre-signing Service (:4002)
+│   ├── match-service/               # 🎲 Matchmaking Queue Microservice (:4003)
+│   └── discovery-service/           # 🔍 Skill Complement Engine (:4005)
 │
 ├── libs/                            # 📚 Shared Backend Packages
-│   ├── database/                    # Mongoose Domain Entities & Repositories
+│   ├── database/                    # Mongoose Domain Entities & Dual-Tier Models
 │   ├── events/                      # Shared Redis Event Bus & Domain Events
-│   ├── common/                      # Shared Utilities & gRPC Client Stubs
+│   ├── common/                      # Shared Utilities & Helpers
 │   └── proto/                       # Protocol Buffer (gRPC) Schema Definitions
 │
-├── docs/                            # 📖 Comprehensive Living Documentation
-│   ├── architecture/                # Architecture plans & UML diagrams
-│   ├── agent-log/                   # Step-by-step engineering logs (01 - 15)
-│   ├── FEATURES.md                  # Comprehensive feature & schema inventory
-│   ├── SCALABILITY_TARGETS.md       # Non-functional scaling targets (50k+ sockets)
-│   ├── FEATURE_IDEAS.md             # Growth & retention feature roadmap
-│   └── SYSTEM_ARCHITECTURE.md       # Enterprise microservices blueprint
-│
-└── tests/                           # 🧪 Monorepo Test & Benchmark Suites
-    ├── load-tests/                  # S3 upload resilience & matchmaking concurrency
-    └── grpc/                        # gRPC serialization & RPC benchmarks
+└── docs/                            # 📖 Authoritative Living Documentation
+    ├── CORE_BUSINESS_LOGIC_SSOT.md  # Single Source of Truth & Non-Negotiable Invariants
+    ├── FEATURES.md                  # Comprehensive feature & schema inventory
+    ├── SYSTEM_ARCHITECTURE.md       # Production microservices & topology blueprint
+    ├── INFRASTRUCTURE_ROLLOUT_AND_SCALING_BIBLE.md # Complete DevOps rollout runbook
+    ├── SCHEMA_EVOLUTION_AND_COMPATIBILITY_RULES.md # Backward compatibility standard
+    ├── DATA_STORAGE_AND_BACKUP_POLICY.md           # 180-Day retention & DPDP compliance
+    ├── FEATURE_IDEAS.md             # Shipped catalog & next-generation roadmap
+    ├── architecture/                # UML diagrams and Radar matchmaking specs
+    └── agent-log/                   # Step-by-step engineering trajectory (01 - 36)
 ```
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start & Development
 
 ```bash
 # 1. Install all monorepo dependencies
 npm install
 
-# 2. Start Next.js Frontend Development Server
+# 2. Run environment secrets & integrity check
+npm run env:check
+
+# 3. Start Next.js Frontend Development Server
 npm run dev
 
-# 3. Start NestJS Microservices Cluster
-npm run start:gateway
+# 4. Start Signaling Server (Socket.IO + Redis Adapter)
+npm run start:signaling
+
+# 5. Start WebRTC PeerJS Relay Server
+npm run start:peer
 ```
 
 ---
 
-## 🧪 Benchmark & Stress Test Suite
+## 🧪 Enterprise CI/CD Pre-Flight Validation
+
+NerdShive executes a 10-gate validation pipeline locally and in GitHub Actions before any deployment:
 
 ```bash
-# Run S3 Upload Resilience Benchmark (50 consecutive & concurrent cycles)
-node tests/load-tests/s3-resilience-test.js
+# Run composite validation pipeline (all 10 pre-flight gates)
+npm run ci:validate
 
-# Run gRPC Microservices Integration & Throughput Benchmark (10,000 RPCs)
-node tests/grpc/grpc-integration-test.js
-
-# Run Media Upload Concurrency Benchmark (>500k ops/sec)
-node tests/load-tests/upload-concurrency-test.js
+# Or run individual verification gates:
+npm run lint           # Gate 1: ESLint syntax & code quality
+npm run build          # Gate 2 & 10: Next.js production build & type checks
+npm run env:check      # Gate 3: Secrets integrity audit
+npm run db:seed        # Gate 4: Ephemeral database seeding
+npm run test:schema    # Gate 5: Backward compatibility & collision invariance
+npm run test:retention # Gate 6: Statutory 180-day retention drill
+npm run test:rbac      # Gate 7: Backend-enforced RBAC bypass-proof suite
+npm run test:hackathon # Gate 8: Hackathon anti-clone shield & squad isolation
+npm run test:rooms     # Gate 9: Real-time WebRTC room segregation
 ```

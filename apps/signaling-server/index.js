@@ -334,8 +334,18 @@ io.on('connection', (socket) => {
     let partner = null;
     if (isRedisReady && redisClient) {
       partner = await popValidRedisPartner(intent, socket.id);
+      if (!partner && intent.includes(':')) {
+        const baseIntent = intent.split(':')[0];
+        partner = await popValidRedisPartner(baseIntent, socket.id);
+      }
     } else {
       partner = popValidMemoryPartner(intent, socket.id);
+      if (!partner && intent.includes(':')) {
+        const baseIntent = intent.split(':')[0];
+        if (intentQueues[baseIntent]) {
+          partner = popValidMemoryPartner(baseIntent, socket.id);
+        }
+      }
     }
 
     console.log(`[POP_PARTNER:${instanceId}] intent=${intent} socket=${socket.id} found=${partner ? partner.socketId : 'null'}`);

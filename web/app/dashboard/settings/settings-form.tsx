@@ -22,6 +22,14 @@ interface SettingsFormProps {
     repo?: string;
     radarStatus?: string;
     techStack?: string[];
+    organization?: string;
+    organizationType?: string;
+    experienceLevel?: string;
+    yearsOfExperience?: number;
+    location?: string;
+    timezone?: string;
+    preferredRole?: string;
+    college?: string;
     createdAt?: string;
   };
 }
@@ -36,6 +44,13 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     website: user.website || '',
     repo: user.repo || '',
     radarStatus: user.radarStatus || 'none',
+    organization: user.organization || user.college || '',
+    organizationType: user.organizationType || (user.college ? 'university' : 'independent'),
+    experienceLevel: user.experienceLevel || 'entry',
+    yearsOfExperience: user.yearsOfExperience || 0,
+    location: user.location || '',
+    timezone: user.timezone || '',
+    preferredRole: user.preferredRole || 'Fullstack Developer',
   });
 
   const [techStackInput, setTechStackInput] = useState((user.techStack || []).join(', '));
@@ -54,6 +69,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
       const res = await updateProfile({
         ...formData,
         techStack: parsedTech,
+        yearsOfExperience: Number(formData.yearsOfExperience) || 0,
       });
 
       if (res?.success) {
@@ -121,6 +137,98 @@ export default function SettingsForm({ user }: SettingsFormProps) {
               value={formData.website}
               onChange={(e) => setFormData((prev) => ({ ...prev, website: e.target.value }))}
               placeholder="https://yourportfolio.dev"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Organization, Company & Career (Pin-Point Radar Discovery) */}
+      <Card className="p-6 space-y-4 bg-card border rounded-2xl">
+        <div className="flex items-center gap-2 border-b pb-3">
+          <Shield className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-bold">Organization & Career Profile (Radar Filters)</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="organization">Organization / Company / College Name</Label>
+            <Input
+              id="organization"
+              value={formData.organization}
+              onChange={(e) => setFormData((prev) => ({ ...prev, organization: e.target.value }))}
+              placeholder="e.g. Google, Microsoft, MIT, Stanford, IIT Bombay"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Used by companies & squads to filter candidates with pin-point accuracy.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="organizationType">Organization Type</Label>
+            <Select
+              value={formData.organizationType}
+              onValueChange={(val) => setFormData((prev) => ({ ...prev, organizationType: val }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="company">🏢 Tech Company / Enterprise</SelectItem>
+                <SelectItem value="university">🎓 University / College</SelectItem>
+                <SelectItem value="dao">🌐 DAO / Open Source Collective</SelectItem>
+                <SelectItem value="independent">⚡ Independent Hacker / Freelancer</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="preferredRole">Primary Engineering Role</Label>
+            <Input
+              id="preferredRole"
+              value={formData.preferredRole}
+              onChange={(e) => setFormData((prev) => ({ ...prev, preferredRole: e.target.value }))}
+              placeholder="e.g. Frontend Architect, AI Engineer, Solidity Dev"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="experienceLevel">Experience Level</Label>
+            <Select
+              value={formData.experienceLevel}
+              onValueChange={(val) => setFormData((prev) => ({ ...prev, experienceLevel: val }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="student">🎓 Student / Fresher</SelectItem>
+                <SelectItem value="entry">🌱 Entry Level (1-2 yrs)</SelectItem>
+                <SelectItem value="mid">⚡ Mid-Level (3-5 yrs)</SelectItem>
+                <SelectItem value="senior">🚀 Senior / Staff (5+ yrs)</SelectItem>
+                <SelectItem value="lead">👑 Tech Lead / Engineering Manager</SelectItem>
+                <SelectItem value="founder">💡 Founder / Co-Founder</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="location">Geographic Location</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+              placeholder="City, Country (e.g. San Francisco, CA or Bengaluru, India)"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="timezone">Timezone Offset</Label>
+            <Input
+              id="timezone"
+              value={formData.timezone}
+              onChange={(e) => setFormData((prev) => ({ ...prev, timezone: e.target.value }))}
+              placeholder="e.g. UTC-8 (PST) or UTC+5:30 (IST)"
             />
           </div>
         </div>

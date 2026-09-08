@@ -2,7 +2,7 @@ import { fetchPosts } from "@/lib/data";
 import Post from "./Post";
 import ShipLogUI from "./dev-posts/ShipLogUI";
 import HackathonCrewUI from "./dev-posts/HackathonCrewUI";
-import FeedContainer from "./FeedContainer";
+import FeedContainer, { FeedItemWrapper } from "./FeedContainer";
 
 const Posts = async () => {
   try {
@@ -15,16 +15,25 @@ const Posts = async () => {
     }));
 
     const renderedChildren = posts.map((post) => {
+      let content = null;
       switch (post.postType) {
         case "ship_log":
-          return <ShipLogUI key={post._id} post={post} />;
+          content = <ShipLogUI post={post} />;
+          break;
         case "hackathon_crew":
-          return <HackathonCrewUI key={post._id} post={post} />;
+          content = <HackathonCrewUI post={post} />;
+          break;
         case "media":
-          return <Post key={post._id} post={post} />;
+          content = <Post post={post} />;
+          break;
         default:
           return null;
       }
+      return (
+        <FeedItemWrapper key={post._id} postType={post.postType}>
+          {content}
+        </FeedItemWrapper>
+      );
     });
 
     return (

@@ -273,7 +273,25 @@ export async function updateProfile(values: unknown) {
     };
   }
 
-  const { bio, gender, image, name, user_name, website, repo, radarStatus, techStack } = validatedFields.data;
+  const {
+    bio,
+    gender,
+    image,
+    name,
+    user_name,
+    website,
+    repo,
+    radarStatus,
+    techStack,
+    organization,
+    organizationType,
+    experienceLevel,
+    yearsOfExperience,
+    location,
+    timezone,
+    preferredRole,
+    college,
+  } = validatedFields.data;
 
   try {
     // Check if new user_name is already taken by another account
@@ -301,6 +319,19 @@ export async function updateProfile(values: unknown) {
     if (image !== undefined) updatePayload.image = image;
     if (radarStatus !== undefined) updatePayload.radarStatus = radarStatus;
     if (techStack !== undefined) updatePayload.techStack = techStack;
+    if (organization !== undefined) {
+      updatePayload.organization = organization;
+      if (organizationType === 'university' || (!organizationType && !college)) {
+        updatePayload.college = organization;
+      }
+    }
+    if (organizationType !== undefined) updatePayload.organizationType = organizationType;
+    if (experienceLevel !== undefined) updatePayload.experienceLevel = experienceLevel;
+    if (yearsOfExperience !== undefined) updatePayload.yearsOfExperience = yearsOfExperience;
+    if (location !== undefined) updatePayload.location = location;
+    if (timezone !== undefined) updatePayload.timezone = timezone;
+    if (preferredRole !== undefined) updatePayload.preferredRole = preferredRole;
+    if (college !== undefined) updatePayload.college = college;
 
     await User.findByIdAndUpdate(userId, updatePayload, { new: true });
 

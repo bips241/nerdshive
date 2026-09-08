@@ -44,6 +44,10 @@ import {
   HackathonEvaluationSchema,
   IHackathonEvaluation,
 } from './entities/hackathon-evaluation.entity';
+import {
+  SquadRequestSchema,
+  ISquadRequest,
+} from './entities/squad-request.entity';
 
 // Re-export entity schemas & types
 export * from './entities/user.entity';
@@ -54,6 +58,7 @@ export * from './entities/server.entity';
 export * from './entities/hackathon.entity';
 export * from './entities/hackathon-registration.entity';
 export * from './entities/hackathon-evaluation.entity';
+export * from './entities/squad-request.entity';
 
 // Initialized Mongoose Models (Singleton registry with explicit Model typing)
 export const User: Model<IUser> =
@@ -109,3 +114,7 @@ export const HackathonRegistration: Model<IHackathonRegistration> =
 export const HackathonEvaluation: Model<IHackathonEvaluation> =
   (mongoose.models?.HackathonEvaluation as Model<IHackathonEvaluation>) ||
   mongoose.model<IHackathonEvaluation>('HackathonEvaluation', HackathonEvaluationSchema);
+
+export const SquadRequest: Model<ISquadRequest> =
+  (mongoose.models?.SquadRequest as Model<ISquadRequest>) ||
+  mongoose.model<ISquadRequest>('SquadRequest', SquadRequestSchema);

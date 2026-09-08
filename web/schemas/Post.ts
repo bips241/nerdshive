@@ -112,6 +112,14 @@ export const UpdateUser = z.object({
   image: z.string().optional(),
   radarStatus: z.enum(['open_for_hackathons', 'seeking_cofounder', 'open_for_collab', 'open_for_work', 'none']).optional(),
   techStack: z.array(z.string()).optional(),
+  organization: z.string().max(80).optional(),
+  organizationType: z.enum(['company', 'university', 'dao', 'independent', 'other']).optional(),
+  experienceLevel: z.enum(['student', 'entry', 'mid', 'senior', 'lead', 'founder']).optional(),
+  yearsOfExperience: z.number().min(0).max(50).optional(),
+  location: z.string().max(80).optional(),
+  timezone: z.string().max(40).optional(),
+  preferredRole: z.string().max(60).optional(),
+  college: z.string().max(80).optional(),
 });
 export const DeleteUser = UserSchema.pick({ id: true });
 export const FollowUser = UserSchema.pick({ id: true });

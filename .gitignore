@@ -50,8 +50,9 @@ tracing/
 *.tsbuildinfo
 next-env.d.ts
 
-# agent logs
-docs/agent-log/
+# documentation
+docs/
+/docs/
 agent-log/
 
 # chaos test traces and reports

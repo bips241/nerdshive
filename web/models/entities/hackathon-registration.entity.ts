@@ -35,6 +35,9 @@ export interface IHackathonRegistration extends Document {
   lookingForSkills?: string[]; // e.g. ['React', 'Figma', 'Open to Beginners']
   lookingForDescription?: string;
   isRecruiting?: boolean;
+  squadServerId?: mongoose.Types.ObjectId;
+  maxSquadSize?: number;
+  rolesNeeded?: string[];
   submissions: IRoundSubmission[];
   isDeleted?: boolean;
   deletedAt?: Date;
@@ -94,6 +97,9 @@ export const HackathonRegistrationSchema: Schema<IHackathonRegistration> = new S
     lookingForSkills: [{ type: String }],
     lookingForDescription: { type: String, default: '' },
     isRecruiting: { type: Boolean, default: false, index: true },
+    squadServerId: { type: Schema.Types.ObjectId, ref: 'Server', index: true },
+    maxSquadSize: { type: Number, default: 4 },
+    rolesNeeded: [{ type: String }],
     submissions: [RoundSubmissionSchema],
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },

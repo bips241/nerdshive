@@ -312,3 +312,58 @@ The platform is fully specified, hardened, and equipped with a complete infrastr
 
 3. **Composite Developer Verification**:
    - Single command runs all 10 gates locally before pushing: `npm run ci:validate`.
+
+---
+
+## 8. Living Platform Architecture & Recent Milestones (2026-09-08)
+
+### 8.1 Simplified Developer Post Model
+- In commit `003fc5e`, the post model was refactored and consolidated from 7 experimental types into **3 focused, production-grade archetypes**:
+  1. `media`: High-resolution developer screenshots, system architecture diagrams, and video demos with code captions.
+  2. `hackathon_crew`: Squad recruitment calls with target track, roles needed/have, commitment level, and private server auto-provisioning.
+  3. `ship_log`: Dev product launch logs with demo URL, repo URL, tech stack badges, and version changelogs.
+- Deprecated types (`poll`, `project`, `goal`, `code_sos`, `architecture_rfc`, `tech_showdown`) were completely excised from UI creation forms and active schemas.
+
+### 8.2 Complete Retirement of Legacy Firebase
+- In commit `711504a`, all legacy Firebase Firestore dependencies, listeners, and mock wrappers (`fireChat.tsx`, `chatList.tsx`, `firebase.ts`) were permanently purged.
+- Direct messaging and squad chat are 100% powered by native **Socket.IO + MongoDB Atlas (`ChatRoom`, `Message`) + Redis pub/sub adapter**.
+
+### 8.3 Stationary Cockpit Rail & 0ms Feed Navigation
+- **Stationary Cockpit Rail (`DashboardCockpitRail.tsx`)**: The main feed scrolls independently while the right rail remains stationary, offering switchable modes: ⚡ Pulse, 💬 Discord & Squad Chat, and 💭 Active Post Discussion.
+- **0ms Instant Feed Switching**: Powered by `FeedTabContext` and `FeedItemWrapper` in `FeedContainer.tsx`, guaranteeing zero React hook execution errors and instant category filtering.
+
+### 8.4 Verified Hackathon Ecosystem & Squad Server Provisioning
+- **Anti-Clone Shield**: Unique slug indexing and backend validation on `HackathonEvent`.
+- **Private Squad Server Auto-Provisioning**: Creating or joining a hackathon squad automatically provisions a private Discord server with `#general`, `#resources`, and `voice:pair-hacking`.
+- **Official Judging Desk & Multi-Round Advancement**: Appointed judges score deliverables (0–10) across custom rubric criteria, with organizers broadcasting qualifying teams stage by stage.
+
+### 8.5 Nerd'sHive Radar: Teammate Discovery & Recruitment Command Center
+- **Enterprise Organization & Universal Discovery**:
+  - Filter across all organization types: **Companies** (`company`), **Universities** (`university`), **DAOs / Web3 Collectives** (`dao`), and **Independent Developers** (`independent`).
+  - Search by specific tech firm (Google, Meta, Microsoft, Amazon), university (MIT, Stanford, IIT Bombay), or Web3 foundation.
+  - Granular **Career Experience Level**: `student`, `entry` (0-2y), `mid` (2-5y), `senior` (5+y), `lead` (Tech Lead / Architect), `founder`.
+  - Filter by **Years of Experience** and **Location / Timezone**.
+- **Verified Competitive Performance Track Record (Proprietary MOAT)**:
+  - Hardened database tracking of competitive milestones:
+    - `hackathonsAttendedCount`: Total verified platform events entered.
+    - `hackathonsWonCount`: Hackathon championship 1st place wins.
+    - `hackathonPodiumsCount`: Top 3 podium finishes.
+    - `reputationScore`: Proprietary competitive score aggregating hackathon victories, debug karma, and accepted problem solutions.
+  - Dedicated **"🏆 Winners Track Record"** filter toggle to instantly surface battle-tested tournament champions.
+- **Registration Status Segmentation**:
+  - `registered_free_agents`: Signed up as solo hackers looking for a squad for the selected hackathon.
+  - `unregistered_community`: High-karma and verified champion platform developers not yet registered, to discover and invite.
+  - `recruiting_squads`: Active squads looking for specific roles and skills.
+- **Dual-Sided Recruitment Control Panel**:
+  - Availability & Occupancy toggles: `acceptingRequests` (ON/OFF) and `occupancyStatus` ('open' vs 'occupied').
+  - Received Requests cockpit with real-time deadline countdowns (24h, 48h, 72h), Accept / Decline / Schedule Meeting buttons.
+  - Sent Requests cockpit with status tracking (`pending`, `accepted`, `rejected`, `expired`, `withdrawn`).
+  - Scheduled Meetings calendar with 1-click launch into isolated Radar Vetting Rooms.
+- **Automated Lifecycle State Machine**:
+  - **On Approval / Acceptance**: Candidate is automatically added to `HackathonRegistration.members` AND enrolled into the private squad Discord server (`Server.members` with `#general`, `#resources`, and `voice:pair-hacking`). Marked `occupancyStatus = 'occupied'`. Auto-closes squad recruitment if capacity reached.
+  - **On Rejection**: Automatically sets `status = 'rejected'`, notifies candidate, and clears candidate from the active review queue.
+- **Live Radar Vetting Room**: Isolated P2P WebRTC audio/video call with side-by-side Candidate Proof-of-Work Matrix vs Squad Dossier, and 1-click **"⚡ Approve & Add to Core Squad"** action.
+
+### 8.6 Workspace Rules & Living Documentation Contract
+- Non-negotiable workspace rules established in `.agents/rules/workspace-rules.md`, `AGENTS.md`, and `GEMINI.md`.
+- Living sync invariant: All `.md` documents must be updated in tandem with any code or schema evolution.

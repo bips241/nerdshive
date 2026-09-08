@@ -974,6 +974,25 @@ export async function publishRoundResultsAction(
         { _id: { $in: advancingRegistrationIds }, hackathonId: event._id },
         { currentRound: roundNumber + 1, isAdvancedToNextRound: true }
       );
+
+      // If final round, update performance track record (Hackathon Winners)
+      const totalRounds = event.rounds?.length || 1;
+      if (roundNumber >= totalRounds) {
+        const winningTeams = await HackathonRegistration.find({
+          _id: { $in: advancingRegistrationIds },
+        }).lean();
+
+        const winnerUserIds = winningTeams.flatMap((t: any) =>
+          (t.members || []).map((m: any) => m.user)
+        );
+
+        if (winnerUserIds.length > 0) {
+          await User.updateMany(
+            { _id: { $in: winnerUserIds } },
+            { $inc: { hackathonsWonCount: 1, hackathonPodiumsCount: 1, debugKarma: 100 } }
+          );
+        }
+      }
     }
 
     // 3. Increment current round of hackathon if next round exists
