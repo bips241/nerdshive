@@ -18,6 +18,11 @@ import {
   getOrCreateDirectChatRoomAction,
   sendDirectMessageAction,
 } from '@/lib/chat-actions';
+import {
+  getUserSocialGraph,
+  computeCandidateAffinityScore,
+  getPeopleYouMightKnow,
+} from '@/lib/social-graph';
 import { revalidatePath } from 'next/cache';
 import mongoose from 'mongoose';
 
@@ -191,16 +196,26 @@ export async function searchGranularCandidatesAction(filters: {
   const currentUserId = session?.user?._id?.toString();
 
   try {
-    const event = await HackathonEvent.findOne({
-      slug: filters.hackathonSlug.toLowerCase(),
+    let event = await HackathonEvent.findOne({
+      slug: (filters.hackathonSlug || '').toLowerCase(),
       isDeleted: { $ne: true },
     }).lean();
 
     if (!event) {
-      return { failure: 'Hackathon event not found' };
+      event = await HackathonEvent.findOne({ isDeleted: { $ne: true } }).lean();
     }
 
     const statusFilter = filters.registrationStatus || 'all';
+
+    let graph = null;
+    if (currentUserId) {
+      try {
+        graph = await getUserSocialGraph(currentUserId);
+      } catch (graphErr) {
+        console.error('Failed to load social graph for candidate search:', graphErr);
+      }
+    }
+
     const targetOrg = filters.organization?.trim() || filters.college?.trim();
     const orgRegex = targetOrg ? new RegExp(targetOrg, 'i') : null;
     const orgType = filters.organizationType && filters.organizationType !== 'all' ? filters.organizationType : null;
@@ -301,7 +316,7 @@ export async function searchGranularCandidatesAction(filters: {
       const userQuery: any = {
         _id: { $nin: Array.from(registeredUserIds).map((id) => new mongoose.Types.ObjectId(id)) },
         isDeleted: { $ne: true },
-        accountStatus: 'active',
+        accountStatus: { $ne: 'deleted' },
       };
 
       if (currentUserId) {
@@ -383,6 +398,37 @@ export async function searchGranularCandidatesAction(filters: {
       }
     }
 
+    // Score each candidate against the 5-Tier Social Graph Model
+    for (const cand of candidates) {
+      const affinity = computeCandidateAffinityScore(graph, cand);
+      cand.connectionDegree = affinity.degree;
+      cand.affinityScore = affinity.score;
+      cand.affinityReason = affinity.reason;
+      cand.mutualConnectionsCount = affinity.mutualCount;
+    }
+
+    // Rank candidates by connection affinity score first (1st -> 2nd -> 3rd -> 4th -> 5th degree)
+    candidates.sort((a, b) => {
+      if ((b.affinityScore || 0) !== (a.affinityScore || 0)) {
+        return (b.affinityScore || 0) - (a.affinityScore || 0);
+      }
+      if ((b.hackathonsWonCount || 0) !== (a.hackathonsWonCount || 0)) {
+        return (b.hackathonsWonCount || 0) - (a.hackathonsWonCount || 0);
+      }
+      return (b.debugKarma || 0) - (a.debugKarma || 0);
+    });
+
+    // Score and rank squads by squad leader affinity
+    for (const squad of squads) {
+      if (squad.leader) {
+        const affinity = computeCandidateAffinityScore(graph, squad.leader);
+        squad.connectionDegree = affinity.degree;
+        squad.affinityScore = affinity.score;
+        squad.affinityReason = affinity.reason;
+      }
+    }
+    squads.sort((a, b) => (b.affinityScore || 0) - (a.affinityScore || 0));
+
     return {
       success: true,
       hackathon: {
@@ -399,6 +445,22 @@ export async function searchGranularCandidatesAction(filters: {
   } catch (error: any) {
     console.error('Error searching granular candidates:', error);
     return { failure: error.message || 'Failed to search candidates' };
+  }
+}
+
+/**
+ * People You Might Know (PYMK) Action
+ * Predicts high-affinity connection recommendations.
+ */
+export async function getPeopleYouMightKnowAction(limit = 6) {
+  const session = await auth();
+  if (!session?.user?._id) return { success: false, developers: [] };
+  try {
+    const developers = await getPeopleYouMightKnow(session.user._id.toString(), limit);
+    return { success: true, developers };
+  } catch (err: any) {
+    console.error('Error fetching people you might know:', err);
+    return { success: false, developers: [] };
   }
 }
 

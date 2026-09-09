@@ -48,11 +48,11 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
   const isImage = !isVideo;
 
   return (
-    <div className="flex flex-col space-y-2.5">
+    <div id={`post-${posT._id}`} data-post-id={posT._id} className="flex flex-col space-y-2.5">
       <div className="flex items-center justify-between px-3 sm:px-0">
         <div className="flex space-x-3 items-center">
-          <Link href={`/dashboard/user/${username}`}>
-          <UserAvatar user={user} />
+          <Link href={`/dashboard/user/${username}`} className="shrink-0 inline-block relative">
+            <UserAvatar user={user} />
           </Link>
           <div className="text-sm">
             <p className="space-x-1">
@@ -64,9 +64,15 @@ const Post = async ({ post }: { post: PostWithExtras }) => {
               </span>
               <Timestamp createdAt={post.createdAt} />
             </p>
-            <p className="text-xs text-black dark:text-white font-medium">
-              WestBengal, India
-            </p>
+            {post.recommendationReason ? (
+              <p className="text-[10px] text-emerald-400 font-medium pt-0.5">
+                ✨ {post.recommendationReason}
+              </p>
+            ) : (post.userId as any)?.location ? (
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                {(post.userId as any).location}
+              </p>
+            ) : null}
           </div>
         </div>
 

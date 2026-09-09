@@ -155,7 +155,7 @@ export default async function ExplorePage({
                       </div>
 
                       {daysLeft !== null && (
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
+                        <span suppressHydrationWarning className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
                           {daysLeft}d left
                         </span>
                       )}

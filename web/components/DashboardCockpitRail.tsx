@@ -23,6 +23,7 @@ import { Input } from './ui/input';
 import { useFeed, CockpitTab } from './FeedProvider';
 import UserAvatar from './UserAvatar';
 import { getUserServers, getChannelMessages, sendChannelMessageAction } from '@/lib/chat-actions';
+import { getPeopleYouMightKnowAction } from '@/lib/radar-actions';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -81,6 +82,7 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
   const [showCodeBox, setShowCodeBox] = useState(false);
   const [codeSnippet, setCodeSnippet] = useState('');
   const [codeLanguage, setCodeLanguage] = useState('typescript');
+  const [suggestedDevs, setSuggestedDevs] = useState<any[]>([]);
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -102,6 +104,25 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
       }
     }
     loadServers();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Load People You Might Know (PYMK) for Cockpit Rail
+  useEffect(() => {
+    let isMounted = true;
+    async function loadPYMK() {
+      try {
+        const res = await getPeopleYouMightKnowAction(4);
+        if (isMounted && res.success && res.developers) {
+          setSuggestedDevs(res.developers);
+        }
+      } catch (err) {
+        console.error('Failed to load PYMK in cockpit rail:', err);
+      }
+    }
+    loadPYMK();
     return () => {
       isMounted = false;
     };
@@ -326,6 +347,60 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
             </div>
           </div>
 
+          {/* People You Might Know (PYMK) */}
+          {suggestedDevs.length > 0 && (
+            <div className="rounded-xl border border-border/70 bg-secondary/15 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    People You Might Know
+                  </h4>
+                </div>
+                <Link
+                  href="/dashboard/search"
+                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                >
+                  Explore
+                  <ArrowRight className="w-2.5 h-2.5" />
+                </Link>
+              </div>
+
+              <div className="space-y-2">
+                {suggestedDevs.slice(0, 3).map((dev) => (
+                  <div
+                    key={dev._id}
+                    className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                  >
+                    <Link
+                      href={`/dashboard/user/${dev.user_name}`}
+                      className="flex items-center gap-2 min-w-0 flex-1"
+                    >
+                      <UserAvatar user={dev} className="w-7 h-7 rounded-lg" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-foreground truncate hover:underline">
+                          {dev.name || dev.user_name}
+                        </p>
+                        <p className="text-[10px] text-emerald-400 truncate">
+                          {dev.reason || (dev.college || dev.organization || 'Developer')}
+                        </p>
+                      </div>
+                    </Link>
+                    <Link href={`/dashboard/user/${dev.user_name}`}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+                      >
+                        View
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Developer Action Hub */}
           <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 space-y-2">
             <div className="flex items-center justify-between">
@@ -476,7 +551,7 @@ export default function DashboardCockpitRail({ currentUser }: DashboardCockpitRa
                         <span className={`font-semibold text-[11px] ${isMe ? 'text-primary' : 'text-foreground'}`}>
                           {senderName}
                         </span>
-                        <span className="text-[9px] text-muted-foreground/60">
+                        <span suppressHydrationWarning className="text-[9px] text-muted-foreground/60">
                           {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                       </div>

@@ -8,6 +8,7 @@ import { auth } from '@/auth';
 import Link from 'next/link';
 import { Search as SearchIcon, Users, Globe, GitFork, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { getPeopleYouMightKnow } from '@/lib/social-graph';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,17 +32,32 @@ export default async function SearchPage({
         { bio: { $regex: queryText, $options: 'i' } },
         { website: { $regex: queryText, $options: 'i' } },
         { repo: { $regex: queryText, $options: 'i' } },
+        { organization: { $regex: queryText, $options: 'i' } },
+        { college: { $regex: queryText, $options: 'i' } },
       ],
-      isVerified: true,
+      isDeleted: { $ne: true },
+      accountStatus: { $ne: 'deleted' },
     })
-      .select('user_name bio image gender website repo')
+      .select('user_name bio image gender website repo organization college location')
       .limit(30)
       .lean();
+  } else if (currentUserId) {
+    // Personalized People You Might Know (PYMK) recommendation
+    try {
+      users = await getPeopleYouMightKnow(currentUserId, 12);
+    } catch (e) {
+      console.error('Error fetching PYMK for search page:', e);
+      users = await User.find({ isDeleted: { $ne: true }, accountStatus: { $ne: 'deleted' } })
+        .select('user_name bio image gender website repo organization college location')
+        .sort({ hackathonsWonCount: -1, createdAt: -1 })
+        .limit(12)
+        .lean();
+    }
   } else {
-    // Default discovery: latest registered developers
-    users = await User.find({ isVerified: true })
-      .select('user_name bio image gender website repo')
-      .sort({ createdAt: -1 })
+    // Unauthenticated fallback
+    users = await User.find({ isDeleted: { $ne: true }, accountStatus: { $ne: 'deleted' } })
+      .select('user_name bio image gender website repo organization college location')
+      .sort({ hackathonsWonCount: -1, createdAt: -1 })
       .limit(12)
       .lean();
   }
@@ -73,8 +89,8 @@ export default async function SearchPage({
 
       {/* Results Header */}
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-          {queryText ? `Search Results for "${queryText}" (${users.length})` : 'Suggested Developers'}
+        <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1.5">
+          {queryText ? `Search Results for "${queryText}" (${users.length})` : '✨ People You Might Know'}
         </span>
       </div>
 
@@ -102,10 +118,17 @@ export default async function SearchPage({
                   className="flex items-start gap-3 flex-1 group"
                 >
                   <UserAvatar user={user} className="h-12 w-12" />
-                  <div className="space-y-1 flex-1">
-                    <p className="text-sm font-bold group-hover:underline text-foreground">
-                      {user.user_name}
-                    </p>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-bold group-hover:underline text-foreground">
+                        {user.user_name}
+                      </p>
+                      {user.reason && (
+                        <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">
+                          ✨ {user.reason}
+                        </span>
+                      )}
+                    </div>
                     {user.bio ? (
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {user.bio}

@@ -96,6 +96,8 @@ function Comments({
               <FormItem className="w-full flex">
                 <FormControl>
                   <input
+                    id={`comment-input-${postId}`}
+                    data-post-id={postId}
                     type="text"
                     placeholder="Add a comment..."
                     className="bg-transparent text-sm border-none focus:outline-none flex-1 placeholder-neutral-500 dark:text-white dark:placeholder-neutral-400 font-medium"

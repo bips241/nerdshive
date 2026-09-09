@@ -10,6 +10,7 @@ import UserAvatar from '@/components/UserAvatar';
 import Timestamp from '@/components/Timestamp';
 import BookmarkButton from '@/components/BookmarkButton';
 import { redirect } from 'next/navigation';
+import { formatDisplayDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -214,8 +215,8 @@ export default async function SavedPostsPage({
                         🎯 {post.goal?.description}
                       </h3>
                       {post.goal?.goalTargetDate && (
-                        <p className="text-xs text-muted-foreground">
-                          Target: {new Date(post.goal.goalTargetDate).toLocaleDateString()}
+                        <p suppressHydrationWarning className="text-xs text-muted-foreground">
+                          Target: {formatDisplayDate(post.goal.goalTargetDate)}
                         </p>
                       )}
                     </>

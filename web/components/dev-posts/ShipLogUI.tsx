@@ -42,11 +42,11 @@ const ShipLogUI: React.FC<ShipLogUIProps> = async ({ post }) => {
   );
 
   return (
-    <div className="flex flex-col space-y-2.5 max-w-2xl mx-auto w-full">
+    <div id={`post-${post._id}`} data-post-id={post._id} className="flex flex-col space-y-2.5 max-w-2xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-center justify-between px-3 sm:px-0">
         <div className="flex space-x-3 items-center">
-          <Link href={`/dashboard/user/${username}`}>
+          <Link href={`/dashboard/user/${username}`} className="shrink-0 inline-block relative">
             <UserAvatar user={user} />
           </Link>
           <div className="text-sm">
@@ -61,6 +61,11 @@ const ShipLogUI: React.FC<ShipLogUIProps> = async ({ post }) => {
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                 <Rocket className="h-3 w-3" /> Ship Log & Launch
               </span>
+              {post.recommendationReason && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-300 border border-zinc-700/60">
+                  ✨ {post.recommendationReason}
+                </span>
+              )}
             </div>
           </div>
         </div>

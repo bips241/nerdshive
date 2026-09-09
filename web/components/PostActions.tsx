@@ -27,16 +27,13 @@ function PostActions({ post, userId, className }: Props) {
   return (
     <div className={cn("relative flex items-start w-full gap-x-2", className)}>
       <LikeButton post={post} userId={userId} />
-      <button
+      <ActionIcon
         onClick={handleCommentClick}
-        type="button"
         className="focus:outline-none cursor-pointer"
         title="View Comments & Discussion"
       >
-        <ActionIcon>
-          <MessageCircle className="h-6 w-6" />
-        </ActionIcon>
-      </button>
+        <MessageCircle className="h-6 w-6" />
+      </ActionIcon>
       <ShareButton postId={post._id} />
       <BookmarkButton post={post} userId={userId} />
     </div>

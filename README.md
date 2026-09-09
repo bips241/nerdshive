@@ -6,7 +6,7 @@
 [![Redis 7](https://img.shields.io/badge/Redis-7%20Streams%20%26%20Queues-DC382D?logo=redis)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker)](https://www.docker.com/)
 
-An enterprise-grade developer platform featuring **Real-Time Developer Radar (`/dashboard/radar`)**, **Verified Hackathon Management**, **Private Discord-Style Squad Servers (`voice:pair-hacking`)**, **Stationary Cockpit Rail with Pulse & Chat**, **Simplified Developer Post Archetypes (`media`, `hackathon_crew`, `ship_log`)**, and **Direct-to-S3 Resilient Media Streaming**.
+An enterprise-grade developer platform featuring **5-Tier Social Graph Affinity Ranking & Single-Stream Personalized Feed (Meta/LinkedIn Parity)**, **Real-Time Developer Radar (`/dashboard/radar`)**, **People You Might Know (PYMK) Discovery Engine**, **Verified Hackathon Management**, **Private Discord-Style Squad Servers (`voice:pair-hacking`)**, **Stationary Cockpit Rail with Pulse & Chat**, **Simplified Developer Post Archetypes (`media`, `hackathon_crew`, `ship_log`)**, and **Direct-to-S3 Resilient Media Streaming**.
 
 ---
 

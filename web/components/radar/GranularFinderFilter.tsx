@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import {
   Search,
@@ -23,6 +21,10 @@ import {
   Award,
   Briefcase,
   RotateCcw,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +60,10 @@ export interface CandidateCard {
   registrationId?: string;
   squadRole?: string;
   trackPreference?: string;
+  connectionDegree?: 1 | 2 | 3 | 4 | 5;
+  affinityScore?: number;
+  affinityReason?: string;
+  mutualConnectionsCount?: number;
 }
 
 export interface SquadCard {
@@ -103,30 +109,11 @@ interface Props {
   isUserLeader: boolean;
 }
 
-const POPULAR_ORGANIZATIONS = [
-  'All Organizations',
-  'Google',
-  'Microsoft',
-  'Meta',
-  'Amazon',
-  'Apple',
-  'Stanford University',
-  'MIT',
-  'UC Berkeley',
-  'IIT Bombay',
-  'IIT Delhi',
-  'Carnegie Mellon',
-  'Harvard',
-  'Superteam DAO',
-  'Ethereum Foundation',
-  'Solana Foundation',
-];
-
 const ORGANIZATION_TYPES = [
-  { value: 'all', label: 'All Org Types' },
+  { value: 'all', label: 'All Types' },
   { value: 'company', label: '🏢 Companies' },
   { value: 'university', label: '🎓 Universities' },
-  { value: 'dao', label: '🌐 DAOs / Web3' },
+  { value: 'dao', label: '🌐 DAOs' },
   { value: 'independent', label: '⚡ Independent' },
 ];
 
@@ -163,6 +150,7 @@ export default function GranularFinderFilter({
   onConnectDM,
   isUserLeader,
 }: Props) {
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'registered_free_agents' | 'unregistered_community' | 'recruiting_squads'>('all');
   const [organization, setOrganization] = useState('');
   const [organizationType, setOrganizationType] = useState<string>('all');
@@ -171,6 +159,16 @@ export default function GranularFinderFilter({
   const [location, setLocation] = useState('');
   const [role, setRole] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const activeFiltersCount =
+    (organization ? 1 : 0) +
+    (organizationType !== 'all' ? 1 : 0) +
+    (experienceLevel !== 'all' ? 1 : 0) +
+    (location ? 1 : 0) +
+    (role ? 1 : 0) +
+    (onlyWinners ? 1 : 0);
+
+  const hasAnyFilter = activeFiltersCount > 0 || searchQuery.trim() !== '' || statusFilter !== 'all';
 
   const handleApplyFilters = (
     newStatus = statusFilter,
@@ -195,27 +193,61 @@ export default function GranularFinderFilter({
     });
   };
 
+  const handleResetAll = () => {
+    setOrganization('');
+    setOrganizationType('all');
+    setExperienceLevel('all');
+    setOnlyWinners(false);
+    setLocation('');
+    setRole('');
+    setSearchQuery('');
+    setStatusFilter('all');
+    handleApplyFilters('all', '', 'all', 'all', false, '', '', '');
+  };
+
+  const handleRemoveFilter = (key: string) => {
+    if (key === 'organization') {
+      setOrganization('');
+      handleApplyFilters(statusFilter, '', organizationType, experienceLevel, onlyWinners, location, role, searchQuery);
+    } else if (key === 'organizationType') {
+      setOrganizationType('all');
+      handleApplyFilters(statusFilter, organization, 'all', experienceLevel, onlyWinners, location, role, searchQuery);
+    } else if (key === 'experienceLevel') {
+      setExperienceLevel('all');
+      handleApplyFilters(statusFilter, organization, organizationType, 'all', onlyWinners, location, role, searchQuery);
+    } else if (key === 'location') {
+      setLocation('');
+      handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, '', role, searchQuery);
+    } else if (key === 'role') {
+      setRole('');
+      handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, location, '', searchQuery);
+    } else if (key === 'onlyWinners') {
+      setOnlyWinners(false);
+      handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, false, location, role, searchQuery);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* 1. Header & Quick Summary */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-zinc-900/60 border border-zinc-800 p-5 rounded-2xl backdrop-blur-xl">
+    <div className="space-y-4">
+      {/* 1. Header & Category Tabs */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-zinc-900/60 border border-zinc-800/80 p-4 sm:p-5 rounded-2xl backdrop-blur-xl">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
               Granular Teammate Radar
             </h2>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-0.5">
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[11px] px-2 py-0.5">
               Live Verified Network
             </Badge>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Filter developers by specific college, timezone, registration status, and technical competencies.
+            Discover verified teammates, free agents, and recruiting squads with zero noise.
           </p>
         </div>
 
         {/* Status Category Tabs */}
-        <div className="flex flex-wrap gap-1.5 p-1 bg-zinc-950/80 border border-zinc-800 rounded-xl">
+        <div className="flex flex-wrap gap-1 p-1 bg-zinc-950/80 border border-zinc-800 rounded-xl">
           <button
             onClick={() => {
               setStatusFilter('all');
@@ -274,112 +306,61 @@ export default function GranularFinderFilter({
         </div>
       </div>
 
-      {/* 2. Granular Filter Bar */}
-      <div className="space-y-3 bg-zinc-950/80 border border-zinc-800/80 p-4 rounded-2xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Search Query */}
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
+      {/* 2. Sleek Unified Search & Action Bar */}
+      <div className="space-y-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Main Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-zinc-400" />
             <Input
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, location, role, e.target.value);
               }}
-              placeholder="Search name, skills, bio..."
-              className="pl-9 bg-zinc-900/90 border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus-visible:ring-emerald-500/50 h-10"
+              placeholder="Search by name, skills, tech stack, college, or bio..."
+              className="pl-10 pr-8 bg-zinc-900/90 border-zinc-800 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus-visible:ring-emerald-500/50 h-10 rounded-xl"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, location, role, '');
+                }}
+                className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          {/* Organization / Company / University / DAO */}
-          <div className="relative">
-            <Building2 className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
-            <Input
-              value={organization}
-              onChange={(e) => {
-                setOrganization(e.target.value);
-                handleApplyFilters(statusFilter, e.target.value, organizationType, experienceLevel, onlyWinners, location, role, searchQuery);
-              }}
-              placeholder="Company, University, DAO..."
-              className="pl-9 bg-zinc-900/90 border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus-visible:ring-emerald-500/50 h-10"
-            />
-          </div>
+          {/* Granular Filters Toggle Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+            className={`h-10 px-3.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all border shrink-0 ${
+              isFiltersOpen || activeFiltersCount > 0
+                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300 shadow-sm'
+                : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-emerald-500 text-zinc-950 font-bold text-[10px] flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
+            {isFiltersOpen ? (
+              <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+            )}
+          </Button>
 
-          {/* Organization Type Selector */}
-          <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
-            <select
-              value={organizationType}
-              onChange={(e) => {
-                setOrganizationType(e.target.value);
-                handleApplyFilters(statusFilter, organization, e.target.value, experienceLevel, onlyWinners, location, role, searchQuery);
-              }}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-900/90 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 h-10 appearance-none cursor-pointer"
-            >
-              {ORGANIZATION_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Experience Level */}
-          <div className="relative">
-            <Briefcase className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
-            <select
-              value={experienceLevel}
-              onChange={(e) => {
-                setExperienceLevel(e.target.value);
-                handleApplyFilters(statusFilter, organization, organizationType, e.target.value, onlyWinners, location, role, searchQuery);
-              }}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-900/90 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 h-10 appearance-none cursor-pointer"
-            >
-              {EXPERIENCE_LEVELS.map((exp) => (
-                <option key={exp.value} value={exp.value}>
-                  {exp.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Second Row: Location, Role, Hackathon Winners Toggle, and Reset */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-          {/* Place / Timezone */}
-          <div className="relative">
-            <MapPin className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
-            <Input
-              value={location}
-              onChange={(e) => {
-                setLocation(e.target.value);
-                handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, e.target.value, role, searchQuery);
-              }}
-              placeholder="City, Country or UTC timezone..."
-              className="pl-9 bg-zinc-900/90 border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus-visible:ring-emerald-500/50 h-10"
-            />
-          </div>
-
-          {/* Role Filter */}
-          <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
-            <select
-              value={role}
-              onChange={(e) => {
-                setRole(e.target.value);
-                handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, location, e.target.value, searchQuery);
-              }}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-900/90 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 h-10 appearance-none cursor-pointer"
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r === 'All Roles' ? '' : r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Competitive Track Record: Hackathon Winners Only Toggle */}
+          {/* 🏆 Winners Track Record Toggle */}
           <button
             type="button"
             onClick={() => {
@@ -387,37 +368,288 @@ export default function GranularFinderFilter({
               setOnlyWinners(next);
               handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, next, location, role, searchQuery);
             }}
-            className={`h-10 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all border ${
+            className={`h-10 px-3.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border shrink-0 ${
               onlyWinners
                 ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                : 'bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
             }`}
           >
-            <Trophy className={`w-4 h-4 ${onlyWinners ? 'text-amber-400 fill-amber-400/30' : 'text-zinc-500'}`} />
-            <span>🏆 Winners Track Record</span>
+            <Trophy className={`w-3.5 h-3.5 ${onlyWinners ? 'text-amber-400 fill-amber-400/30' : 'text-zinc-500'}`} />
+            <span>🏆 Winners Only</span>
           </button>
 
-          {/* Reset Filters */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setOrganization('');
-              setOrganizationType('all');
-              setExperienceLevel('all');
-              setOnlyWinners(false);
-              setLocation('');
-              setRole('');
-              setSearchQuery('');
-              setStatusFilter('all');
-              handleApplyFilters('all', '', 'all', 'all', false, '', '', '');
-            }}
-            className="h-10 border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs flex items-center justify-center gap-1.5 rounded-lg"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset All Filters
-          </Button>
+          {/* Reset Filters Shortcut */}
+          {hasAnyFilter && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetAll}
+              className="h-10 px-3 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs flex items-center justify-center gap-1.5 shrink-0"
+              title="Reset all filters"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Reset</span>
+            </Button>
+          )}
         </div>
+
+        {/* Active Filter Pills Bar (Quick Glance & Dismiss) */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 px-1 py-1">
+            <span className="text-[11px] text-zinc-500 font-medium mr-1">Active Filters:</span>
+            {organization && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 bg-zinc-900 border border-zinc-700 rounded-full text-zinc-200">
+                Org: <strong className="font-semibold">{organization}</strong>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFilter('organization')}
+                  className="hover:text-red-400 ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {organizationType !== 'all' && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 bg-zinc-900 border border-zinc-700 rounded-full text-zinc-200">
+                Type: <strong className="font-semibold">{ORGANIZATION_TYPES.find((t) => t.value === organizationType)?.label}</strong>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFilter('organizationType')}
+                  className="hover:text-red-400 ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {experienceLevel !== 'all' && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 bg-zinc-900 border border-zinc-700 rounded-full text-zinc-200">
+                Level: <strong className="font-semibold">{EXPERIENCE_LEVELS.find((l) => l.value === experienceLevel)?.label}</strong>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFilter('experienceLevel')}
+                  className="hover:text-red-400 ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {role && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 bg-zinc-900 border border-zinc-700 rounded-full text-zinc-200">
+                Role: <strong className="font-semibold">{role}</strong>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFilter('role')}
+                  className="hover:text-red-400 ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {location && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 bg-zinc-900 border border-zinc-700 rounded-full text-zinc-200">
+                Location: <strong className="font-semibold">{location}</strong>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFilter('location')}
+                  className="hover:text-red-400 ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {onlyWinners && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-300">
+                🏆 Winners Track Record
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFilter('onlyWinners')}
+                  className="hover:text-red-400 ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleResetAll}
+              className="text-[11px] text-zinc-500 hover:text-zinc-300 underline ml-2 cursor-pointer"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
+        {/* Collapsible Granular Control Panel (The Command Deck) */}
+        {isFiltersOpen && (
+          <div className="bg-zinc-900/95 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-semibold text-white">Granular Teammate Filters</h3>
+                <span className="text-xs text-zinc-500 hidden sm:inline">· Pinpoint exact developer attributes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {activeFiltersCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleResetAll}
+                    className="text-xs text-zinc-400 hover:text-zinc-200 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-zinc-800 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsFiltersOpen(false)}
+                  className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Row 1: Organization & Alma Mater */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                  Organization / Alma Mater
+                </label>
+                <Input
+                  value={organization}
+                  onChange={(e) => {
+                    setOrganization(e.target.value);
+                    handleApplyFilters(statusFilter, e.target.value, organizationType, experienceLevel, onlyWinners, location, role, searchQuery);
+                  }}
+                  placeholder="e.g. Stanford, Google, IIT Bombay, Superteam..."
+                  className="bg-zinc-950 border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus-visible:ring-emerald-500/50 h-9"
+                />
+                {/* Popular Org Quick Suggestions */}
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {['Stanford', 'MIT', 'Google', 'IIT Bombay', 'Berkeley', 'Meta', 'Superteam'].map((orgName) => (
+                    <button
+                      key={orgName}
+                      type="button"
+                      onClick={() => {
+                        setOrganization(orgName);
+                        handleApplyFilters(statusFilter, orgName, organizationType, experienceLevel, onlyWinners, location, role, searchQuery);
+                      }}
+                      className={`text-[10px] px-2 py-0.5 rounded-md border transition-all ${
+                        organization.toLowerCase() === orgName.toLowerCase()
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                          : 'bg-zinc-950 border-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                      }`}
+                    >
+                      {orgName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-purple-400" />
+                  Organization Type
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {ORGANIZATION_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => {
+                        setOrganizationType(t.value);
+                        handleApplyFilters(statusFilter, organization, t.value, experienceLevel, onlyWinners, location, role, searchQuery);
+                      }}
+                      className={`py-1.5 px-2 rounded-lg text-[11px] font-medium border text-center transition-all ${
+                        organizationType === t.value
+                          ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-semibold shadow-sm'
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: Role, Seniority, Location */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-zinc-800/60">
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-emerald-400" />
+                  Technical Role
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, location, e.target.value, searchQuery);
+                  }}
+                  className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 h-9 cursor-pointer"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r === 'All Roles' ? '' : r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
+                  Seniority & Level
+                </label>
+                <select
+                  value={experienceLevel}
+                  onChange={(e) => {
+                    setExperienceLevel(e.target.value);
+                    handleApplyFilters(statusFilter, organization, organizationType, e.target.value, onlyWinners, location, role, searchQuery);
+                  }}
+                  className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 h-9 cursor-pointer"
+                >
+                  {EXPERIENCE_LEVELS.map((exp) => (
+                    <option key={exp.value} value={exp.value}>
+                      {exp.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                  Location or Timezone
+                </label>
+                <Input
+                  value={location}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    handleApplyFilters(statusFilter, organization, organizationType, experienceLevel, onlyWinners, e.target.value, role, searchQuery);
+                  }}
+                  placeholder="e.g. San Francisco, Tokyo, UTC+5..."
+                  className="bg-zinc-950 border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus-visible:ring-emerald-500/50 h-9"
+                />
+              </div>
+            </div>
+
+            {/* Panel Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80 text-xs">
+              <span className="text-zinc-400">
+                Found <strong className="text-white">{candidates.length + squads.length}</strong> matching candidates
+              </span>
+              <Button
+                size="sm"
+                onClick={() => setIsFiltersOpen(false)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 h-8 rounded-lg font-semibold"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Results Grid */}
@@ -429,27 +661,18 @@ export default function GranularFinderFilter({
       ) : candidates.length === 0 && squads.length === 0 ? (
         <div className="py-16 text-center bg-zinc-900/30 border border-zinc-800/60 rounded-2xl p-8">
           <Users className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-white">No candidates match this filter combination</h3>
+          <h3 className="text-base font-semibold text-white">No candidates match your current filters</h3>
           <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
-            Try broadening your organization, experience level or location query, or switch to "All Discoveries" to view available developers.
+            Try broadening your search or clear filters to see all available developers on the live network.
           </p>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              setOrganization('');
-              setOrganizationType('all');
-              setExperienceLevel('all');
-              setOnlyWinners(false);
-              setLocation('');
-              setRole('');
-              setSearchQuery('');
-              setStatusFilter('all');
-              handleApplyFilters('all', '', 'all', 'all', false, '', '', '');
-            }}
-            className="mt-4 border-zinc-700 text-xs"
+            onClick={handleResetAll}
+            className="mt-4 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 text-xs font-semibold"
           >
-            Reset All Filters
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            Show All Discoveries
           </Button>
         </div>
       ) : (
@@ -496,15 +719,37 @@ export default function GranularFinderFilter({
                             </div>
                           </div>
 
-                          {isFreeAgent ? (
-                            <Badge className="bg-cyan-500/10 border-cyan-500/30 text-cyan-300 text-[10px] px-2 py-0.5 font-medium whitespace-nowrap">
-                              ⚡ Free Agent
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-purple-500/10 border-purple-500/30 text-purple-300 text-[10px] px-2 py-0.5 font-medium whitespace-nowrap">
-                              🌐 Platform Dev
-                            </Badge>
-                          )}
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {isFreeAgent ? (
+                              <Badge className="bg-cyan-500/10 border-cyan-500/30 text-cyan-300 text-[10px] px-2 py-0.5 font-medium whitespace-nowrap">
+                                ⚡ Free Agent
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-purple-500/10 border-purple-500/30 text-purple-300 text-[10px] px-2 py-0.5 font-medium whitespace-nowrap">
+                                🌐 Platform Dev
+                              </Badge>
+                            )}
+                            {c.connectionDegree === 1 && (
+                              <span className="inline-flex items-center text-[10px] font-semibold text-emerald-400">
+                                1st Degree
+                              </span>
+                            )}
+                            {c.connectionDegree === 2 && (
+                              <span className="inline-flex items-center text-[10px] font-semibold text-cyan-400">
+                                2nd Degree{c.mutualConnectionsCount ? ` · ${c.mutualConnectionsCount} mutual` : ''}
+                              </span>
+                            )}
+                            {c.connectionDegree === 3 && c.affinityReason && (
+                              <span className="inline-flex items-center text-[10px] font-medium text-purple-300">
+                                {c.affinityReason}
+                              </span>
+                            )}
+                            {c.connectionDegree === 4 && (
+                              <span className="inline-flex items-center text-[10px] font-medium text-amber-300/80">
+                                Timezone Match
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Metadata Pills: Organization/Company/University, Location, Role */}

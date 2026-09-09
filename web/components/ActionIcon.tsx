@@ -7,7 +7,7 @@ type Props = Partial<ButtonProps> & {
 function ActionIcon({ children, ...buttonProps }: Props) {
   return (
     <Button
-      type="submit"
+      type="button"
       variant={"ghost"}
       size={"icon"}
       className="h-9 w-9"

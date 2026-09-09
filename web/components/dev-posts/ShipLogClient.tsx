@@ -18,6 +18,7 @@ import { toggleShipLogAlphaTester, appendShipLogChangelog } from '@/lib/actions'
 import { toast } from 'sonner';
 import Link from 'next/link';
 import UserAvatar from '../UserAvatar';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface ChangelogItem {
   version: string;
@@ -117,18 +118,40 @@ export default function ShipLogClient({
   };
 
   const handleFocusFeedback = (tag: string) => {
-    const commentInputs = document.querySelectorAll('input[placeholder="Add a comment..."]');
-    if (commentInputs.length > 0) {
-      const targetInput = commentInputs[commentInputs.length - 1] as HTMLInputElement;
+    // Specifically target the comment input belonging to this post!
+    let targetInput = (
+      document.querySelector(`input[data-post-id="${postId}"]`) ||
+      document.getElementById(`comment-input-${postId}`)
+    ) as HTMLInputElement | null;
+
+    if (!targetInput) {
+      const container = document.getElementById(`post-${postId}`) || document.querySelector(`[data-post-id="${postId}"]`);
+      if (container) {
+        targetInput = container.querySelector('input[placeholder="Add a comment..."]') as HTMLInputElement | null;
+      }
+    }
+
+    if (targetInput) {
       targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       targetInput.focus();
       const prefix = `[${tag}] `;
       if (!targetInput.value.startsWith(prefix)) {
-        targetInput.value = prefix;
-        // Dispatch synthetic input event for react-hook-form
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          'value'
+        )?.set;
+        if (nativeInputValueSetter) {
+          nativeInputValueSetter.call(targetInput, prefix);
+        } else {
+          targetInput.value = prefix;
+        }
+        // Dispatch synthetic input and change events for react-hook-form
         targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
       }
       toast.info(`Prompted comment with [${tag}]. Enter your critique below!`);
+    } else {
+      toast.error('Could not find comment box for this post');
     }
   };
 
@@ -238,8 +261,8 @@ export default function ShipLogClient({
                   <span className="font-mono font-bold text-foreground bg-secondary px-1.5 py-0.5 rounded text-[11px]">
                     {entry.version}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {new Date(entry.date).toLocaleDateString()}
+                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground">
+                    {formatDisplayDate(entry.date)}
                   </span>
                 </div>
                 <p className="text-muted-foreground leading-relaxed pt-0.5">{entry.note}</p>

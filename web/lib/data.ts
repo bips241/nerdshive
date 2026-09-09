@@ -4,6 +4,7 @@ import {User,Post,Comment,Like,SavedPost} from '../models/User';
 import connectDB from './db';
 import { auth } from "@/auth";
 import { getUserId } from "./getSession";
+import { getUserSocialGraph, computePostFeedScore } from './social-graph';
 
 export async function fetchPosts(limit = 20) {
   let userId: string | null = null;
@@ -14,14 +15,25 @@ export async function fetchPosts(limit = 20) {
 
   await connectDB();
   try {
-    const posts = await Post.find({ isDeleted: { $ne: true } })
+    // 1. Fetch Social Graph Context if user is authenticated
+    let graph = null;
+    if (userId) {
+      try {
+        graph = await getUserSocialGraph(userId);
+      } catch (graphErr) {
+        console.error('Failed to load social graph for user:', graphErr);
+      }
+    }
+
+    // 2. Fetch candidate posts pool (fetch up to 60 posts to rank intelligently)
+    const rawPosts = await Post.find({ isDeleted: { $ne: true } })
       .select('-__v')
       .populate({
         path: 'comments',
         options: { limit: 5, sort: { createdAt: -1 } },
         populate: {
           path: 'userId',
-          select: 'user_name image name',
+          select: 'user_name image name college organization location bio timezone',
         },
       })
       .populate({
@@ -30,7 +42,7 @@ export async function fetchPosts(limit = 20) {
       })
       .populate({
         path: 'userId',
-        select: 'user_name image name email',
+        select: 'user_name image name email college organization location bio timezone',
       })
       .populate({
         path: 'hackathonCrew.members.user',
@@ -45,8 +57,25 @@ export async function fetchPosts(limit = 20) {
         select: 'user_name image name',
       })
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(60)
       .lean();
+
+    // 3. Score each post using Personalized Gravity Decay Feed Algorithm
+    const scoredPosts = rawPosts.map((post: any) => {
+      const scoring = computePostFeedScore(graph, post);
+      return {
+        ...post,
+        feedScore: scoring.score,
+        connectionDegree: scoring.degree,
+        recommendationReason: scoring.recommendationReason,
+      };
+    });
+
+    // 4. Sort descending by feedScore (1st-degree & high relevance float naturally to top)
+    scoredPosts.sort((a: any, b: any) => (b.feedScore || 0) - (a.feedScore || 0));
+
+    // 5. Slice to requested limit
+    const posts = scoredPosts.slice(0, limit);
 
     return posts.map((post: any) => {
       const likesCount = post.likes?.length || 0;

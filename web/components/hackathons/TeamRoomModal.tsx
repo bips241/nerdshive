@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import UserAvatar from '@/components/UserAvatar';
 import { submitRoundProjectAction } from '@/lib/hackathon-actions';
 import { toast } from 'sonner';
+import { formatDisplayDate } from '@/lib/utils';
 import {
   Users,
   Copy,
@@ -225,8 +226,8 @@ export default function TeamRoomModal({ isOpen, onClose, hackathon, registration
                         <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
                           Round {sub.roundNumber}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          Submitted on {new Date(sub.submittedAt).toLocaleDateString()}
+                        <span suppressHydrationWarning className="text-xs text-muted-foreground">
+                          Submitted on {formatDisplayDate(sub.submittedAt)}
                         </span>
                       </div>
                       <h4 className="text-base font-bold text-neutral-100">{sub.projectTitle}</h4>

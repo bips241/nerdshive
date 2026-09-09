@@ -26,7 +26,7 @@ function Comment({ comment, inputRef }: Props) {
 
   return (
     <div className="group p-3 px-3.5 flex items-start space-x-2.5">
-      <Link href={href}>
+      <Link href={href} className="shrink-0 inline-block relative">
         <UserAvatar user={comment.userId} />
       </Link>
       <div className="space-y-1.5 flex-1 min-w-0">

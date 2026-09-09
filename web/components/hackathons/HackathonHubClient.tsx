@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { formatDisplayDateTime } from '@/lib/utils';
 import {
   Trophy,
   Calendar,
@@ -292,16 +293,9 @@ export default function HackathonHubClient({
               <Clock className="w-3.5 h-3.5 text-purple-400" />
               <span>Submission Deadline</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p suppressHydrationWarning className="text-xs text-muted-foreground">
               {hackathon.submissionDeadline
-                ? new Date(hackathon.submissionDeadline).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
+                ? formatDisplayDateTime(hackathon.submissionDeadline)
                 : 'TBA'}
             </p>
           </div>

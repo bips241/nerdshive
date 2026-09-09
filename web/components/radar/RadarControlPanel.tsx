@@ -464,9 +464,9 @@ export default function RadarControlPanel({
                     <div className="mt-3 p-3 bg-cyan-950/20 border border-cyan-800/40 rounded-xl flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 text-cyan-300">
                         <Calendar className="w-4 h-4" />
-                        <span>
+                        <span suppressHydrationWarning>
                           Proposed Call:{' '}
-                          <strong className="text-white">
+                          <strong suppressHydrationWarning className="text-white">
                             {req.meetingSchedule.scheduledAt
                               ? new Date(req.meetingSchedule.scheduledAt).toLocaleString()
                               : 'TBD'}
@@ -594,9 +594,9 @@ export default function RadarControlPanel({
                     <div className="mt-3.5 p-3 bg-emerald-950/30 border border-emerald-800/40 rounded-xl flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 text-emerald-300">
                         <Video className="w-4 h-4" />
-                        <span>
+                        <span suppressHydrationWarning>
                           Vetting Call Confirmed:{' '}
-                          <strong>
+                          <strong suppressHydrationWarning>
                             {req.meetingSchedule.scheduledAt
                               ? new Date(req.meetingSchedule.scheduledAt).toLocaleString()
                               : 'Scheduled'}
@@ -654,7 +654,7 @@ export default function RadarControlPanel({
                       Squad <span className="text-white font-medium">"{m.teamName}"</span> • Role:{' '}
                       <span className="text-emerald-400 font-medium">{m.role}</span>
                     </p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-cyan-300 font-mono">
+                    <div suppressHydrationWarning className="flex items-center gap-2 mt-2 text-xs text-cyan-300 font-mono">
                       <Clock className="w-3.5 h-3.5" />
                       {m.scheduledAt ? new Date(m.scheduledAt).toLocaleString() : 'Date TBD'} (
                       {m.durationMinutes} mins)

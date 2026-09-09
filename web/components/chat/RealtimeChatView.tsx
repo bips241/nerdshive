@@ -479,7 +479,7 @@ export const RealtimeChatView: React.FC<RealtimeChatViewProps> = ({
                     <span className="font-semibold text-sm text-foreground hover:underline cursor-pointer">
                       {senderName}
                     </span>
-                    <span className="text-[11px] text-muted-foreground font-normal">
+                    <span suppressHydrationWarning className="text-[11px] text-muted-foreground font-normal">
                       {timeString}
                     </span>
                   </div>

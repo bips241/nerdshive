@@ -15,6 +15,7 @@ import { Key, useRef } from "react";
 import MiniPost from "./MiniPost";
 import Comment from "./Comment";
 import Media from "./Media";
+import { formatDisplayDate } from "@/lib/utils";
 
 function PostView({ id, post, isImage }: { id: string; post: any; isImage?: boolean }) {
   const pathname = usePathname();
@@ -83,12 +84,8 @@ function PostView({ id, post, isImage }: { id: string; post: any; isImage?: bool
           {/* Actions & Timestamp */}
           <div className="border-t border-border px-4 py-2.5 space-y-1 shrink-0 bg-card">
             <PostActions post={post} userId={userId} />
-            <time className="text-[10px] uppercase text-muted-foreground font-medium block">
-              {new Date(post.createdAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+            <time suppressHydrationWarning className="text-[10px] uppercase text-muted-foreground font-medium block">
+              {formatDisplayDate(post.createdAt)}
             </time>
           </div>
 

@@ -34,7 +34,8 @@
     "test:rbac": "node tests/security/rbac-bypass-proof-test.js",
     "test:hackathon": "node tests/integration/hackathon-ecosystem-test.js",
     "test:rooms": "node tests/chat/segregated-video-rooms-test.js",
-    "test:all": "npm run test:schema && npm run test:retention && npm run test:rbac && npm run test:hackathon && npm run test:rooms",
+    "test:social-graph": "node tests/social-graph/social-graph-ranking-test.js",
+    "test:all": "npm run test:schema && npm run test:social-graph && npm run test:retention && npm run test:rbac && npm run test:hackathon && npm run test:rooms",
     "env:check": "node scripts/infra/validate-env.js",
     "ci:validate": "npm run lint && npm run env:check && npm run test:all && npm run build"
   },

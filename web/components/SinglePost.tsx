@@ -13,6 +13,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { fetchPostById } from "@/lib/data";
 import Image from "next/image";
+import { formatDisplayDate } from "@/lib/utils";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "./ui/card";
@@ -115,11 +116,8 @@ async function SinglePost({ id }: { id: string }) {
 
           <div className="px-2 hidden md:block mt-auto border-y p-2.5">
             <PostActions post={posT} userId={userId} />
-            <time className="text-[11px] uppercase text-zinc-500 font-medium block pt-1">
-              {new Date(posT.createdAt).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-              })}
+            <time suppressHydrationWarning className="text-[11px] uppercase text-zinc-500 font-medium block pt-1">
+              {formatDisplayDate(posT.createdAt)}
             </time>
           </div>
           <CommentForm postId={posT._id} className="hidden md:inline-flex" />

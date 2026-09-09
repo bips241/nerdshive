@@ -60,6 +60,8 @@ function CommentForm({
               <FormItem className="w-full flex">
                 <FormControl>
                   <input
+                    id={`comment-input-${postId}`}
+                    data-post-id={postId}
                     disabled={isSubmitting}
                     type="text"
                     placeholder="Add a comment..."
